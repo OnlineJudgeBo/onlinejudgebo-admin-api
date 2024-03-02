@@ -7,17 +7,17 @@ namespace OnlineJudgeAdmin.Pages
 {
 public class IndexModel : PageModel
 {
-    private readonly IUsersRepository _usersRepository;
+    //private readonly IUsersRepository _usersRepository;
 
-    public IndexModel(IUsersRepository usersRepository)
+   /* public IndexModel(IUsersRepository usersRepository)
     {
         _usersRepository = usersRepository;
-    }
+    }*/
 
     public async Task OnGetAsync()
     {
-        var users = await _usersRepository.GetAllUsersAsync();
-        var f = 1;
+        //var users = await _usersRepository.GetAllUsersAsync();
+        //var f = 1;
     }
 }
 }

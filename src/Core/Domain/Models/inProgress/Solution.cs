@@ -1,13 +1,11 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace OnlineJudgeAdmin.Infrastructure.Database.EntityObjects;
-[Table("solutions")]
+namespace OnlineJudgeAdmin.Core.Domain.Models;
 
-public class DbSolution
+public class Solution
 {
 
-    [Key]
     public int SolutionId { get; set; }
     public int ProblemId { get; set; }
     public string UserId { get; set; }
@@ -23,11 +21,7 @@ public class DbSolution
     public int CodeLength { get; set; }
     public DateTime? JudgeTime { get; set; }
     public decimal PassRate { get; set; }
-
-    [ForeignKey("UserId")]
-    public virtual required DbUser User { get; set; }
-    [ForeignKey("ProblemId")]
-    public virtual required DbProblem Problem { get; set; }
-    [ForeignKey("ContestId")]
-    public virtual required DbContest Contest { get; set; }
+    public virtual User User { get; set; }
+    public virtual Problem Problem { get; set; }
+    public virtual Contest Contest { get; set; }
 }

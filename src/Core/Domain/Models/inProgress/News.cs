@@ -1,33 +1,24 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace OnlineJudgeAdmin.Infrastructure.Database.EntityObjects;
+namespace OnlineJudgeAdmin.Core.Domain.Models;
 
-[Table("news")]
 
-public class DbNews
+public class News
 {
-    [Key]
     public int NewsId { get; set; }
 
-    [Required]
     public string UserId { get; set; }
 
-    [Required]
-    [MaxLength(200)]
     public string Title { get; set; }
 
-    [Required]
     public string Content { get; set; }
 
     public DateTime Time { get; set; }
 
     public int Importance { get; set; }
 
-    [Required]
-    [MaxLength(1)]
-    public required string Defunct { get; set; }
+    public string Defunct { get; set; }
 
-    [ForeignKey("UserId")]
-    public virtual required DbUser User { get; set; }
+    public virtual User User { get; set; }
 }

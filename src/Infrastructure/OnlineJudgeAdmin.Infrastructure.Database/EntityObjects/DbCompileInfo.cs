@@ -11,5 +11,5 @@ public class DbCompileInfo
     public int SolutionId { get; set; }
 
     [Column("error", TypeName = "text")]
-    public string Error { get; set; }
+    public required string Error { get; set; }
 }

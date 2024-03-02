@@ -8,14 +8,14 @@ public class DbUserRole
 {
     [Key, Column(Order = 0)]
     [MaxLength(48)]
-    public string UserId { get; set; }
+    public required string UserId { get; set; }
 
     [Key, Column(Order = 1)]
     public int RoleId { get; set; }
 
     [ForeignKey("UserId")]
-    public virtual DbUser User { get; set; }
+    public virtual required DbUser User { get; set; }
 
     [ForeignKey("RoleId")]
-    public virtual DbRole Role { get; set; }
+    public virtual required DbRole Role { get; set; }
 }

@@ -7,6 +7,7 @@ using OnlineJudgeAdmin.Infrastructure.Database.Implementations;
 using OnlineJudgeAdmin.Infrastructure.Database;
 using System;
 using System.Reflection;
+using OnlineJudgeAdmin.Core.Domain.Models;
 
 namespace OnlineJudgeAdmin.Core.Application.Validators.DependencyInjection
 {
@@ -15,7 +16,7 @@ namespace OnlineJudgeAdmin.Core.Application.Validators.DependencyInjection
         public static IServiceCollection AddDatabaseRepositories(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddAutoMapper(Assembly.GetExecutingAssembly());
-            services.AddScoped<IUsersRepository, UsersRepository>(); 
+            services.AddScoped<IProblemRepository, ProblemRepository>(); 
             services.AddMysqlClient(configuration);
 
             return services;

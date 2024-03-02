@@ -6,7 +6,7 @@ namespace OnlineJudgeAdmin.Infrastructure.Database;
 
 public class AppDbContext : DbContext
 {
-    public DbSet<DbUser> users { get; set; }
+    public DbSet<DbProblem> problems { get; set; }
 
     public AppDbContext(DbContextOptions<AppDbContext> options)
          : base(options)

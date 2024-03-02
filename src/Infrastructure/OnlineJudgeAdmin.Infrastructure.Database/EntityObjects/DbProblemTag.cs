@@ -13,8 +13,8 @@ public class DbProblemTag
     public int TagId { get; set; }
 
     [ForeignKey("ProblemId")]
-    public virtual DbProblem Problem { get; set; }
+    public virtual required DbProblem Problem { get; set; }
 
     [ForeignKey("TagId")]
-    public virtual DbTag Tag { get; set; }
+    public virtual required DbTag Tag { get; set; }
 }
