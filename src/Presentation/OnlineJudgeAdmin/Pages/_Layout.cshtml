@@ -1,0 +1,27 @@
+﻿@using Microsoft.AspNetCore.Components.Web
+@namespace OnlineJudgeAdmin.Pages
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href='https://fonts.googleapis.com/css?family=Capriola' rel='stylesheet'>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="./assets/base.css">
+    <base href="~/" />
+    <component type="typeof(HeadOutlet)" render-mode="ServerPrerendered" />
+</head>
+@RenderBody()
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        function toggleDropdown(menuId) {
+            const dropdownMenu = document.getElementById(menuId);
+            dropdownMenu.classList.toggle('hidden');
+        }
+    });
+
+</script>
+<script src="_framework/blazor.server.js"></script>
