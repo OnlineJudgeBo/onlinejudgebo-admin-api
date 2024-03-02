@@ -7,5 +7,5 @@ public class CompileInfo
 {
     public int SolutionId { get; set; }
 
-    public string Error { get; set; }
+    public string? Error { get; set; }
 }

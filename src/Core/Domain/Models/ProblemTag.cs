@@ -1,7 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-
-namespace OnlineJudgeAdmin.Core.Domain.Models;
+﻿namespace OnlineJudgeAdmin.Core.Domain.Models;
 
 public class ProblemTag
 {
@@ -9,7 +6,7 @@ public class ProblemTag
 
     public int TagId { get; set; }
 
-    public virtual Problem Problem { get; set; }
+    public virtual Problem? Problem { get; set; }
 
-    public virtual Tag Tag { get; set; }
+    public virtual Tag? Tag { get; set; }
 }

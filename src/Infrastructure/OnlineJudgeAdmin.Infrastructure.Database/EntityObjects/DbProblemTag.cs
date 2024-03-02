@@ -6,15 +6,17 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.EntityObjects;
 [Table("problem_tags")]
 public class DbProblemTag
 {
-    [Key, Column(Order = 0)]
+    [Key]
+    [Column("problem_id", Order = 0)]
     public int ProblemId { get; set; }
 
-    [Key, Column(Order = 1)]
+    [Key]
+    [Column("tag_id", Order = 1)]
     public int TagId { get; set; }
 
-    [ForeignKey("ProblemId")]
-    public virtual required DbProblem Problem { get; set; }
+    [ForeignKey(nameof(ProblemId))]
+    public virtual DbProblem? Problem { get; set; }
 
-    [ForeignKey("TagId")]
-    public virtual required DbTag Tag { get; set; }
+    [ForeignKey(nameof(TagId))]
+    public virtual DbTag? Tag { get; set; }
 }

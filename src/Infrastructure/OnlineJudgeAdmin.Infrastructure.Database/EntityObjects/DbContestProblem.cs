@@ -2,18 +2,25 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace OnlineJudgeAdmin.Infrastructure.Database.EntityObjects;
+
 [Table("contest_problems")]
 public class DbContestProblem
 {
-    [Key, Column(Order = 0)]
+    [Key, Column("contest_id", Order = 0)]
     public int ContestId { get; set; }
-    [Key, Column(Order = 1)]
+
+    [Key, Column("problem_id", Order = 1)]
     public int ProblemId { get; set; }
-    public required string Title { get; set; }
+
+    [Column("title")]
+    public string Title { get; set; }
+
+    [Column("num")]
     public int Num { get; set; }
 
     [ForeignKey("ContestId")]
-    public virtual required DbContest Contest { get; set; }
+    public virtual DbContest Contest { get; set; }
+
     [ForeignKey("ProblemId")]
-    public virtual required DbProblem Problem { get; set; }
+    public virtual DbProblem Problem { get; set; }
 }

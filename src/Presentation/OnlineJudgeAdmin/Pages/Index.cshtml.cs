@@ -5,19 +5,24 @@ using OnlineJudgeAdmin.Infrastructure.Database.Implementations;
 
 namespace OnlineJudgeAdmin.Pages
 {
-public class IndexModel : PageModel
-{
-    //private readonly IUsersRepository _usersRepository;
-
-   /* public IndexModel(IUsersRepository usersRepository)
+    public class IndexModel : PageModel
     {
-        _usersRepository = usersRepository;
-    }*/
+        private readonly IProblemRepository _problemRepository;
 
-    public async Task OnGetAsync()
-    {
-        //var users = await _usersRepository.GetAllUsersAsync();
-        //var f = 1;
+        public IndexModel(IProblemRepository problemRepository)
+        {
+            _problemRepository = problemRepository;
+        }
+
+        public async Task OnGetAsync()
+        {
+
+            Console.WriteLine("dasdsa");
+            var tmp = await _problemRepository.GetAllProblemsAsync();
+            var g = 1;
+            //var users = await _usersRepository.GetAllUsersAsync();
+            //var f = 1;
+
+        }
     }
-}
 }
