@@ -22,5 +22,5 @@ public class Problem
     public int Accepted { get; set; }
     public int Submit { get; set; }
     public int Solved { get; set; }
-    public virtual ICollection<ProblemTag>? ProblemTags { get; set; }
+    public virtual ICollection<Tag>? Tags { get; set; }
 }

@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace OnlineJudgeAdmin.Infrastructure.Database.EntityObjects;
 
-[Table("Problems")]
+[Table("problem")]
 public class DbProblem
 {
     [Key]
@@ -57,10 +57,10 @@ public class DbProblem
 
     [Column("solved")]
     public int? Solved { get; set; }
-    public virtual ICollection<DbProblemTag> ProblemTags { get; set; }
+    public virtual ICollection<DbTag> Tags { get; set; }
 
     public DbProblem()
     {
-        ProblemTags = new HashSet<DbProblemTag>();
+        Tags = new HashSet<DbTag>();
     }
 }

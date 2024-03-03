@@ -8,7 +8,10 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.Mappers
     {
         public DbProblemProfile()
         {
-            CreateMap<DbProblem, Problem>();            
+            CreateMap<DbTag, Tag>();
+
+            CreateMap<DbProblem, Problem>()
+                .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.Tags));
         }
     }
 }

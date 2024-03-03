@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace OnlineJudgeAdmin.Infrastructure.Database.EntityObjects;
 
-[Table("solutions")]
+[Table("solution")]
 public class DbSolution
 {
     [Key]

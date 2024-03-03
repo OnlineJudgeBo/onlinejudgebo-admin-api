@@ -16,10 +16,10 @@ public class DbTag
     [MaxLength(100)]
     public string TagName { get; set; }
 
-    public virtual ICollection<DbProblemTag> ProblemTags { get; set; }
+    public virtual ICollection<DbProblem> Problems { get; set; }
 
     public DbTag()
     {
-        ProblemTags = new HashSet<DbProblemTag>();
+        Problems = new HashSet<DbProblem>();
     }
 }

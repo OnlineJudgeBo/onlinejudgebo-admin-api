@@ -7,7 +7,6 @@ namespace OnlineJudgeAdmin.Infrastructure.Database;
 public class AppDbContext : DbContext
 {
     public DbSet<DbProblem> Problems { get; set; }
-    public DbSet<DbProblemTag> ProblemsTags { get; set; }
     public DbSet<DbTag> Tags { get; set; }
 
 
@@ -17,17 +16,16 @@ public class AppDbContext : DbContext
     }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<DbProblemTag>()
-            .HasKey(pt => new { pt.ProblemId, pt.TagId });
-
-        modelBuilder.Entity<DbProblemTag>()
-            .HasOne(pt => pt.Problem)
-            .WithMany(p => p.ProblemTags)
-            .HasForeignKey(pt => pt.ProblemId);
-
-        modelBuilder.Entity<DbProblemTag>()
-            .HasOne(pt => pt.Tag)
-            .WithMany(t => t.ProblemTags)
-            .HasForeignKey(pt => pt.TagId);
+        modelBuilder.Entity<DbProblem>()
+            .HasMany(pt => pt.Tags)
+            .WithMany(p => p.Problems)
+            .UsingEntity<Dictionary<string, object>>(
+                "problem_tags",
+                j => j.HasOne<DbTag>().WithMany().HasForeignKey("tag_id"),
+                j => j.HasOne<DbProblem>().WithMany().HasForeignKey("problem_id"),
+                j =>
+                {
+                    j.ToTable("problem_tags");
+                });
     }
 }

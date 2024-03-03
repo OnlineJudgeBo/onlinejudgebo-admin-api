@@ -18,6 +18,7 @@ public class ProblemRepository : IProblemRepository
     public async Task<IEnumerable<Problem>> GetAllProblemsAsync()
     {
         var dbProblems = await _context.Problems
+        .Include(p => p.Tags)
         .Where(q => q.Defunct == "N")
         .OrderByDescending(q => q.ProblemId)
         .ToListAsync();
