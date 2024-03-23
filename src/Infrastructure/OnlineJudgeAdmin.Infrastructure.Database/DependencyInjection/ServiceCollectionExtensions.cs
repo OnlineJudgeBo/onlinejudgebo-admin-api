@@ -1,24 +1,23 @@
-﻿using AutoMapper;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 using OnlineJudgeAdmin.Infrastructure.Database.Implementations;
-using OnlineJudgeAdmin.Infrastructure.Database;
-using System;
 using System.Reflection;
-using OnlineJudgeAdmin.Core.Domain.Models;
 
-namespace OnlineJudgeAdmin.Core.Application.Validators.DependencyInjection
+namespace OnlineJudgeAdmin.Infrastructure.Database.DependencyInjection
 {
     public static class ServiceCollectionExtensions
     {
         public static IServiceCollection AddDatabaseRepositories(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddAutoMapper(Assembly.GetExecutingAssembly());
-            services.AddScoped<IProblemRepository, ProblemRepository>(); 
-            services.AddMysqlClient(configuration);
+            services.AddScoped<IProblemRepository, ProblemRepository>();
+            services.AddScoped<ITopicRepository, TopicRepository>();
+            services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IContestsRepository, ContestsRepository>();
 
+            services.AddMysqlClient(configuration);
             return services;
         }
 

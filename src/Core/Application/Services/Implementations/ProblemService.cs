@@ -1,5 +1,5 @@
 ﻿using FluentValidation;
-using FluentValidation.Results;
+
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
@@ -8,33 +8,41 @@ namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
 public class ProblemService : IProblemService
 {
     private readonly IProblemRepository _problemRepository;
-    private readonly IValidator<User> _userValidation;
+    private readonly ITopicRepository _topicRepository;
+
+    private readonly IValidator<Problem> _userValidation;
+
     public ProblemService(
         IProblemRepository problemRepository,
-        IValidator<User> userValidation)
+        ITopicRepository topicRepository,
+        IValidator<Problem> ProblemValidation)
     {
         _problemRepository = problemRepository ?? throw new ArgumentNullException(nameof(problemRepository));
-        _userValidation = userValidation ?? throw new ArgumentNullException(nameof(userValidation));
+        _topicRepository = topicRepository ?? throw new ArgumentNullException(nameof(topicRepository));
+        _userValidation = ProblemValidation ?? throw new ArgumentNullException(nameof(ProblemValidation));
     }
 
     public async Task<IEnumerable<Problem>> GetAllProblemsAsync()
     {
-        return await _problemRepository.GetAllProblemsAsync();
+        var t = await _problemRepository.GetAllProblemsAsync();
+        return t;
     }
 
-    public async Task<User> CreateUserAsync(User user)
+    public async Task<Problem> GetProblemByIdAsync(int problemId)
     {
-        throw new NotImplementedException();
-        /*
-        ValidateUser(user);
+        return await _problemRepository.GetProblemByIdAsync(problemId);
+    }
 
-        User existingUser = await _problemRepository.GetUserByEmailAsync(user.Email);
-        if (existingUser != null)
+    public async Task<Problem> CreateProblemAsync(Problem problem)
+    {
+        IEnumerable<Classification>? newTopic = problem.Classifications;
+        problem.Classifications = null;
+        Problem newProblem = await _problemRepository.CreateProblemAsync(problem);
+        if (newTopic != null)
         {
-            return existingUser;
+            await _topicRepository.AddTopicToProblemAsync(newProblem.ProblemId.Value, newTopic);
         }
-
-        return await _problemRepository.CreateUserAsync(user);*/
+        return newProblem;
     }
 
     public async Task<User> GetUserByIdAsync(string id)
@@ -83,11 +91,11 @@ public class ProblemService : IProblemService
 
     private void ValidateUser(User user)
     {
-        ValidationResult result = _userValidation.Validate(user);
+        /*ValidationResult result = _userValidation.Validate(user);
         if (!result.IsValid)
         {
             throw new ValidationException(result.Errors);
-        }
+        }*/
     }
 
     public async Task<User> UpdateCurrentRoomAsync(string userId, Guid roomId)
@@ -95,15 +103,10 @@ public class ProblemService : IProblemService
         throw new NotImplementedException();
     }
 
-    public Task<Problem> GetProblemByIdAsync(int problemId)
+    /*public Task<Problem> CreateProblemAsync(Problem problem)
     {
         throw new NotImplementedException();
-    }
-
-    public Task<Problem> CreateProblemAsync(Problem problem)
-    {
-        throw new NotImplementedException();
-    }
+    }*/
 
     public Task<Problem> EditProblemAsync(int problemId, Problem problem)
     {

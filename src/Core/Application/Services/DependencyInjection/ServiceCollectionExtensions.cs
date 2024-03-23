@@ -8,7 +8,10 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
-        services.AddSingleton<IProblemService, ProblemService>();
+        services.AddScoped<IProblemService, ProblemService>();
+        services.AddScoped<ITopicService, TopicService>();
+        services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IContestService, ContestService>();
 
         return services;
     }

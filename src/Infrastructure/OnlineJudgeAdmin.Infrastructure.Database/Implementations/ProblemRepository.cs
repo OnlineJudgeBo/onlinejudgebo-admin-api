@@ -1,7 +1,8 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 using OnlineJudgeAdmin.Core.Domain.Models;
+using OnlineJudgeAdmin.Infrastructure.Database.Models;
 
 namespace OnlineJudgeAdmin.Infrastructure.Database.Implementations;
 
@@ -15,19 +16,89 @@ public class ProblemRepository : IProblemRepository
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
+
     public async Task<IEnumerable<Problem>> GetAllProblemsAsync()
     {
-        var dbProblems = await _context.Problems
-        .Include(p => p.Tags)
-        .Where(q => q.Defunct == "N")
-        .OrderByDescending(q => q.ProblemId)
-        .ToListAsync();
-        return _mapper.Map<IEnumerable<Problem>>(dbProblems);
+        IEnumerable<DbProblem> problems = await _context.Problems
+            .OrderBy(p => p.ProblemId)
+            .Select(p => new DbProblem
+            {
+                ProblemId = p.ProblemId,
+                Title = p.Title,
+                Source = p.Source,
+                InDate = p.InDate,
+                Submit = p.Submit,
+                Accepted = p.Accepted,
+                Classifications = p.Classifications.Select(t => new DbClassification
+                {
+                    Name = t.Name,
+                    Topic = new DbTopic
+                    {
+                        Name = t.Topic.Name
+                    }
+                }).ToList(),
+                ContestProblems = p.ContestProblems.Select(c => new DbContestProblem
+                {
+                    Num = c.Num,
+                    Contest = new DbContest
+                    {
+                        Title = c.Contest.Title,
+                        EndTime = c.Contest.EndTime
+                    }
+                }).ToList()
+            }).ToListAsync();
+        return _mapper.Map<IEnumerable<Problem>>(problems);
     }
 
-    public Task<Problem> CreateProblemAsync(Problem problem)
+    public async Task<Problem> GetProblemByIdAsync(int problemId)
     {
-        throw new NotImplementedException();
+        DbProblem? problem = await _context.Problems
+            .Where(p => p.ProblemId == problemId)
+            .Select(p => new DbProblem
+            {
+                ProblemId = p.ProblemId,
+                Title = p.Title,
+                Description = p.Description,
+                Input = p.Input,
+                Output = p.Output,
+                SampleInput = p.SampleInput,
+                SampleOutput = p.SampleOutput,
+                TimeLimit = p.TimeLimit,
+                MemoryLimit = p.MemoryLimit,
+                Source = p.Source,
+                InDate = p.InDate,
+                Submit = p.Submit,
+                Accepted = p.Accepted,
+                Classifications = p.Classifications.Select(t => new DbClassification
+                {
+                    Name = t.Name,
+                    ClassificationId = t.ClassificationId,
+                    Topic = new DbTopic
+                    {
+                        TopicId = t.Topic.TopicId,
+                        Name = t.Topic.Name
+                    }
+                }).ToList(),
+                ContestProblems = p.ContestProblems.Select(c => new DbContestProblem
+                {
+                    Num = c.Num,
+                    Contest = new DbContest
+                    {
+                        Title = c.Contest.Title,
+                        EndTime = c.Contest.EndTime
+                    }
+                }).ToList()
+            }).FirstOrDefaultAsync();
+        return _mapper.Map<Problem>(problem);
+    }
+
+    public async Task<Problem> CreateProblemAsync(Problem problem)
+    {
+        DbProblem dbProblem = _mapper.Map<DbProblem>(problem);
+        _context.Problems.Add(dbProblem);
+        _context.SaveChanges();
+        Problem createdProblem = _mapper.Map<Problem>(dbProblem);
+        return createdProblem;
     }
 
     public Task<Problem> DeleteProblemAsync(int problemId)
@@ -36,11 +107,6 @@ public class ProblemRepository : IProblemRepository
     }
 
     public Task<Problem> EditProblemAsync(int problemId, Problem problem)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<Problem> GetProblemByIdAsync(int problemId)
     {
         throw new NotImplementedException();
     }
