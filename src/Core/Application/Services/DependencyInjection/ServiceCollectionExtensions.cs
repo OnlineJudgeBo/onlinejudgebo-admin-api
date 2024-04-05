@@ -12,6 +12,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITopicService, TopicService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IContestService, ContestService>();
+        services.AddScoped<IRoleService, RoleService>();
 
         return services;
     }

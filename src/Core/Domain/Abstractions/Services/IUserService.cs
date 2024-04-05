@@ -5,5 +5,10 @@ namespace OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 public interface IUserService
 {
     public Task<IEnumerable<User>> GetAllUserProfilesAsync();
-}
 
+    public Task<bool> CheckUsernameAvailable(UserProfile userProfile);
+
+    public Task<bool> CheckUserEmailAvailable(UserProfile userProfile);
+
+    public Task<IEnumerable<User>> SearchUserProfilesAsync(string searchTerm);
+}

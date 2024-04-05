@@ -44,9 +44,9 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<DbUserProfile> UserProfiles { get; set; }
 
-    public virtual DbSet<DbUserRole> UserRole { get; set; }
-
     public virtual DbSet<DbUserSetting> UserSettings { get; set; }
+
+    public virtual DbSet<DbPrivilege> Privilege { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder builder)
         => builder.UseMySql("server=172.19.0.2;database=jol;user=root;pwd=root;AllowZeroDateTime=True;ConvertZeroDateTime=True;convert zero datetime=True",
@@ -597,6 +597,18 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValue(true);
         });
 
+        modelBuilder.Entity<DbUser>()
+            .HasMany(e => e.Roles)
+            .WithMany(e => e.Users)
+            .UsingEntity<Dictionary<string, object>>(
+                "user_roles",
+                j => j.HasOne<DbRole>().WithMany().HasForeignKey("role_id"),
+                j => j.HasOne<DbUser>().WithMany().HasForeignKey("user_id"),
+                j =>
+                {
+                    j.ToTable("user_roles");
+                });
+
         modelBuilder.Entity<DbUserActivity>(entity =>
         {
             entity.HasKey(e => e.UserId).HasName("PRIMARY");
@@ -676,32 +688,6 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("user_profiles_ibfk_1");
         });
 
-        modelBuilder.Entity<DbUserRole>(entity =>
-        {
-            entity
-                .ToTable("user_roles")
-                .HasCharSet("utf8mb3")
-                .UseCollation("utf8mb3_general_ci");
-
-            entity
-                .HasKey(ur => new { ur.UserId, ur.RoleId });
-
-            entity.Property(e => e.RoleId)
-                .HasColumnType("int(11)")
-                .HasColumnName("role_id");
-            entity.Property(e => e.UserId)
-                .HasMaxLength(48)
-                .HasColumnName("user_id");
-
-            entity.HasOne(d => d.Role).WithMany()
-                .HasForeignKey(d => d.RoleId)
-                .HasConstraintName("user_roles_ibfk_2");
-
-            entity.HasOne(d => d.User).WithMany()
-                .HasForeignKey(d => d.UserId)
-                .HasConstraintName("user_roles_ibfk_1");
-        });
-
         modelBuilder.Entity<DbUserSetting>(entity =>
         {
             entity.HasKey(e => e.UserId).HasName("PRIMARY");
@@ -745,6 +731,36 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey<DbUserSetting>(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("user_settings_ibfk_1");
+        });
+
+
+        modelBuilder.Entity<DbPrivilege>(entity =>
+        {
+            entity.HasKey(e => e.PrivilegeId).HasName("PRIMARY");
+
+            entity
+                .ToTable("privilege")
+                .HasCharSet("utf8mb3")
+                .UseCollation("utf8mb3_general_ci");
+
+            entity.Property(e => e.PrivilegeId)
+                .HasColumnType("int(11)")
+                .HasColumnName("privilege_id");
+            entity.Property(e => e.Defunct)
+                .HasMaxLength(1)
+                .HasDefaultValueSql("'N'")
+                .IsFixedLength()
+                .HasColumnName("defunct");
+            entity.Property(e => e.Rightstr)
+                .HasMaxLength(30)
+                .HasDefaultValueSql("''")
+                .IsFixedLength()
+                .HasColumnName("rightstr");
+            entity.Property(e => e.UserId)
+                .HasMaxLength(48)
+                .HasDefaultValueSql("''")
+                .IsFixedLength()
+                .HasColumnName("user_id");
         });
 
         OnModelCreatingPartial(modelBuilder);

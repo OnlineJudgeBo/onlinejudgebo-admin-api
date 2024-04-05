@@ -8,7 +8,6 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.Mappers
     {
         public DbProblemProfile()
         {
-            CreateMap<DbRole, Role>();
             CreateMap<DbUser, User>();
 
             CreateMap<DbContest, Contest>();
@@ -38,8 +37,13 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.Mappers
             CreateMap<DbClassification, Classification>();
             CreateMap<Classification, DbClassification>();
 
-            CreateMap<UserRole, DbUserRole>();
-            CreateMap<DbUserRole, UserRole>();
+            CreateMap<DbRole, Role>();
+            CreateMap<Role, DbRole>();
+
+            CreateMap<Privilege, DbPrivilege>();
+
+            //CreateMap<UserRole, DbUserRole>();
+            //CreateMap<DbUserRole, UserRole>();
         }
     }
 }

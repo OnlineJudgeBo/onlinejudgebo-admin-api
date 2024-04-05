@@ -1,10 +1,12 @@
 using OnlineJudgeAdmin.Infrastructure.Database.DependencyInjection;
+using OnlineJudgeAdmin.Infrastructure.FileSystem.DependencyInjection;
 using OnlineJudgeAdmin.Core.Application.Validators.DependencyInjection;
 using OnlineJudgeAdmin.Core.Application.Services.DependencyInjection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Reflection;
+using Newtonsoft.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers()
@@ -29,6 +31,24 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
         };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = context =>
+            {
+                Console.WriteLine("Authentication failed: " + context.Exception.Message);
+                return Task.CompletedTask;
+            },
+            OnChallenge = context =>
+            {
+                context.HandleResponse();
+
+                context.Response.StatusCode = 401;
+                context.Response.ContentType = "application/json";
+                var result = JsonConvert.SerializeObject(new { error = "Token inválido o expirado" });
+                return context.Response.WriteAsync(result);
+            },
+        };
     });
 
 /*builder.Services.AddDbContext<AppDbContext>(options =>
@@ -41,7 +61,7 @@ builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
 builder.Services.AddDatabaseRepositories(builder.Configuration);
 builder.Services.AddApplicationValidators();
 builder.Services.AddApplicationServices();
-
+builder.Services.AddFileSystemInfrastructureManager(builder.Configuration);
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -66,7 +86,7 @@ app.UseCors(builder =>
 
 //app.UseCors("AllowAnyOrigin");
 
-// app.UseAuthentication();
+app.UseAuthentication();
 
 app.UseAuthorization();
 

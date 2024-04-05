@@ -29,4 +29,6 @@ public partial class User
     public virtual UserProfile? UserProfile { get; set; }
 
     public virtual UserSetting? UserSetting { get; set; }
+
+    public virtual ICollection<Role> Roles { get; set; }
 }

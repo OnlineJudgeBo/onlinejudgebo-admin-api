@@ -9,23 +9,25 @@ public class ProblemService : IProblemService
 {
     private readonly IProblemRepository _problemRepository;
     private readonly ITopicRepository _topicRepository;
+    private readonly IPrivilegeRepository _privilegeRepository;
 
     private readonly IValidator<Problem> _userValidation;
 
     public ProblemService(
         IProblemRepository problemRepository,
         ITopicRepository topicRepository,
+        IPrivilegeRepository privilegeRepository,
         IValidator<Problem> ProblemValidation)
     {
         _problemRepository = problemRepository ?? throw new ArgumentNullException(nameof(problemRepository));
         _topicRepository = topicRepository ?? throw new ArgumentNullException(nameof(topicRepository));
+        _privilegeRepository = privilegeRepository ?? throw new ArgumentNullException(nameof(privilegeRepository));
         _userValidation = ProblemValidation ?? throw new ArgumentNullException(nameof(ProblemValidation));
     }
 
     public async Task<IEnumerable<Problem>> GetAllProblemsAsync()
     {
-        var t = await _problemRepository.GetAllProblemsAsync();
-        return t;
+        return await _problemRepository.GetAllProblemsAsync();
     }
 
     public async Task<Problem> GetProblemByIdAsync(int problemId)
@@ -37,11 +39,17 @@ public class ProblemService : IProblemService
     {
         IEnumerable<Classification>? newTopic = problem.Classifications;
         problem.Classifications = null;
+
         Problem newProblem = await _problemRepository.CreateProblemAsync(problem);
         if (newTopic != null)
         {
             await _topicRepository.AddTopicToProblemAsync(newProblem.ProblemId.Value, newTopic);
         }
+
+        Privilege privilege = new Privilege();
+        privilege.UserId = "starsaminf";
+        privilege.Rightstr = "p" + newProblem.ProblemId;
+        _privilegeRepository.CreatePrivilegeAsync(privilege);
         return newProblem;
     }
 

@@ -11,6 +11,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.3" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
   <ItemGroup>
@@ -29,6 +30,8 @@
     <ProjectReference Include="..\..\Core\Domain\Abstractions\OnlineJudgeAdmin.Core.Domain.Abstractions.csproj" />
     <ProjectReference Include="..\..\Core\Application\Services\OnlineJudgeAdmin.Core.Application.Services.csproj" />
     <ProjectReference Include="..\..\Infrastructure\OnlineJudgeAdmin.Infrastructure.Database\OnlineJudgeAdmin.Infrastructure.Database.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\OnlineJudgeAdmin.Infrastructure.FileSystem\OnlineJudgeAdmin.Infrastructure.FileSystem.csproj" />
+
   </ItemGroup>
   
 

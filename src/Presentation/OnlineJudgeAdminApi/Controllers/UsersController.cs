@@ -1,12 +1,15 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
+using OnlineJudgeAdmin.Core.Domain.Models;
+using OnlineJudgeAdminApi.DataTransferObjects;
 
 namespace OnlineJudgeAdminApi.Controllers;
 
 [ApiController]
 [Route("/api/[controller]")]
-//[Authorize]
+[Authorize]
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
@@ -19,8 +22,29 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet()]
-    public async Task<IActionResult> GetAllUserProfilesAsync()
+    public async Task<IActionResult> GetAllUserProfilesAsync([FromQuery] string? searchTerm)
     {
-        return Ok(await _userService.GetAllUserProfilesAsync());
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            return Ok(await _userService.GetAllUserProfilesAsync());
+        } else {
+            return Ok(await _userService.SearchUserProfilesAsync(searchTerm));
+        }
+    }
+
+    [HttpPost("UsernameIsAvailable")]
+    public async Task<ActionResult<bool>> CheckUsernameAvailable(UserAvailableForRequest userForValidation)
+    {
+        UserProfile userProfile = _mapper.Map<UserProfile>(userForValidation);
+
+        return Ok(await _userService.CheckUsernameAvailable(userProfile));
+    }
+
+    [HttpPost("UserEmailIsAvailable")]
+    public async Task<ActionResult<bool>> CheckUserEmailAvailable(UserAvailableForRequest userForValidation)
+    {
+        UserProfile userProfile = _mapper.Map<UserProfile>(userForValidation);
+
+        return Ok(await _userService.CheckUserEmailAvailable(userProfile));
     }
 }

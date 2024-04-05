@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
@@ -8,7 +9,7 @@ namespace OnlineJudgeAdminApi.Controllers;
 
 [ApiController]
 [Route("/api/[controller]")]
-//[Authorize]
+[Authorize]
 public class ProblemsController : ControllerBase
 {
     private readonly IProblemService _problemService;

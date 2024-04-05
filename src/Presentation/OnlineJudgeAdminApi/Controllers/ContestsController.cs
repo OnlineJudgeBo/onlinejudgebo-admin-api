@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 
@@ -6,7 +7,7 @@ namespace OnlineJudgeAdminApi.Controllers;
 
 [ApiController]
 [Route("/api/[controller]")]
-//[Authorize]
+[Authorize]
 public class ContestsController : ControllerBase
 {
     private readonly IContestService _contestService;

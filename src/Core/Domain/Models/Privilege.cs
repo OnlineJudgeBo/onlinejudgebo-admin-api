@@ -1,4 +1,4 @@
-﻿namespace OnlineJudgeAdmin.Infrastructure.Database.Models22;
+﻿namespace OnlineJudgeAdmin.Core.Domain.Models;
 
 public partial class Privilege
 {

@@ -63,4 +63,43 @@ public class UserRepository : IUserRepository
         }).ToListAsync();
         return _mapper.Map<IEnumerable<User>>(users);
     }
+
+    public async Task<bool> CheckUsernameAvailable(UserProfile userProfile)
+    {
+        return !await _context.UserSettings.AnyAsync(u => u.UserId == userProfile.UserId);
+    }
+
+    public async Task<bool> CheckUserEmailAvailable(UserProfile userProfile)
+    {
+        return !await _context.UserProfiles.AnyAsync(u => u.Email == userProfile.Email);
+    }
+
+    public async Task<IEnumerable<User>> SearchUserProfilesAsync(string? searchTerm = null)
+    {
+        IQueryable<DbUser> query = _context.Users
+            .OrderBy(p => p.UserId)
+            .Where(u => u.IsActive);
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            query = query.Where(u =>
+                u.UserProfile.Nick.Contains(searchTerm) ||
+                u.UserProfile.Lastname.Contains(searchTerm) ||
+                u.UserId.Contains(searchTerm));
+        }
+
+        IEnumerable<DbUser> users = await query
+            .Select(t => new DbUser
+            {
+                UserId = t.UserId,
+                UserProfile = new DbUserProfile
+                {
+                    Email = t.UserProfile.Email,
+                    Nick = t.UserProfile.Nick,
+                    Lastname = t.UserProfile.Lastname
+                }
+            }).ToListAsync();
+
+        return _mapper.Map<IEnumerable<User>>(users);
+    }
 }

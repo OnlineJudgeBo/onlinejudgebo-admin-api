@@ -23,5 +23,19 @@ public class UserService : IUserService
     {
         return await _userRepository.GetAllUsersProfilesAsync();
     }
-}
 
+    public async Task<bool> CheckUsernameAvailable(UserProfile userProfile)
+    {
+        return await _userRepository.CheckUsernameAvailable(userProfile);
+    }
+
+    public async Task<bool> CheckUserEmailAvailable(UserProfile userProfile)
+    {
+        return await _userRepository.CheckUserEmailAvailable(userProfile);
+    }
+
+    public async Task<IEnumerable<User>> SearchUserProfilesAsync(string searchTerm)
+    {
+        return await _userRepository.SearchUserProfilesAsync(searchTerm);
+    }
+}

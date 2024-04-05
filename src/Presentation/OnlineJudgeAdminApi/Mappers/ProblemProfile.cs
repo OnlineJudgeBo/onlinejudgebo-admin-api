@@ -10,5 +10,6 @@ public class ProblemProfile : Profile
     {
         CreateMap<ProblemForCreation, Problem>();
         CreateMap<TopicForCreation, Topic>();
+        CreateMap<UserAvailableForRequest, UserProfile>();
     }
 }
