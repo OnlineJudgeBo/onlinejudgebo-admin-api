@@ -33,15 +33,15 @@ public class UserRepository : IUserRepository
         return _mapper.Map<IEnumerable<Topic>>(topics);
     }
 
-    public async Task AddTopicToProblemAsync(int problem_id, IEnumerable<Classification> Classifications)
+    public async Task AddClassificationsToProblemAsync(int problem_id, IEnumerable<Classification> Classifications)
     {
-        var problem = await _context.Topics.FindAsync(problem_id);
+        var problem = await _context.Classifications.FindAsync(problem_id);
 
         foreach (Classification classification in Classifications)
         {
-            var topic1 = await _context.Topics.FindAsync(classification.TopicId);
+            var topic1 = await _context.Classifications.FindAsync(classification.TopicId);
 
-            _context.Topics.Add(topic1);
+            _context.Classifications.Add(topic1);
         }
         await _context.SaveChangesAsync();
     }

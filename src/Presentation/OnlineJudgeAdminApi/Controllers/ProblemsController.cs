@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿using System.Security.Claims;
+using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
@@ -37,8 +38,10 @@ public class ProblemsController : ControllerBase
     public async Task<IActionResult> CreateProblemAsync(ProblemForCreation problemForCreation)
     {
         Problem problem = _mapper.Map<Problem>(problemForCreation);
-
-        return Ok(await _problemService.CreateProblemAsync(problem));
+        var claimsIdentity = User.Identity as ClaimsIdentity;
+        var userIdClaim = claimsIdentity?.FindFirst(ClaimTypes.NameIdentifier);
+        string userId = userIdClaim?.Value;
+        return Ok(await _problemService.CreateProblemAsync(userId, problem));
     }
     /*
         [HttpGet]

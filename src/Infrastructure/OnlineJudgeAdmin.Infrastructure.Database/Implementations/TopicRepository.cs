@@ -33,15 +33,17 @@ public class TopicRepository : ITopicRepository
         return _mapper.Map<IEnumerable<Topic>>(topics);
     }
 
-    public async Task AddTopicToProblemAsync(int problem_id, IEnumerable<Classification> Classifications)
+    public async Task AddClassificationsToProblemAsync(int problem_id, IEnumerable<Classification> Classifications)
     {
-        var problem = await _context.Topics.FindAsync(problem_id);
+        var problem = await _context
+            .Problems.Include(p => p.Classifications)
+            .FirstOrDefaultAsync(p => p.ProblemId == problem_id);
 
         foreach (Classification classification in Classifications)
         {
-            var topic1 = await _context.Topics.FindAsync(classification.TopicId);
-
-            _context.Topics.Add(topic1);
+            var classificationDb = await _context.Classifications
+                .FirstOrDefaultAsync(c => c.ClassificationId == classification.ClassificationId);
+            problem.Classifications.Add(classificationDb);
         }
         await _context.SaveChangesAsync();
     }

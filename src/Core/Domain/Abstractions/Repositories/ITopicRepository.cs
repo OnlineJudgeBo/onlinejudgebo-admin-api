@@ -6,5 +6,5 @@ public interface ITopicRepository
 {
     public Task<IEnumerable<Topic>> GetAllTopicsAsync();
 
-    public Task AddTopicToProblemAsync(int problem_id, IEnumerable<Classification> topics);
+    public Task AddClassificationsToProblemAsync(int problem_id, IEnumerable<Classification> topics);
 }

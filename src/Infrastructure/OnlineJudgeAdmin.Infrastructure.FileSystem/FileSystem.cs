@@ -11,17 +11,29 @@ public class FileSystemManager : IFileSystemManager
     public FileSystemManager(IConfiguration configuration)
     {
         _configuration = configuration;
-        _path = _configuration["FileSettings:FilePath"];
+        _path = _configuration["FileSettings:ProblemsFilePath"];
     }
 
-    public void WriteToFile(string content)
+    public void WriteToFile(string folderName, string fileName, string content)
     {
-
+        string path = _path + Path.DirectorySeparatorChar
+                    + folderName + Path.DirectorySeparatorChar + fileName;
+        if (!File.Exists(path))
+        {
+            using (StreamWriter sw = File.CreateText(path))
+            {
+                sw.WriteLine(content);
+            }
+        }
     }
 
-    public void CreateFolder(string content)
+    public void CreateFolder(string folderName)
     {
-
+        string path = _path + Path.DirectorySeparatorChar + folderName;
+        if (!Directory.Exists(path))
+        {
+            Directory.CreateDirectory(path);
+        }
     }
 }
 

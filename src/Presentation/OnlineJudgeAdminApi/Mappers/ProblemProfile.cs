@@ -9,7 +9,7 @@ public class ProblemProfile : Profile
     public ProblemProfile()
     {
         CreateMap<ProblemForCreation, Problem>();
-        CreateMap<TopicForCreation, Topic>();
+        CreateMap<ClassificationsForCreation, Classification>();
         CreateMap<UserAvailableForRequest, UserProfile>();
     }
 }

@@ -1,8 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.FileSystemManager;
-using OnlineJudgeAdmin.Infrastructure.FileSystem;
-using System.Reflection;
 
 namespace OnlineJudgeAdmin.Infrastructure.FileSystem.DependencyInjection
 {

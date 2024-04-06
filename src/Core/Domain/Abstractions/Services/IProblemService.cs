@@ -6,7 +6,7 @@ public interface IProblemService
 {
     public Task<IEnumerable<Problem>> GetAllProblemsAsync();
     public Task<Problem> GetProblemByIdAsync(int problemId);
-    public Task<Problem> CreateProblemAsync(Problem problem);
+    public Task<Problem> CreateProblemAsync(string userId, Problem problem);
     public Task<Problem> EditProblemAsync(int problemId, Problem problem);
     public Task<Problem> DeleteProblemAsync(int problemId);
 }

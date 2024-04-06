@@ -41,5 +41,5 @@ public class ProblemForCreation
     [JsonIgnore]
     public int Solved { get; set; } = 0;
 
-    public virtual ICollection<TopicForCreation>? Topics { get; set; }
+    public virtual ICollection<ClassificationsForCreation>? Classifications { get; set; }
 }
