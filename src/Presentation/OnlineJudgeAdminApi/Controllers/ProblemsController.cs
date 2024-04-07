@@ -34,6 +34,17 @@ public class ProblemsController : ControllerBase
         return Ok(await _problemService.GetProblemByIdAsync(problem_id));
     }
 
+    [HttpPut("{problemId:int}")]
+    public async Task<IActionResult> UpdateProblemAsync(int problemId, ProblemForUpdate problemForUpdate)
+    {
+        Problem problem = _mapper.Map<Problem>(problemForUpdate);
+        problem.ProblemId = problemId;
+        var claimsIdentity = User.Identity as ClaimsIdentity;
+        var userIdClaim = claimsIdentity?.FindFirst(ClaimTypes.NameIdentifier);
+        string userId = userIdClaim?.Value;
+        return Ok(await _problemService.UpdateProblemAsync(userId, problemId, problem));
+    }
+
     [HttpPost]
     public async Task<IActionResult> CreateProblemAsync(ProblemForCreation problemForCreation)
     {
@@ -43,13 +54,8 @@ public class ProblemsController : ControllerBase
         string userId = userIdClaim?.Value;
         return Ok(await _problemService.CreateProblemAsync(userId, problem));
     }
-    /*
-        [HttpGet]
-        public async Task<IActionResult> EditProblemAsync(int problemId, Problem problem)
-        {
-            return Ok(_problemService.EditProblemAsync(problemId, problem));
-        }
 
+    /*
         [HttpGet]
         public async Task<IActionResult> DeleteProblemByIdAsync(int problemId)
         {

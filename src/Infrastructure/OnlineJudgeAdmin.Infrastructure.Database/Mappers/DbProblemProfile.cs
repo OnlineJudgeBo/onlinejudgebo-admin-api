@@ -23,6 +23,10 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.Mappers
             CreateMap<DbNews, News>();
 
             CreateMap<DbProblem, Problem>();
+            CreateMap<DbUpdateProblem, Problem>();
+            CreateMap<Problem, DbUpdateProblem>();
+
+
             CreateMap<Problem, DbProblem>();
 
             CreateMap<DbRuntimeinfo, Runtimeinfo>();

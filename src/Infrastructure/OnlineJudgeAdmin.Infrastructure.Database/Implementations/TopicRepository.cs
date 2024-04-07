@@ -47,4 +47,25 @@ public class TopicRepository : ITopicRepository
         }
         await _context.SaveChangesAsync();
     }
+
+    public async Task RemoveAllClassificationsFromProblemAsync(int problemId)
+    {
+        var problem = await _context.Problems
+            .Include(p => p.Classifications)
+            .FirstOrDefaultAsync(p => p.ProblemId == problemId);
+
+        if (problem != null)
+        {
+            var classificationsToRemove = problem.Classifications
+                .ToList();
+
+            foreach (var classification in classificationsToRemove)
+            {
+                problem.Classifications.Remove(classification);
+            }
+
+            await _context.SaveChangesAsync();
+        }
+    }
+
 }

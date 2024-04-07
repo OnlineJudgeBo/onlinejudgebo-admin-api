@@ -1,16 +1,11 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 namespace OnlineJudgeAdmin.Infrastructure.Database.Models;
 
 [Table("problem")]
-public partial class DbProblem
+public partial class DbUpdateProblem
 {
-    [Key]
-    [Column("problem_id")]
-    public int? ProblemId { get; set; }
-
     [Column("title")]
-    public string Title { get; set; } = null!;
+    public string Title { get; set; }
 
     [Column("description", TypeName = "text")]
     public string? Description { get; set; }
@@ -36,9 +31,6 @@ public partial class DbProblem
     [Column("source")]
     public string? Source { get; set; }
 
-    [Column("in_date")]
-    public DateTime? InDate { get; set; } = DateTime.MinValue;
-
     [Column("time_limit")]
     public int TimeLimit { get; set; }
 
@@ -47,15 +39,6 @@ public partial class DbProblem
 
     [Column("defunct")]
     public string Defunct { get; set; }
-
-    [Column("accepted")]
-    public int? Accepted { get; set; }
-
-    [Column("submit")]
-    public int? Submit { get; set; }
-
-    [Column("solved")]
-    public int? Solved { get; set; }
 
     public virtual ICollection<DbContestProblem>? ContestProblems { get; set; }
     public virtual ICollection<DbSolution>? Solutions { get; set; }

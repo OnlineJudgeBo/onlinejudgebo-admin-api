@@ -69,6 +69,7 @@ public class ProblemRepository : IProblemRepository
                 InDate = p.InDate,
                 Submit = p.Submit,
                 Accepted = p.Accepted,
+                Hint =p.Hint,
                 Classifications = p.Classifications.Select(t => new DbClassification
                 {
                     Name = t.Name,
@@ -101,13 +102,24 @@ public class ProblemRepository : IProblemRepository
         return createdProblem;
     }
 
+    public async Task<Problem> UpdateProblemAsync(string userId, int problemId, Problem problemToUpdate)
+    {
+        DbUpdateProblem dbProblem = _mapper.Map<DbUpdateProblem>(problemToUpdate);
+        var existingProblem = _context.Problems.FirstOrDefault(p => p.ProblemId == problemId);
+        if (existingProblem != null)
+        {
+            _context.Entry(existingProblem).CurrentValues.SetValues(dbProblem);
+            _context.SaveChanges();
+            return await GetProblemByIdAsync(problemId);
+        }
+        else
+        {
+            throw new KeyNotFoundException("Problem ID not found.");
+        }
+    }
     public Task<Problem> DeleteProblemAsync(int problemId)
     {
         throw new NotImplementedException();
     }
 
-    public Task<Problem> EditProblemAsync(int problemId, Problem problem)
-    {
-        throw new NotImplementedException();
-    }
 }

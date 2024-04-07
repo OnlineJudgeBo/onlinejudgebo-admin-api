@@ -48,9 +48,9 @@ public class ProblemService : IProblemService
             await _topicRepository.AddClassificationsToProblemAsync(newProblem.ProblemId.Value, newTopic);
         }
 
-        _fileSystemManager.CreateFolder(newProblem.ProblemId.ToString());
-        _fileSystemManager.WriteToFile(newProblem.ProblemId.ToString(), "sample.in", newProblem.SampleInput);
-        _fileSystemManager.WriteToFile(newProblem.ProblemId.ToString(), "sample.out", newProblem.SampleOutput);
+        _fileSystemManager.CreateFolder(problem.ProblemId.ToString());
+        _fileSystemManager.WriteToFile(problem.ProblemId.ToString(), "sample.in", problem.SampleInput);
+        _fileSystemManager.WriteToFile(problem.ProblemId.ToString(), "sample.out", problem.SampleOutput);
 
         Privilege privilege = new Privilege();
         privilege.UserId = userId;
@@ -59,72 +59,36 @@ public class ProblemService : IProblemService
         return newProblem;
     }
 
-    public async Task<User> GetUserByIdAsync(string id)
+    public async Task<Problem> UpdateProblemAsync(string userId, int problemId, Problem problem)
     {
-        throw new NotImplementedException();
-        /*
-        if (id == string.Empty)
+        var existingProblem = await _problemRepository.GetProblemByIdAsync(problemId);
+        //ValidateUser(user);
+
+        if (userId == string.Empty)
         {
-            throw new ArgumentNullException(nameof(id));
+            throw new ArgumentNullException(nameof(userId));
         }
 
-        User user = await _problemRepository.GetUserByIdAsync(id);
-        if (user == null)
+        if (existingProblem == null)
         {
-            throw new ArgumentException($"User with id {id} not found", id);
-        }
-        return user;*/
-    }
-
-    public async Task<Problem> UpdateUserAsync(string id, User user)
-    {
-        throw new NotImplementedException();
-
-        /*
-        //var existingUser = await _problemRepository.GetUserByIdAsync(id);
-        var existingUser = null;
-        ValidateUser(user);
-
-        if (id == string.Empty)
-        {
-            throw new ArgumentNullException(nameof(id));
+            throw new ApplicationException("Problem does not exist.");
         }
 
-        if (existingUser == null)
+        await _topicRepository.RemoveAllClassificationsFromProblemAsync(existingProblem.ProblemId.Value);
+        IEnumerable<Classification>? newTopic = problem.Classifications;
+        problem.Classifications = null;
+
+        var updateProblem = await _problemRepository.UpdateProblemAsync(userId, problemId, problem);
+        if (updateProblem != null)
         {
-            throw new ApplicationException("User does not exist.");
+            await _topicRepository.AddClassificationsToProblemAsync(updateProblem.ProblemId.Value, newTopic);
         }
-        throw new NotImplementedException();
-        //return await _problemRepository.UpdateUserAsync(user);*/
-    }
 
-    public async Task<User> DeleteUserAsync(string userId)
-    {
-        throw new NotImplementedException();
-    }
+        _fileSystemManager.CreateFolder(updateProblem.ProblemId.ToString());
+        _fileSystemManager.WriteToFile(updateProblem.ProblemId.ToString(), "sample.in", updateProblem.SampleInput);
+        _fileSystemManager.WriteToFile(updateProblem.ProblemId.ToString(), "sample.out", updateProblem.SampleOutput);
 
-    private void ValidateUser(User user)
-    {
-        /*ValidationResult result = _userValidation.Validate(user);
-        if (!result.IsValid)
-        {
-            throw new ValidationException(result.Errors);
-        }*/
-    }
-
-    public async Task<User> UpdateCurrentRoomAsync(string userId, Guid roomId)
-    {
-        throw new NotImplementedException();
-    }
-
-    /*public Task<Problem> CreateProblemAsync(Problem problem)
-    {
-        throw new NotImplementedException();
-    }*/
-
-    public Task<Problem> EditProblemAsync(int problemId, Problem problem)
-    {
-        throw new NotImplementedException();
+        return updateProblem;
     }
 
     public Task<Problem> DeleteProblemAsync(int problemId)

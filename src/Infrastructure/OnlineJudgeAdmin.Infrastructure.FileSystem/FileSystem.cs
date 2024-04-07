@@ -18,12 +18,9 @@ public class FileSystemManager : IFileSystemManager
     {
         string path = _path + Path.DirectorySeparatorChar
                     + folderName + Path.DirectorySeparatorChar + fileName;
-        if (!File.Exists(path))
+        using (StreamWriter sw = File.CreateText(path))
         {
-            using (StreamWriter sw = File.CreateText(path))
-            {
-                sw.WriteLine(content);
-            }
+            sw.WriteLine(content);
         }
     }
 
