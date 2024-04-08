@@ -24,18 +24,18 @@ public class FilesController : ControllerBase
             {
                 Name = dir.Name,
                 Type = "directory",
-                Path = dir.FullName.Substring(rootPath.Length).Replace("\\", "/"), // Ajusta el path para hacerlo relativo y usar slashes
-                Children = GetDirectoryContents(dir.FullName, rootPath) // Llamada recursiva para obtener contenidos del subdirectorio
+                Path = dir.FullName.Substring(rootPath.Length).Replace("\\", "/"),
+                Children = GetDirectoryContents(dir.FullName, rootPath)
             })
-            .Cast<object>() // Cast para tratar todo como el mismo tipo
+            .Cast<object>()
             .Concat(directoryInfo.GetFiles().Select(file => new
             {
                 Name = file.Name,
                 Type = "file",
-                Path = file.FullName.Substring(rootPath.Length).Replace("\\", "/"), // Ajusta el path para hacerlo relativo
-                Children = new object[0] // Agrega Children como una lista vacía
+                Path = file.FullName.Substring(rootPath.Length).Replace("\\", "/"),
+                Children = new object[0]
             })
-            .Cast<object>()) // Nuevamente, cast para unificar los tipos
+            .Cast<object>())
             .ToList();
 
         return directoryContents;
@@ -43,9 +43,9 @@ public class FilesController : ControllerBase
 
 
     [HttpGet("content")]
-    public IActionResult GetFileContent(string path)
+    public IActionResult GetFileContent(int problemId, string fileName)
     {
-        var filePath = Path.Combine(baseDirectory, path);
+        var filePath = Path.Combine(baseDirectory, problemId.ToString(), fileName);
         if (!System.IO.File.Exists(filePath))
         {
             return NotFound();
@@ -55,18 +55,26 @@ public class FilesController : ControllerBase
         return Ok(content);
     }
 
-    [HttpPost("save")]
-    public IActionResult SaveFileContent(string path, [FromBody] string content)
+    [HttpPost]
+    public async Task<IActionResult> SaveFileContentAsync(int problemId, string fileName, IFormFile file)
     {
-        var filePath = Path.Combine(baseDirectory, path);
-        System.IO.File.WriteAllText(filePath, content);
-        return Ok();
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest("Upload a file.");
+        }
+
+        var filePath = Path.Combine(baseDirectory, problemId.ToString(), fileName);
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+        return Ok(new { file.FileName, file.Length });
     }
 
-    [HttpDelete("delete")]
-    public IActionResult DeleteFile(string path)
+    [HttpDelete]
+    public IActionResult DeleteFile(int problemId, string fileName)
     {
-        var filePath = Path.Combine(baseDirectory, path);
+        var filePath = Path.Combine(baseDirectory, problemId.ToString(), fileName);
         if (!System.IO.File.Exists(filePath))
         {
             return NotFound();
