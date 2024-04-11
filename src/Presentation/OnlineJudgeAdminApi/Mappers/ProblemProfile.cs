@@ -15,8 +15,12 @@ public class ProblemProfile : Profile
         CreateMap<DbContestProblem, Problem>();
         CreateMap<UserForContestCreation, ContestUser>();
         CreateMap<ContestForCreation, Contest>()
+        .ForMember(dest => dest.StartTime, opt => opt.MapFrom(src => src.StartDate))
+        .ForMember(dest => dest.EndTime, opt => opt.MapFrom(src => src.EndDate))
         .ForMember(dest => dest.ContestProblems, opt => opt.MapFrom(src => src.SelectedProblem))
-        .ForMember(dest => dest.ContestUsers, opt => opt.MapFrom(src => src.SelectedUser));
+        .ForMember(dest => dest.ContestUsers, opt => opt.MapFrom(src => src.SelectedUser))
+        .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
+        .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description));
 
         CreateMap<ClassificationsForCreation, Classification>();
         CreateMap<UserAvailableForRequest, UserProfile>();

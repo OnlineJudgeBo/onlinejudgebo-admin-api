@@ -36,6 +36,11 @@ public class ContestService : IContestService
             numeration++;
         }
 
+        contest.ContestUsers.Add(new ContestUser
+        {
+            UserId = userIdCreator
+        });
+
         foreach (var contestUser in contest.ContestUsers)
         {
             contestUser.IsOwner = contestUser.UserId == userIdCreator;
