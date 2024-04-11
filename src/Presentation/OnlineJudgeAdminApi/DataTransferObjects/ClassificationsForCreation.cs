@@ -1,5 +1,6 @@
 ﻿namespace OnlineJudgeAdminApi.DataTransferObjects;
 
 public partial class ClassificationsForCreation
-{    public int? ClassificationId { get; set; } = 0;
+{
+    public int? ClassificationId { get; set; } = 0;
 }

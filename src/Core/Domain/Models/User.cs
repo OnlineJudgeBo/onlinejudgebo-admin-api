@@ -6,7 +6,7 @@ public partial class User
 
     public string? Password { get; set; }
 
-    public string Ip { get; set; } = null!;
+    public string? Ip { get; set; } = null!;
 
     public DateTime? Accesstime { get; set; }
 
@@ -16,13 +16,13 @@ public partial class User
 
     public DateTime? ResetPasswordExpires { get; set; }
 
-    public bool isActive { get; set; }
+    public bool? isActive { get; set; }
 
-    public bool isDeleted { get; set; }
+    public bool? isDeleted { get; set; }
 
-    public virtual ICollection<News> News { get; set; }
+    public virtual ICollection<News>? News { get; set; }
 
-    public virtual ICollection<Solution> Solutions { get; set; }
+    public virtual ICollection<Solution>? Solutions { get; set; }
 
     public virtual UserActivity? UserActivity { get; set; }
 
@@ -30,5 +30,7 @@ public partial class User
 
     public virtual UserSetting? UserSetting { get; set; }
 
-    public virtual ICollection<Role> Roles { get; set; }
+    public virtual ICollection<Role>? Roles { get; set; }
+    public ICollection<ContestUser>? ContestUsers { get; set; }
+
 }

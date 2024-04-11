@@ -8,16 +8,38 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.Mappers
     {
         public DbProblemProfile()
         {
-            CreateMap<DbUser, User>();
+            CreateMap<DbContestProblem, ContestProblem>();
+            CreateMap<ContestProblem, DbContestProblem>();
+            CreateMap<DbContestUser, ContestUser>();
+            CreateMap<DbContest, Contest>()
+            .ReverseMap()
+            .ForMember(dest => dest.ContestId, opt => opt.MapFrom(src => src.ContestId))
+            .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
+            .ForMember(dest => dest.StartTime, opt => opt.MapFrom(src => src.StartTime))
+            .ForMember(dest => dest.EndTime, opt => opt.MapFrom(src => src.EndTime))
+            .ForMember(dest => dest.Defunct, opt => opt.MapFrom(src => src.Defunct))
+            .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
+            .ForMember(dest => dest.Private, opt => opt.MapFrom(src => src.Private))
+            .ForMember(dest => dest.Langmask, opt => opt.MapFrom(src => src.Langmask))
+            .ForMember(dest => dest.Obi, opt => opt.MapFrom(src => src.Obi))
+            .ForMember(dest => dest.ContestProblems, opt => opt.MapFrom(src => src.ContestProblems))
+            .ForMember(dest => dest.ContestUsers, opt => opt.MapFrom(src => src.ContestUsers));
 
-            CreateMap<DbContest, Contest>();
+            CreateMap<DbContestUser, ContestUser>();
+            CreateMap<ContestUser, DbContestUser>();
+
+            CreateMap<DbUser, User>();
+            CreateMap<User, DbUser>();
+
+            CreateMap<Contest, DbContest>();
+
+            //CreateMap<User, DbContestUser>();
 
             CreateMap<DbUserSetting, UserSetting>();
             CreateMap<DbUserActivity, UserActivity>();
 
             CreateMap<DbCompileinfo, Compileinfo>();
-            CreateMap<DbContestProblem, ContestProblem>();
-            CreateMap<ContestProblem, DbContestProblem>();
+
 
             CreateMap<DbLoginlog, Loginlog>();
             CreateMap<DbNews, News>();

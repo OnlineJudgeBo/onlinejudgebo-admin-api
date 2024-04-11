@@ -47,6 +47,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<DbUserSetting> UserSettings { get; set; }
 
     public virtual DbSet<DbPrivilege> Privilege { get; set; }
+    public virtual DbSet<DbContestUser> ContestUsers { get; set; }
+
 
     protected override void OnConfiguring(DbContextOptionsBuilder builder)
         => builder.UseMySql("server=172.19.0.2;database=jol;user=root;pwd=root;AllowZeroDateTime=True;ConvertZeroDateTime=True;convert zero datetime=True",
@@ -763,6 +765,18 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("user_id");
         });
 
+        modelBuilder.Entity<DbContestUser>(entity =>
+        {
+            entity.HasKey(cu => new { cu.ContestId, cu.UserId });
+
+            entity.HasOne(cu => cu.Contest)
+                .WithMany(c => c.ContestUsers)
+                .HasForeignKey(cu => cu.ContestId);
+
+            entity.HasOne(cu => cu.User)
+                .WithMany(u => u.ContestUsers)
+                .HasForeignKey(cu => cu.UserId);
+        });
         OnModelCreatingPartial(modelBuilder);
     }
 
@@ -776,7 +790,5 @@ public class DateTimeConverter
             v => v, // Conversión al guardar en la base de datos: no se necesita cambio.
             v => v.HasValue && v.Value.Year < 2 ? null : v // Conversión al leer de la base de datos: maneja explícitamente los valores nulos.
         );
-
-
 }
 

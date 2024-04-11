@@ -34,4 +34,5 @@ public partial class DbContest
     public bool Obi { get; set; }
 
     public virtual ICollection<DbContestProblem>? ContestProblems { get; set; } = new List<DbContestProblem>();
+    public ICollection<DbContestUser>? ContestUsers { get; set; } = new List<DbContestUser>();
 }

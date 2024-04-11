@@ -16,7 +16,7 @@ public class PrivilegeRepository : IPrivilegeRepository
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
-    public async void CreatePrivilegeAsync(Privilege privilege)
+    public async Task CreatePrivilegeAsync(Privilege privilege)
     {
         DbPrivilege dbPrivilege = _mapper.Map<DbPrivilege>(privilege);
         _context.Privilege.Add(dbPrivilege);

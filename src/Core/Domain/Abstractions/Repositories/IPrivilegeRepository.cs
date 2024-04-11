@@ -4,5 +4,5 @@ namespace OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 
 public interface IPrivilegeRepository
 {
-    public void CreatePrivilegeAsync(Privilege privilege);
+    public Task CreatePrivilegeAsync(Privilege privilege);
 }

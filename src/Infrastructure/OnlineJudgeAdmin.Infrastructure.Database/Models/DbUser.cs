@@ -39,4 +39,5 @@ public partial class DbUser
     public virtual DbUserProfile? UserProfile { get; set; }
     public virtual DbUserSetting? UserSetting { get; set; }
     public virtual ICollection<DbRole> Roles { get; set; } = new List<DbRole>();
+    public ICollection<DbContestUser>? ContestUsers { get; set; }
 }
