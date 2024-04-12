@@ -27,6 +27,11 @@ public class ContestService : IContestService
         return await _contestRepository.GetAllContestsAsync();
     }
 
+    public async Task<Contest> GetContestById(int contestId)
+    {
+        return await _contestRepository.GetContestByIdAsync(contestId);
+    }
+
     public async Task<Contest> CreateContestAsync(string userIdCreator, Contest contest)
     {
         int numeration = 0;

@@ -28,6 +28,18 @@ public class ContestsController : ControllerBase
         return Ok(await _contestService.GetAllContestAsync());
     }
 
+    [HttpGet("{contestId:int}")]
+    public async Task<IActionResult> GetContestById(int contestId)
+    {
+        return Ok(await _contestService.GetContestById(contestId));
+
+        /*Contest problem = _mapper.Map<Contest>(problemForCreation);
+        var claimsIdentity = User.Identity as ClaimsIdentity;
+        var userIdClaim = claimsIdentity?.FindFirst(ClaimTypes.NameIdentifier);
+        string userId = userIdClaim?.Value;
+        return Ok(await _contestService.CreateContestAsync(userId, problem));*/
+    }
+
     [HttpPost]
     public async Task<IActionResult> CreateContestAsync(ContestForCreation problemForCreation)
     {

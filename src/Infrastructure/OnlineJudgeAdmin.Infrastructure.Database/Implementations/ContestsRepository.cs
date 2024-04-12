@@ -42,6 +42,7 @@ public class ContestsRepository : IContestsRepository
         {
             ContestId = c.ContestId,
             Title = c.Title,
+            Description = c.Description,
             Private = c.Private,
             StartTime = c.StartTime,
             EndTime = c.EndTime,

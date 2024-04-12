@@ -1,12 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace OnlineJudgeAdminApi.DataTransferObjects;
+﻿namespace OnlineJudgeAdminApi.DataTransferObjects;
 
 public partial class ContestForCreation
 {
-    [Required]
-    public string ContestName { get; set; }
-
     public string Title { get; set; }
     public string Description { get; set; }
 
