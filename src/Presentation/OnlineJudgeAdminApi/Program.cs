@@ -1,5 +1,6 @@
 using OnlineJudgeAdmin.Infrastructure.Database.DependencyInjection;
-using OnlineJudgeAdmin.Infrastructure.FileSystem.DependencyInjection;
+using OnlineJudgeAdmin.Infrastructure.AwsS3.DependencyInjection;
+using OnlineJudgeAdmin.Infrastructure.FileSystemLocalManager.DependencyInjection;
 using OnlineJudgeAdmin.Core.Application.Validators.DependencyInjection;
 using OnlineJudgeAdmin.Core.Application.Services.DependencyInjection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -61,7 +62,8 @@ builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
 builder.Services.AddDatabaseRepositories(builder.Configuration);
 builder.Services.AddApplicationValidators();
 builder.Services.AddApplicationServices();
-builder.Services.AddFileSystemInfrastructureManager(builder.Configuration);
+builder.Services.AddFileSystemLocalManagerInfrastructureManager(builder.Configuration);
+builder.Services.AddAwsS3FileManager(builder.Configuration);
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+namespace OnlineJudgeAdminApi.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class FilesController : ControllerBase
+public class LocalSystemLocalManagerController : ControllerBase
 {
     private readonly string baseDirectory = @"/tmp/zas/";
 

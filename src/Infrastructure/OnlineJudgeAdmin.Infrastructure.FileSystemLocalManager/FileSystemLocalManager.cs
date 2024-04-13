@@ -1,14 +1,14 @@
 ﻿using Microsoft.Extensions.Configuration;
-using OnlineJudgeAdmin.Core.Domain.Abstractions.FileSystemManager;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
 
-namespace OnlineJudgeAdmin.Infrastructure.FileSystem;
+namespace OnlineJudgeAdmin.Infrastructure.FileSystemLocalManager;
 
-public class FileSystemManager : IFileSystemManager
+public class FileSystemLocalManagerManager : IFileSystemLocalManagerManager
 {
     private readonly IConfiguration _configuration;
     private readonly string _path;
 
-    public FileSystemManager(IConfiguration configuration)
+    public FileSystemLocalManagerManager(IConfiguration configuration)
     {
         _configuration = configuration;
         _path = _configuration["FileSettings:ProblemsFilePath"];

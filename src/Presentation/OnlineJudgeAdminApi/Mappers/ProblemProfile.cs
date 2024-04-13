@@ -33,6 +33,7 @@ public class ProblemProfile : Profile
         .ForMember(dest => dest.ContestUsers, opt => opt.MapFrom(src => src.SelectedUser))
         .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
         .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
+        .ForMember(dest => dest.Private, opt => opt.MapFrom(src => src.IsPrivate))
         .ForMember(dest => dest.ProgrammingLanguages, opt => opt.MapFrom(src => src.selectedLanguage))
         .ForMember(dest => dest.ContestProblems, opt => opt.MapFrom(src => src.SelectedProblem))
         .ForMember(dest => dest.ContestUsers, opt => opt.MapFrom(src => src.SelectedUser));

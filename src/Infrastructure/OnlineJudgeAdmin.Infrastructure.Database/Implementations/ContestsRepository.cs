@@ -105,7 +105,9 @@ public class ContestsRepository : IContestsRepository
         existingContest.ContestUsers.Add(ownerContest);
         foreach (var user in contestsToUpdate.ContestUsers)
         {
-            existingContest.ContestUsers.Add(user);
+            if (user.UserId != ownerContest.UserId) {
+                existingContest.ContestUsers.Add(user);
+            }
         }
 
         existingContest.ProgrammingLanguages.Clear();
