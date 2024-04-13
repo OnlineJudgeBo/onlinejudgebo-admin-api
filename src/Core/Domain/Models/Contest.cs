@@ -23,4 +23,6 @@ public partial class Contest
     public virtual ICollection<ContestProblem> ContestProblems { get; set; } = new List<ContestProblem>();
 
     public virtual ICollection<ContestUser>? ContestUsers { get; set; } = new List<ContestUser>();
+
+    public virtual ICollection<ProgrammingLanguage>? ProgrammingLanguages { get; set; } = new List<ProgrammingLanguage>();
 }

@@ -32,12 +32,6 @@ public class ContestsController : ControllerBase
     public async Task<IActionResult> GetContestById(int contestId)
     {
         return Ok(await _contestService.GetContestById(contestId));
-
-        /*Contest problem = _mapper.Map<Contest>(problemForCreation);
-        var claimsIdentity = User.Identity as ClaimsIdentity;
-        var userIdClaim = claimsIdentity?.FindFirst(ClaimTypes.NameIdentifier);
-        string userId = userIdClaim?.Value;
-        return Ok(await _contestService.CreateContestAsync(userId, problem));*/
     }
 
     [HttpPost]
@@ -49,5 +43,13 @@ public class ContestsController : ControllerBase
         var userIdClaim = claimsIdentity?.FindFirst(ClaimTypes.NameIdentifier);
         string userId = userIdClaim?.Value;
         return Ok(await _contestService.CreateContestAsync(userId, problem));
+    }
+
+    [HttpPut("{contestId:int}")]
+    public async Task<IActionResult> UpdateContestAsync(int contestId, ContestForUpdate contestForUpdate)
+    {
+        Contest contest = _mapper.Map<Contest>(contestForUpdate);
+        contest.ContestId = contestId;
+        return Ok(await _contestService.UpdateContestAsync(contestId, contest));
     }
 }

@@ -55,4 +55,29 @@ public class ContestService : IContestService
 
         return await _contestRepository.GetContestByIdAsync(contestCreated.ContestId);
     }
+
+    public async Task<Contest> UpdateContestAsync(int contestId, Contest contest)
+    {
+        var existingContest = await _contestRepository.GetContestByIdAsync(contestId);
+        //ValidateUser(user);
+
+        if (contestId == 0)
+        {
+            throw new ArgumentNullException(nameof(contestId));
+        }
+
+        if (existingContest == null)
+        {
+            throw new ApplicationException("Contest does not exist.");
+        }
+
+        int numeration = 0;
+        foreach (var problem in contest.ContestProblems)
+        {
+            problem.Num = numeration;
+            numeration++;
+        }
+
+        return await _contestRepository.UpdateContestAsync(contestId, contest);
+    }
 }

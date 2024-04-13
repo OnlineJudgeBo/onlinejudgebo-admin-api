@@ -49,6 +49,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<DbPrivilege> Privilege { get; set; }
     public virtual DbSet<DbContestUser> ContestUsers { get; set; }
 
+    public virtual DbSet<DbProgrammingLanguage> ProgrammingLanguages { get; set; }
+
 
     protected override void OnConfiguring(DbContextOptionsBuilder builder)
         => builder.UseMySql("server=172.19.0.2;database=jol;user=root;pwd=root;AllowZeroDateTime=True;ConvertZeroDateTime=True;convert zero datetime=True",
@@ -777,6 +779,26 @@ public partial class AppDbContext : DbContext
                 .WithMany(u => u.ContestUsers)
                 .HasForeignKey(cu => cu.UserId);
         });
+
+        modelBuilder.Entity<DbContest>()
+            .HasMany(c => c.ProgrammingLanguages)
+            .WithMany(p => p.Contests)
+            .UsingEntity<Dictionary<string, object>>(
+                "contest_programming_language",
+                j => j.HasOne<DbProgrammingLanguage>()
+                    .WithMany()
+                    .HasForeignKey("language_id")
+                    .OnDelete(DeleteBehavior.Cascade),
+                j => j.HasOne<DbContest>()
+                    .WithMany()
+                    .HasForeignKey("contest_id")
+                    .OnDelete(DeleteBehavior.Cascade),
+                j =>
+                {
+                    j.ToTable("contest_programming_language");
+                }
+            );
+
         OnModelCreatingPartial(modelBuilder);
     }
 

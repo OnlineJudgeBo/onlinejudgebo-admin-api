@@ -14,6 +14,9 @@ public class ProblemProfile : Profile
         CreateMap<ProblemForContestCreation, ContestProblem>();
         CreateMap<DbContestProblem, Problem>();
         CreateMap<UserForContestCreation, ContestUser>();
+        CreateMap<ClassificationsForCreation, Classification>();
+        CreateMap<UserAvailableForRequest, UserProfile>();
+
         CreateMap<ContestForCreation, Contest>()
         .ForMember(dest => dest.StartTime, opt => opt.MapFrom(src => src.StartDate))
         .ForMember(dest => dest.EndTime, opt => opt.MapFrom(src => src.EndDate))
@@ -22,7 +25,23 @@ public class ProblemProfile : Profile
         .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
         .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description));
 
-        CreateMap<ClassificationsForCreation, Classification>();
-        CreateMap<UserAvailableForRequest, UserProfile>();
+
+        CreateMap<ContestForUpdate, Contest>()
+        .ForMember(dest => dest.StartTime, opt => opt.MapFrom(src => src.StartDate))
+        .ForMember(dest => dest.EndTime, opt => opt.MapFrom(src => src.EndDate))
+        .ForMember(dest => dest.ContestProblems, opt => opt.MapFrom(src => src.SelectedProblem))
+        .ForMember(dest => dest.ContestUsers, opt => opt.MapFrom(src => src.SelectedUser))
+        .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
+        .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
+        .ForMember(dest => dest.ProgrammingLanguages, opt => opt.MapFrom(src => src.selectedLanguage))
+        .ForMember(dest => dest.ContestProblems, opt => opt.MapFrom(src => src.SelectedProblem))
+        .ForMember(dest => dest.ContestUsers, opt => opt.MapFrom(src => src.SelectedUser));
+
+        CreateMap<ProgrammingLanguageForContestCreation, ProgrammingLanguage>()
+            .ForMember(dest => dest.LanguageId, opt => opt.MapFrom(src => src.LanguageId));
+            //.ForMember(dest => dest.Name, opt => opt.Ignore());
+
+
+
     }
 }

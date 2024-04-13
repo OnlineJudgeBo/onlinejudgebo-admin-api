@@ -35,4 +35,5 @@ public partial class DbContest
 
     public virtual ICollection<DbContestProblem>? ContestProblems { get; set; } = new List<DbContestProblem>();
     public ICollection<DbContestUser>? ContestUsers { get; set; } = new List<DbContestUser>();
+    public virtual ICollection<DbProgrammingLanguage>? ProgrammingLanguages { get; set; } = new List<DbProgrammingLanguage>();
 }

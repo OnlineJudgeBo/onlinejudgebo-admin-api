@@ -21,9 +21,13 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.Mappers
             .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
             .ForMember(dest => dest.Private, opt => opt.MapFrom(src => src.Private))
             .ForMember(dest => dest.Langmask, opt => opt.MapFrom(src => src.Langmask))
+            .ForMember(dest => dest.ProgrammingLanguages, opt => opt.MapFrom(src => src.ProgrammingLanguages))
             .ForMember(dest => dest.Obi, opt => opt.MapFrom(src => src.Obi))
             .ForMember(dest => dest.ContestProblems, opt => opt.MapFrom(src => src.ContestProblems))
             .ForMember(dest => dest.ContestUsers, opt => opt.MapFrom(src => src.ContestUsers));
+
+            CreateMap<DbProgrammingLanguage, ProgrammingLanguage>();
+            CreateMap<ProgrammingLanguage, DbProgrammingLanguage>();
 
             CreateMap<DbContestUser, ContestUser>();
             CreateMap<ContestUser, DbContestUser>();

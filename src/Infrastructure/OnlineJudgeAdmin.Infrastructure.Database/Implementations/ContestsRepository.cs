@@ -47,6 +47,12 @@ public class ContestsRepository : IContestsRepository
             StartTime = c.StartTime,
             EndTime = c.EndTime,
             Defunct = c.Defunct,
+            Langmask = c.Langmask,
+            ProgrammingLanguages = c.ProgrammingLanguages.Select(c => new DbProgrammingLanguage
+            {
+                LanguageId = c.LanguageId,
+                Name = c.Name
+            }).ToList(),
             ContestProblems = c.ContestProblems.Select(c => new DbContestProblem
             {
                 Num = c.Num,
@@ -71,5 +77,49 @@ public class ContestsRepository : IContestsRepository
         return _mapper.Map<Contest>(contests);
     }
 
+    public async Task<Contest> UpdateContestAsync(int contestId, Contest contest)
+    {
+        contest.Defunct = "N";
+        DbContest contestsToUpdate = _mapper.Map<DbContest>(contest);
 
+        var existingContest = await _context.Contests
+            .Include(c => c.ContestProblems)
+            .Include(c => c.ContestUsers)
+            .Include(c => c.ProgrammingLanguages)
+            .FirstOrDefaultAsync(c => c.ContestId == contestId);
+
+        if (existingContest == null)
+            throw new KeyNotFoundException("Contest not found with ID: " + contestId);
+
+        var ownerContest = existingContest.ContestUsers.Where(p => p.IsOwner).First();
+
+        _context.Entry(existingContest).CurrentValues.SetValues(contest);
+
+        existingContest.ContestProblems.Clear();
+        foreach (var problem in contestsToUpdate.ContestProblems)
+        {
+            existingContest.ContestProblems.Add(problem);
+        }
+
+        existingContest.ContestUsers.Clear();
+        existingContest.ContestUsers.Add(ownerContest);
+        foreach (var user in contestsToUpdate.ContestUsers)
+        {
+            existingContest.ContestUsers.Add(user);
+        }
+
+        existingContest.ProgrammingLanguages.Clear();
+        foreach (var langId in contestsToUpdate.ProgrammingLanguages)
+        {
+            var language = await _context.ProgrammingLanguages.FindAsync(langId.LanguageId);
+            if (language != null)
+            {
+                _context.Entry(language).State = EntityState.Unchanged;
+                existingContest.ProgrammingLanguages.Add(language);
+            }
+        }
+
+        await _context.SaveChangesAsync();
+        return await GetContestByIdAsync(contestId);
+    }
 }
