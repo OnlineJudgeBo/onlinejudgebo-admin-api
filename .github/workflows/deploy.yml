@@ -14,7 +14,8 @@ jobs:
 
   docker-package:
     needs: build
-    runs-on: ubuntu-latest 
+    runs-on: ubuntu-latest
+    permissions: write-all
     if: ${{github.ref == 'refs/heads/main'}}
     steps:
     - uses: actions/checkout@v3
