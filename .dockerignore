@@ -1,0 +1,53 @@
+# .dockerignore for .NET projects
+
+# Ignore the artifacts from build outputs
+**/bin/
+**/obj/
+
+# Ignore all log files and temporary data
+*.log
+*.tmp
+*.cache
+*.trx
+*.vs/
+*.vscode/
+*global.json
+
+# Ignore all configuration files
+appsettings.*
+
+# Ignore NuGet Packages
+**/packages/
+*.nupkg
+
+# Ignore the local development tools
+Properties/launchSettings.json
+
+# Ignore other source repositories
+.git/
+.svn/
+.hg/
+
+# Ignore scripts, documentation, and other non-app files
+scripts/
+docs/
+notes.txt
+README.md
+
+# Ignore Docker override files used for local development
+docker-compose.override.yml
+docker-compose.*.yml
+
+# Ignore development environment files
+*.development.json
+*.env.development
+
+# Ignore user-specific files and directories
+**/.vs/
+**/.vscode/
+*.user
+*.suo
+*.userprefs
+
+# Node modules for those using Node.js in their .NET projects
+**/node_modules/
