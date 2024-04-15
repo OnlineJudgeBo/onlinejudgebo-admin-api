@@ -15,5 +15,5 @@ public partial class ContestForUpdate
 
     public virtual ICollection<UserForContestCreation> SelectedUser { get; set; }
 
-    public virtual ICollection<ProgrammingLanguageForContestCreation> selectedLanguage { get; set; }
+    public virtual ICollection<ProgrammingLanguageForContestCreation> selectedLanguages { get; set; }
 }

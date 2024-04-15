@@ -41,6 +41,7 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.Mappers
 
             CreateMap<DbUserSetting, UserSetting>();
             CreateMap<DbUserActivity, UserActivity>();
+            CreateMap<DbUserProfile, UserProfile>();
 
             CreateMap<DbCompileinfo, Compileinfo>();
 
@@ -59,7 +60,6 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.Mappers
             CreateMap<DbSolution, Solution>();
             CreateMap<DbSourceCode, SourceCode>();
 
-            CreateMap<DbUserProfile, UserProfile>();
 
             CreateMap<DbTopic, Topic>();
             CreateMap<Topic, DbTopic>();
@@ -72,8 +72,13 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.Mappers
 
             CreateMap<Privilege, DbPrivilege>();
 
-            //CreateMap<UserRole, DbUserRole>();
-            //CreateMap<DbUserRole, UserRole>();
+            CreateMap<UserRole, DbUserRole>()
+                .ForMember(dest => dest.RoleId, opt => opt.MapFrom(src => src.RoleId))
+                .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId));
+
+            CreateMap<DbUserRole, UserRole>()
+                .ForMember(dest => dest.RoleId, opt => opt.MapFrom(src => src.RoleId))
+                .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId));
         }
     }
 }

@@ -1,4 +1,6 @@
-﻿using FluentValidation;
+﻿using System.Security.Cryptography;
+using System.Text;
+using FluentValidation;
 
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
@@ -38,4 +40,52 @@ public class UserService : IUserService
     {
         return await _userRepository.SearchUserProfilesAsync(searchTerm);
     }
+
+    public async Task<UserProfile> UpdateUserProfile(User userToUpdate, string userId)
+    {
+        if (userToUpdate.UserId != userId)
+        {
+            await _userRepository.UpdateUser(userToUpdate, userId);
+        }
+        return await _userRepository.UpdateUserProfile(userToUpdate.UserProfile);
+    }
+
+    public async Task ChangePassword(string password, string userId)
+    {
+        string passwordEncrypt = await GeneratePasswordHashAsync(password);
+        await _userRepository.ChangePassword(passwordEncrypt, userId);
+    }
+
+    public async Task DeleteRoleAsync(string userId, int roleId)
+    {
+        await _userRepository.DeleteRoleAsync(userId, roleId);
+    }
+
+private async Task<string> GeneratePasswordHashAsync(string password)
+{
+    using (HttpClient client = new HttpClient())
+    {
+        string baseUrl = "https://jv.umsa.bo";
+        string endpoint = $"/oj/spi.php?spi={Uri.EscapeDataString(password)}";
+
+        client.BaseAddress = new Uri(baseUrl);
+
+        try
+        {
+            HttpResponseMessage response = await client.GetAsync(endpoint);
+            response.EnsureSuccessStatusCode();
+
+            return await response.Content.ReadAsStringAsync();
+        }
+        catch (HttpRequestException e)
+        {
+            Console.WriteLine("\nException Caught!");
+            Console.WriteLine("Message :{0} ", e.Message);
+            return $"ERROR: {e.Message}";
+        }
+    }
+}
+
+
+
 }

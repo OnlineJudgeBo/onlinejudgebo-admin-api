@@ -13,43 +13,26 @@ public partial class AppDbContext : DbContext
         : base(options)
     {
     }
-
     public virtual DbSet<DbClassification> Classifications { get; set; }
-
     public virtual DbSet<DbCompileinfo> Compileinfos { get; set; }
-
     public virtual DbSet<DbContest> Contests { get; set; }
-
     public virtual DbSet<DbContestProblem> ContestProblems { get; set; }
-
-    public virtual DbSet<DbLoginlog> Loginlogs { get; set; }
-
-    public virtual DbSet<DbNews> News { get; set; }
-
-    public virtual DbSet<DbProblem> Problems { get; set; }
-
-    public virtual DbSet<DbRole> Roles { get; set; }
-
-    public virtual DbSet<DbRuntimeinfo> Runtimeinfos { get; set; }
-
-    public virtual DbSet<DbSolution> Solutions { get; set; }
-
-    public virtual DbSet<DbSourceCode> SourceCodes { get; set; }
-
-    public virtual DbSet<DbTopic> Topics { get; set; }
-
-    public virtual DbSet<DbUser> Users { get; set; }
-
-    public virtual DbSet<DbUserActivity> UserActivities { get; set; }
-
-    public virtual DbSet<DbUserProfile> UserProfiles { get; set; }
-
-    public virtual DbSet<DbUserSetting> UserSettings { get; set; }
-
-    public virtual DbSet<DbPrivilege> Privilege { get; set; }
     public virtual DbSet<DbContestUser> ContestUsers { get; set; }
-
+    public virtual DbSet<DbLoginlog> Loginlogs { get; set; }
+    public virtual DbSet<DbNews> News { get; set; }
+    public virtual DbSet<DbPrivilege> Privilege { get; set; }
+    public virtual DbSet<DbProblem> Problems { get; set; }
     public virtual DbSet<DbProgrammingLanguage> ProgrammingLanguages { get; set; }
+    public virtual DbSet<DbRole> Roles { get; set; }
+    public virtual DbSet<DbRuntimeinfo> Runtimeinfos { get; set; }
+    public virtual DbSet<DbSolution> Solutions { get; set; }
+    public virtual DbSet<DbSourceCode> SourceCodes { get; set; }
+    public virtual DbSet<DbTopic> Topics { get; set; }
+    public virtual DbSet<DbUser> Users { get; set; }
+    public virtual DbSet<DbUserActivity> UserActivities { get; set; }
+    public virtual DbSet<DbUserProfile> UserProfiles { get; set; }
+    public virtual DbSet<DbUserRole> UserRoles { get; set; }
+    public virtual DbSet<DbUserSetting> UserSettings { get; set; }
 
 
     protected override void OnConfiguring(DbContextOptionsBuilder builder)
@@ -601,18 +584,6 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValue(true);
         });
 
-        modelBuilder.Entity<DbUser>()
-            .HasMany(e => e.Roles)
-            .WithMany(e => e.Users)
-            .UsingEntity<Dictionary<string, object>>(
-                "user_roles",
-                j => j.HasOne<DbRole>().WithMany().HasForeignKey("role_id"),
-                j => j.HasOne<DbUser>().WithMany().HasForeignKey("user_id"),
-                j =>
-                {
-                    j.ToTable("user_roles");
-                });
-
         modelBuilder.Entity<DbUserActivity>(entity =>
         {
             entity.HasKey(e => e.UserId).HasName("PRIMARY");
@@ -799,9 +770,39 @@ public partial class AppDbContext : DbContext
                 }
             );
 
-        OnModelCreatingPartial(modelBuilder);
-    }
+        modelBuilder.Entity<DbUserRole>(entity =>
+        {
+            entity.ToTable("user_roles");
+            entity.HasKey(e => new { e.UserId, e.RoleId });
 
+            entity.Property(e => e.RoleId)
+                .HasColumnName("role_id")
+                .HasColumnType("int(11)");
+
+            entity.Property(e => e.UserId)
+                .HasColumnName("user_id")
+                .HasMaxLength(48)
+                .HasColumnType("varchar(48)");
+
+            entity.HasOne(d => d.Role)
+                .WithMany(p => p.UserRoles)
+                .HasForeignKey(d => d.RoleId)
+                .HasConstraintName("user_roles_ibfk_2")
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(d => d.User)
+                .WithMany(p => p.UserRoles)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("user_roles_ibfk_1")
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.RoleId);
+            entity.HasIndex(e => e.UserId);
+        });
+
+
+
+    }
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 }
 

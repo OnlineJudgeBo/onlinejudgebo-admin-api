@@ -27,7 +27,9 @@ public class UsersController : ControllerBase
         if (string.IsNullOrWhiteSpace(searchTerm))
         {
             return Ok(await _userService.GetAllUserProfilesAsync());
-        } else {
+        }
+        else
+        {
             return Ok(await _userService.SearchUserProfilesAsync(searchTerm));
         }
     }
@@ -46,5 +48,26 @@ public class UsersController : ControllerBase
         UserProfile userProfile = _mapper.Map<UserProfile>(userForValidation);
 
         return Ok(await _userService.CheckUserEmailAvailable(userProfile));
+    }
+
+    [HttpPut("{userId}")]
+    public async Task<ActionResult> UpdateProfileUser(UserForUpdate userToUpdate, string userId)
+    {
+        User userProfile = _mapper.Map<User>(userToUpdate);
+        return Ok(await _userService.UpdateUserProfile(userProfile, userId));
+    }
+
+    [HttpPut("changePassword/{userId}")]
+    public async Task<ActionResult> ChangePassword(UserPasswordForUpdate newPassword, string userId)
+    {
+        await _userService.ChangePassword(newPassword.Password, userId);
+        return Ok();
+    }
+
+    [HttpDelete("{userId}/role/{roleId:int}")]
+    public async Task<ActionResult> DeleteRole(string userId, int roleId)
+    {
+        await _userService.DeleteRoleAsync(userId, roleId);
+        return Ok();
     }
 }

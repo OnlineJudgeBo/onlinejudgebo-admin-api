@@ -12,5 +12,5 @@ public partial class DbRole
     [Column("role_name")]
     public string RoleName { get; set; } = null!;
 
-    public virtual ICollection<DbUser> Users { get; set; } = new List<DbUser>();
+    public ICollection<DbUserRole> UserRoles { get; set; } = new List<DbUserRole>();
 }

@@ -20,7 +20,7 @@ public class RoleRepository : IRoleRepository
     public async Task<IEnumerable<User>> GetUserRolesAsync()
     {
         IEnumerable<DbUser> rolesWithUsers = await _context.Users
-            .Where(u => u.Roles.Any())
+            .Where(u => u.UserRoles.Any())
             .Select(u => new DbUser
             {
                 UserId = u.UserId,
@@ -30,10 +30,12 @@ public class RoleRepository : IRoleRepository
                     Nick = u.UserProfile.Nick,
                     Lastname = u.UserProfile.Lastname
                 },
-                Roles = u.Roles.Select(ur => new DbRole
+                UserRoles = u.UserRoles.Select(ur => new DbUserRole
                 {
-                    RoleId = ur.RoleId,
-                    RoleName = ur.RoleName
+                    Role = new DbRole{
+                        RoleId = ur.RoleId,
+                        RoleName = ur.Role.RoleName
+                    }
                 }).ToList()
             }).ToListAsync();
 
@@ -46,7 +48,7 @@ public class RoleRepository : IRoleRepository
         .Select(t => new DbRole
         {
             RoleId = t.RoleId,
-            RoleName = t.RoleName
+            RoleName = t.RoleName,
         }).ToListAsync();
         return _mapper.Map<IEnumerable<Role>>(roles);
     }

@@ -23,7 +23,9 @@ public class ProblemProfile : Profile
         .ForMember(dest => dest.ContestProblems, opt => opt.MapFrom(src => src.SelectedProblem))
         .ForMember(dest => dest.ContestUsers, opt => opt.MapFrom(src => src.SelectedUser))
         .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
-        .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description));
+        .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
+        .ForMember(dest => dest.Private, opt => opt.MapFrom(src => src.IsPrivate))
+        .ForMember(dest => dest.ProgrammingLanguages, opt => opt.MapFrom(src => src.selectedLanguages));
 
 
         CreateMap<ContestForUpdate, Contest>()
@@ -34,15 +36,20 @@ public class ProblemProfile : Profile
         .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
         .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
         .ForMember(dest => dest.Private, opt => opt.MapFrom(src => src.IsPrivate))
-        .ForMember(dest => dest.ProgrammingLanguages, opt => opt.MapFrom(src => src.selectedLanguage))
-        .ForMember(dest => dest.ContestProblems, opt => opt.MapFrom(src => src.SelectedProblem))
-        .ForMember(dest => dest.ContestUsers, opt => opt.MapFrom(src => src.SelectedUser));
+        .ForMember(dest => dest.ProgrammingLanguages, opt => opt.MapFrom(src => src.selectedLanguages));
 
         CreateMap<ProgrammingLanguageForContestCreation, ProgrammingLanguage>()
             .ForMember(dest => dest.LanguageId, opt => opt.MapFrom(src => src.LanguageId));
-            //.ForMember(dest => dest.Name, opt => opt.Ignore());
 
-
+        CreateMap<UserForUpdate, User>()
+            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserName))
+            .ForMember(dest => dest.UserProfile, opt => opt.MapFrom(src => new UserProfile
+            {
+                UserId = src.UserName,
+                Email = src.Email,
+                Nick = src.Name,
+                Lastname = src.LastName
+            }));
 
     }
 }

@@ -71,10 +71,62 @@ public class ContestsRepository : IContestsRepository
 
     public async Task<Contest> CreateContestAsync(Contest contest)
     {
-        DbContest contests = _mapper.Map<DbContest>(contest);
-        _context.Contests.Add(contests);
+        contest.Defunct = "N";
+
+        DbContest newContest = _mapper.Map<DbContest>(contest);
+
+        var dbContestProblems = new List<DbContestProblem>(newContest.ContestProblems);
+        var dbContestUsers = new List<DbContestUser>(newContest.ContestUsers);
+        var dbProgrammingLanguages = new List<DbProgrammingLanguage>(newContest.ProgrammingLanguages);
+
+        newContest.ContestProblems.Clear();
+        newContest.ContestUsers.Clear();
+        newContest.ProgrammingLanguages.Clear();
+
+        _context.Contests.Add(newContest);
+
         await _context.SaveChangesAsync();
-        return _mapper.Map<Contest>(contests);
+        await _context.Contests.FirstOrDefaultAsync(c => c.ContestId == newContest.ContestId);
+
+        foreach (var problem in dbContestProblems)
+        {
+            var contestProblem = new DbContestProblem
+            {
+                ContestId = newContest.ContestId,
+                ProblemId = problem.ProblemId,
+                Num = problem.Num
+            };
+            _context.ContestProblems.Add(contestProblem);
+        }
+        //await _context.SaveChangesAsync();
+
+        foreach (var user in dbContestUsers)
+        {
+            if (user.UserId != null)
+            {
+
+                var contestUser = new DbContestUser
+                {
+                    ContestId = newContest.ContestId,
+                    UserId = user.UserId,
+                    IsOwner = user.IsOwner
+
+                };
+                _context.ContestUsers.Add(contestUser);
+            }
+        }
+        //await _context.SaveChangesAsync();
+
+        foreach (var lang in dbProgrammingLanguages)
+        {
+            var language = await _context.ProgrammingLanguages.FindAsync(lang.LanguageId);
+            if (language != null)
+            {
+                newContest.ProgrammingLanguages.Add(language);
+            }
+        }
+        await _context.SaveChangesAsync();
+        return await GetContestByIdAsync(newContest.ContestId);
     }
 
     public async Task<Contest> UpdateContestAsync(int contestId, Contest contest)
@@ -105,7 +157,8 @@ public class ContestsRepository : IContestsRepository
         existingContest.ContestUsers.Add(ownerContest);
         foreach (var user in contestsToUpdate.ContestUsers)
         {
-            if (user.UserId != ownerContest.UserId) {
+            if (user.UserId != ownerContest.UserId)
+            {
                 existingContest.ContestUsers.Add(user);
             }
         }

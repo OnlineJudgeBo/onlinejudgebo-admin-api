@@ -64,6 +64,24 @@ public class UserRepository : IUserRepository
         return _mapper.Map<IEnumerable<User>>(users);
     }
 
+    public async Task<User> GetUserById(string userId)
+    {
+        try
+        {
+            DbUser users = await _context.Users
+                .Where(u => u.UserId == userId)
+                .Select(t => new DbUser
+                {
+                    UserId = t.UserId
+                }).FirstAsync();
+            return _mapper.Map<User>(users);
+        }
+        catch (Exception e)
+        {
+            return null;
+        }
+    }
+
     public async Task<bool> CheckUsernameAvailable(UserProfile userProfile)
     {
         return !await _context.UserSettings.AnyAsync(u => u.UserId == userProfile.UserId);
@@ -101,5 +119,66 @@ public class UserRepository : IUserRepository
             }).ToListAsync();
 
         return _mapper.Map<IEnumerable<User>>(users);
+    }
+
+    public async Task<User> UpdateUser(User userToUpdate, string userId)
+    {
+        string sqlQuery = @"
+            UPDATE users
+            SET user_id = @NewUserId
+            WHERE user_id = @UserId;
+            ";
+
+        await _context.Database.ExecuteSqlRawAsync(sqlQuery,
+            new MySqlConnector.MySqlParameter("@NewUserId", userToUpdate.UserId),
+            new MySqlConnector.MySqlParameter("@UserId", userId)
+        );
+
+        return _mapper.Map<User>(userToUpdate);
+    }
+
+    public async Task<UserProfile> UpdateUserProfile(UserProfile profileToUpdate)
+    {
+        DbUserProfile userProfile = await _context.UserProfiles
+                .FirstOrDefaultAsync(u => u.UserId == profileToUpdate.UserId);
+
+        if (userProfile != null)
+        {
+            userProfile.Nick = profileToUpdate.Nick;
+            userProfile.Lastname = profileToUpdate.Lastname;
+            userProfile.Email = profileToUpdate.Email;
+            await _context.SaveChangesAsync();
+        }
+
+        return _mapper.Map<UserProfile>(userProfile);
+    }
+
+    public async Task ChangePassword(string newPasswordEncode, string userId)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+
+        if (user != null)
+        {
+            user.Password = newPasswordEncode.Substring(0, 32);
+
+            _context.Entry(user).Property(u => u.Password).IsModified = true;
+
+            await _context.SaveChangesAsync();
+        }
+        else
+        {
+            throw new Exception("User not found");
+        }
+    }
+
+    public async Task DeleteRoleAsync(string userId, int roleId)
+    {
+        var roles = _context.UserRoles.Where(ur => ur.UserId == userId && ur.RoleId == roleId).ToList();
+
+        if (roles.Any())
+        {
+            _context.UserRoles.RemoveRange(roles);
+            await _context.SaveChangesAsync();
+        }
     }
 }

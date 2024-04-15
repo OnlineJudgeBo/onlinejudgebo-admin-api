@@ -41,8 +41,8 @@ public class ContestsController : ControllerBase
         Contest problem = _mapper.Map<Contest>(problemForCreation);
         var claimsIdentity = User.Identity as ClaimsIdentity;
         var userIdClaim = claimsIdentity?.FindFirst(ClaimTypes.NameIdentifier);
-        string userId = userIdClaim?.Value;
-        return Ok(await _contestService.CreateContestAsync(userId, problem));
+        string userIdCreator = userIdClaim?.Value;
+        return Ok(await _contestService.CreateContestAsync(userIdCreator, problem, problemForCreation.ManualUserList));
     }
 
     [HttpPut("{contestId:int}")]

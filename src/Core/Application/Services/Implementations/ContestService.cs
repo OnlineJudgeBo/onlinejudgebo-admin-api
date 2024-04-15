@@ -8,16 +8,18 @@ namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
 public class ContestService : IContestService
 {
     private readonly IContestsRepository _contestRepository;
+    private readonly IUserRepository _userRepository;
     private readonly IPrivilegeRepository _privilegeRepository;
-
     private readonly IValidator<Problem> _userValidation;
 
     public ContestService(
         IContestsRepository topicRepository,
         IPrivilegeRepository privilegeRepository,
+        IUserRepository userRepository,
         IValidator<Problem> ProblemValidation)
     {
         _contestRepository = topicRepository ?? throw new ArgumentNullException(nameof(topicRepository));
+        _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
         _privilegeRepository = privilegeRepository ?? throw new ArgumentException(nameof(privilegeRepository));
         _userValidation = ProblemValidation ?? throw new ArgumentNullException(nameof(ProblemValidation));
     }
@@ -31,35 +33,47 @@ public class ContestService : IContestService
     {
         return await _contestRepository.GetContestByIdAsync(contestId);
     }
-
-    public async Task<Contest> CreateContestAsync(string userIdCreator, Contest contest)
+    public async Task<Contest> CreateContestAsync(string userIdCreator, Contest contest, string manualUserList)
     {
         int numeration = 0;
         foreach (var problem in contest.ContestProblems)
         {
-            problem.Num = numeration;
-            numeration++;
+            problem.Num = numeration++;
         }
 
-        contest.ContestUsers.Add(new ContestUser
+        HashSet<string> uniqueUserIds = new HashSet<string>();
+        uniqueUserIds.Add(userIdCreator);
+        foreach (var existingUser in contest.ContestUsers)
         {
-            UserId = userIdCreator
-        });
+            uniqueUserIds.Add(existingUser.UserId);
+        }
 
-        foreach (var contestUser in contest.ContestUsers)
+        string[] users = manualUserList.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+        foreach (var userId in users)
         {
-            contestUser.IsOwner = contestUser.UserId == userIdCreator;
+            uniqueUserIds.Add(userId);
+        }
+
+        contest.ContestUsers.Clear();
+        foreach (var userId in uniqueUserIds)
+        {
+            if (await _userRepository.GetUserById(userId) != null)
+            {
+                contest.ContestUsers.Add(new ContestUser
+                {
+                    UserId = userId,
+                    IsOwner = userId == userIdCreator
+                });
+            }
         }
 
         Contest contestCreated = await _contestRepository.CreateContestAsync(contest);
-
         return await _contestRepository.GetContestByIdAsync(contestCreated.ContestId);
     }
 
     public async Task<Contest> UpdateContestAsync(int contestId, Contest contest)
     {
         var existingContest = await _contestRepository.GetContestByIdAsync(contestId);
-        //ValidateUser(user);
 
         if (contestId == 0)
         {

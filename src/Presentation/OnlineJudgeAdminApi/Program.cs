@@ -64,6 +64,7 @@ builder.Services.AddApplicationValidators();
 builder.Services.AddApplicationServices();
 builder.Services.AddFileSystemLocalManagerInfrastructureManager(builder.Configuration);
 builder.Services.AddAwsS3FileManager(builder.Configuration);
+//builder.Services.Add
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

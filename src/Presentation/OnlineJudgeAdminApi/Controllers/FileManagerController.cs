@@ -1,30 +1,115 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 namespace OnlineJudgeAdminApi.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
+
 public class FileManagerController : ControllerBase
 {
-    private readonly IAwsS3FileManager _awsS3FileManager;
+    private readonly IFileManagerService _fileManagerService;
     private readonly IMapper _mapper;
-
-    public FileManagerController(IAwsS3FileManager awsS3FileManager, IMapper mapper)
+    private readonly string baseDirectory = @"/tmp/zas/";
+    public FileManagerController(IFileManagerService fileManagerService, IMapper mapper)
     {
-        _awsS3FileManager = awsS3FileManager ?? throw new ArgumentNullException(nameof(awsS3FileManager));
+        _fileManagerService = fileManagerService ?? throw new ArgumentNullException(nameof(fileManagerService));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
-    [HttpPost]
-    public async Task<IActionResult> SaveFileContentAsync(IFormFile file)
+    [HttpPost("cloud-storage")]
+    public async Task<IActionResult> S3UploadFileContentAsync(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return Content("No file uploaded.");
+        }
+
+        var path = Path.Combine(Path.GetTempPath(), "", file.FileName);
+
+        using (var stream = new FileStream(path, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        return Ok(await _fileManagerService.S3UploadFileAsync(path));
+    }
+
+    [HttpGet("local-storage")]
+    public IActionResult GetFiles(int problemId)
+    {
+        var result = GetDirectoryContents(baseDirectory + problemId + "");
+        return Ok(result);
+    }
+
+    private object GetDirectoryContents(string path, string rootPath = null)
+    {
+        DirectoryInfo directoryInfo = new DirectoryInfo(path);
+        rootPath ??= path;
+
+        var directoryContents = directoryInfo.GetDirectories()
+            .Select(dir => new
+            {
+                Name = dir.Name,
+                Type = "directory",
+                Path = dir.FullName.Substring(rootPath.Length).Replace("\\", "/"),
+                Children = GetDirectoryContents(dir.FullName, rootPath)
+            })
+            .Cast<object>()
+            .Concat(directoryInfo.GetFiles().Select(file => new
+            {
+                Name = file.Name,
+                Type = "file",
+                Path = file.FullName.Substring(rootPath.Length).Replace("\\", "/"),
+                Children = new object[0]
+            })
+            .Cast<object>())
+            .ToList();
+
+        return directoryContents;
+    }
+
+    [HttpGet("local-storage/content")]
+    public IActionResult GetFileContent(int problemId, string fileName)
+    {
+        var filePath = Path.Combine(baseDirectory, problemId.ToString(), fileName);
+        if (!System.IO.File.Exists(filePath))
+        {
+            return NotFound();
+        }
+
+        var content = System.IO.File.ReadAllText(filePath);
+        return Ok(content);
+    }
+
+    [HttpPost("local-storage")]
+    public async Task<IActionResult> SaveFileContentAsync(int problemId, string fileName, IFormFile file)
     {
         if (file == null || file.Length == 0)
         {
             return BadRequest("Upload a file.");
         }
 
-        await _awsS3FileManager.UploadFileAsync("bucketName", "keyName", "filePath");
+        var filePath = Path.Combine(baseDirectory, problemId.ToString(), fileName);
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+        return Ok(new { file.FileName, file.Length });
+    }
+
+    [HttpDelete("local-storage")]
+    public IActionResult DeleteFile(int problemId, string fileName)
+    {
+        var filePath = Path.Combine(baseDirectory, problemId.ToString(), fileName);
+        if (!System.IO.File.Exists(filePath))
+        {
+            return NotFound();
+        }
+
+        System.IO.File.Delete(filePath);
         return Ok();
     }
 }

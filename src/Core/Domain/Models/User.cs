@@ -32,5 +32,5 @@ public partial class User
 
     public virtual ICollection<Role>? Roles { get; set; }
     public ICollection<ContestUser>? ContestUsers { get; set; }
-
+    public ICollection<UserRole>? UserRoles { get; set; } = new List<UserRole>();
 }

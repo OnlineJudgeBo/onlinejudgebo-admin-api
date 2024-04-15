@@ -32,7 +32,6 @@ public partial class DbUser
 
     [Column("is_deleted")]
     public bool IsDeleted { get; set; }
-
     public virtual ICollection<DbNews> News { get; set; }
     public virtual ICollection<DbSolution> Solutions { get; set; }
     public virtual DbUserActivity? UserActivity { get; set; }
@@ -40,4 +39,5 @@ public partial class DbUser
     public virtual DbUserSetting? UserSetting { get; set; }
     public virtual ICollection<DbRole> Roles { get; set; } = new List<DbRole>();
     public ICollection<DbContestUser>? ContestUsers { get; set; }
+    public ICollection<DbUserRole>? UserRoles { get; set; } = new List<DbUserRole>();
 }

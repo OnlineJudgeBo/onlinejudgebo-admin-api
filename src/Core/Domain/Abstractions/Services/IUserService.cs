@@ -11,4 +11,10 @@ public interface IUserService
     public Task<bool> CheckUserEmailAvailable(UserProfile userProfile);
 
     public Task<IEnumerable<User>> SearchUserProfilesAsync(string searchTerm);
+
+    public Task<UserProfile> UpdateUserProfile(User userToUpdate, string userId);
+
+    public Task ChangePassword(String passwordEncrypt, string userId);
+
+    public Task DeleteRoleAsync(string userId, int roleId);
 }

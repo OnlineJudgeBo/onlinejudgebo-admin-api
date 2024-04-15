@@ -14,7 +14,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IContestService, ContestService>();
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<IProgrammingLanguageService, ProgrammingLanguageService>();
-
+        services.AddScoped<IFileManagerService, FileManagerService>();
         return services;
     }
 }
