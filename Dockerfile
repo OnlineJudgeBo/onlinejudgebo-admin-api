@@ -18,4 +18,4 @@ WORKDIR /app
 
 COPY --from=publish /app/publish .
 
-ENTRYPOINT ["dotnet", "OnlineJudgeAdminApi"]
+ENTRYPOINT ["dotnet", "OnlineJudgeAdminApi.dll"]
