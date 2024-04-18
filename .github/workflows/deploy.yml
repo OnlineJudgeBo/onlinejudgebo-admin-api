@@ -35,7 +35,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: docker-package
-    if: ${{github.ref == 'refs/heads/main'}}
+    if: ${{github.ref == 'refs/heads/develop'}}
     steps:
       - name: Setup SSH connection
         uses: webfactory/ssh-agent@v0.7.0
@@ -50,7 +50,7 @@ jobs:
 
       - name: Run docker-compose
         continue-on-error: true
-        run: ssh ${{ vars.DEV_SSH_USERNAME }}@${{ vars.DEV_SSH_HOST }} "cd patito/admin-ui && chmod +x deploy.sh && ./deploy.sh"
+        run: ssh ${{ vars.DEV_SSH_USERNAME }}@${{ vars.DEV_SSH_HOST }} "cd patito/admin-api && chmod +x deploy.sh && ./deploy.sh"
 
       - name: Delete unused images
         run: ssh ${{ vars.DEV_SSH_USERNAME }}@${{ vars.DEV_SSH_HOST }} "docker image prune -f"
