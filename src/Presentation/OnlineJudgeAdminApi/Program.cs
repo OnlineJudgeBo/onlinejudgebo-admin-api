@@ -8,6 +8,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Reflection;
 using Newtonsoft.Json;
+using OnlineJudgeAdmin.Infrastructure.Database;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers()
@@ -52,11 +54,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-/*builder.Services.AddDbContext<AppDbContext>(options =>
+builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(builder.Configuration.GetConnectionString("DefaultConnection"),
     Microsoft.EntityFrameworkCore.ServerVersion.Parse("11.2.2-mariadb"))
     .LogTo(Console.WriteLine, LogLevel.Information));
-    */
 
 builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
 builder.Services.AddDatabaseRepositories(builder.Configuration);

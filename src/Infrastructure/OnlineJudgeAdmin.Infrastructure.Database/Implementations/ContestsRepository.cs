@@ -29,8 +29,9 @@ public class ContestsRepository : IContestsRepository
             StartTime = c.StartTime,
             EndTime = c.EndTime,
             Defunct = c.Defunct
-        }
-        ).ToListAsync();
+        })
+        .Take(100)
+        .ToListAsync();
         return _mapper.Map<IEnumerable<Contest>>(contests);
     }
 

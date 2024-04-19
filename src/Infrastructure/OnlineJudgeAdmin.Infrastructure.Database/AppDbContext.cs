@@ -34,12 +34,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<DbUserRole> UserRoles { get; set; }
     public virtual DbSet<DbUserSetting> UserSettings { get; set; }
 
-
-    protected override void OnConfiguring(DbContextOptionsBuilder builder)
-        => builder.UseMySql("server=172.19.0.2;database=jol;user=root;pwd=root;AllowZeroDateTime=True;ConvertZeroDateTime=True;convert zero datetime=True",
-            Microsoft.EntityFrameworkCore.ServerVersion.Parse("11.2.2-mariadb"))
-            .EnableSensitiveDataLogging();
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
