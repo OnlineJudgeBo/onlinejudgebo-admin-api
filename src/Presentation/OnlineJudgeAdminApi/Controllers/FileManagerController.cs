@@ -44,8 +44,9 @@ public class FileManagerController : ControllerBase
         return Ok(result);
     }
 
-    private object GetDirectoryContents(string path, string rootPath = null)
+private object GetDirectoryContents(string path, string rootPath = null)
     {
+        Console.WriteLine($"Getting directory contents for path: {path}.");
         DirectoryInfo directoryInfo = new DirectoryInfo(path);
         rootPath ??= path;
 
@@ -68,9 +69,10 @@ public class FileManagerController : ControllerBase
             .Cast<object>())
             .ToList();
 
+        Console.WriteLine($"Directory contents retrieved for path: {path}.");
         return directoryContents;
     }
-
+    
     [HttpGet("local-storage/content")]
     public IActionResult GetFileContent(int problemId, string fileName)
     {
