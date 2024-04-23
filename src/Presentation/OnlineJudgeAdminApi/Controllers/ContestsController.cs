@@ -37,7 +37,6 @@ public class ContestsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateContestAsync(ContestForCreation problemForCreation)
     {
-
         Contest problem = _mapper.Map<Contest>(problemForCreation);
         var claimsIdentity = User.Identity as ClaimsIdentity;
         var userIdClaim = claimsIdentity?.FindFirst(ClaimTypes.NameIdentifier);
@@ -50,6 +49,6 @@ public class ContestsController : ControllerBase
     {
         Contest contest = _mapper.Map<Contest>(contestForUpdate);
         contest.ContestId = contestId;
-        return Ok(await _contestService.UpdateContestAsync(contestId, contest));
+        return Ok(await _contestService.UpdateContestAsync(contestId, contest, contestForUpdate.ManualUserList));
     }
 }

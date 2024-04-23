@@ -11,6 +11,8 @@ public partial class ContestForUpdate
 
     public bool IsPrivate { get; set; }
 
+    public string? ManualUserList { get; set; }
+
     public virtual ICollection<ProblemForContestCreation> SelectedProblem { get; set; }
 
     public virtual ICollection<UserForContestCreation> SelectedUser { get; set; }

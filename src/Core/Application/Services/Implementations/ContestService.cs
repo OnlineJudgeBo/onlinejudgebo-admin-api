@@ -71,7 +71,7 @@ public class ContestService : IContestService
         return await _contestRepository.GetContestByIdAsync(contestCreated.ContestId);
     }
 
-    public async Task<Contest> UpdateContestAsync(int contestId, Contest contest)
+    public async Task<Contest> UpdateContestAsync(int contestId, Contest contest, string manualUserList)
     {
         var existingContest = await _contestRepository.GetContestByIdAsync(contestId);
 
@@ -90,6 +90,31 @@ public class ContestService : IContestService
         {
             problem.Num = numeration;
             numeration++;
+        }
+
+        HashSet<string> uniqueUserIds = new HashSet<string>();
+        foreach (var existingUser in contest.ContestUsers)
+        {
+            uniqueUserIds.Add(existingUser.UserId);
+        }
+
+        string[] users = manualUserList.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+        foreach (var userId in users)
+        {
+            uniqueUserIds.Add(userId);
+        }
+
+        contest.ContestUsers.Clear();
+        foreach (var userId in uniqueUserIds)
+        {
+            if (await _userRepository.GetUserById(userId) != null)
+            {
+                contest.ContestUsers.Add(new ContestUser
+                {
+                    UserId = userId,
+                    IsOwner = false
+                });
+            }
         }
 
         return await _contestRepository.UpdateContestAsync(contestId, contest);
