@@ -30,7 +30,7 @@ public class ContestsRepository : IContestsRepository
             EndTime = c.EndTime,
             Defunct = c.Defunct
         })
-        .Take(100)
+        //.Take(100)
         .ToListAsync();
         return _mapper.Map<IEnumerable<Contest>>(contests);
     }
