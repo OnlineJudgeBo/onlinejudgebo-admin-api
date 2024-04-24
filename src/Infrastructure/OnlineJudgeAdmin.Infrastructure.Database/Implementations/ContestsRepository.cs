@@ -58,7 +58,9 @@ public class ContestsRepository : IContestsRepository
             {
                 Num = c.Num,
                 ProblemId = c.ProblemId,
-            }).ToList(),
+            })
+            .OrderBy(cp => cp.Num)
+            .ToList(),
             ContestUsers = c.ContestUsers.Select(cu => new DbContestUser
             {
                 ContestId = cu.ContestId,
