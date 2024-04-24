@@ -9,4 +9,5 @@ public interface IProblemRepository
     public Task<Problem> CreateProblemAsync(Problem problem);
     public Task<Problem> UpdateProblemAsync(string userId, int problemId, Problem problem);
     public Task<Problem> DeleteProblemAsync(int problemId);
+    public Task<IEnumerable<Problem>> SearchProblemAsync(string searchTerm);
 }
