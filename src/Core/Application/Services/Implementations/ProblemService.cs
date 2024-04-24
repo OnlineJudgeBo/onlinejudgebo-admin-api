@@ -37,6 +37,11 @@ public class ProblemService : IProblemService
         return await _problemRepository.GetProblemByIdAsync(problemId);
     }
 
+    public async Task<IEnumerable<Problem>> SearchProblemAsync(string searchTerm)
+    {
+        return await _problemRepository.SearchProblemAsync(searchTerm);
+    }
+
     public async Task<Problem> CreateProblemAsync(string userId, Problem problem)
     {
         IEnumerable<Classification>? newTopic = problem.Classifications;

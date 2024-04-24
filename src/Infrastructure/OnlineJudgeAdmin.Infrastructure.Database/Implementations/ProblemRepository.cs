@@ -50,6 +50,39 @@ public class ProblemRepository : IProblemRepository
         return _mapper.Map<IEnumerable<Problem>>(problems);
     }
 
+    public async Task<IEnumerable<Problem>> SearchProblemAsync(string searchTerm)
+    {
+        IQueryable<DbProblem> query = _context.Problems
+            .OrderBy(p => p.ProblemId);
+        //.Where(u => u.);
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            query = query.Where(u =>
+                u.Title.Contains(searchTerm) ||
+                u.ProblemId.ToString().Contains(searchTerm));
+        }
+
+        IEnumerable<DbProblem> users = await query
+            .Select(po => new DbProblem
+            {
+                ProblemId = po.ProblemId,
+                Title = po.Title,
+                Classifications = po.Classifications.Select(t => new DbClassification
+                {
+                    Name = t.Name,
+                    ClassificationId = t.ClassificationId,
+                    Topic = new DbTopic
+                    {
+                        TopicId = t.Topic.TopicId,
+                        Name = t.Topic.Name
+                    }
+                }).ToList(),
+            }).ToListAsync();
+
+        return _mapper.Map<IEnumerable<Problem>>(users);
+    }
+
     public async Task<Problem> GetProblemByIdAsync(int problemId)
     {
         DbProblem? problem = await _context.Problems
@@ -69,7 +102,7 @@ public class ProblemRepository : IProblemRepository
                 InDate = p.InDate,
                 Submit = p.Submit,
                 Accepted = p.Accepted,
-                Hint =p.Hint,
+                Hint = p.Hint,
                 Classifications = p.Classifications.Select(t => new DbClassification
                 {
                     Name = t.Name,

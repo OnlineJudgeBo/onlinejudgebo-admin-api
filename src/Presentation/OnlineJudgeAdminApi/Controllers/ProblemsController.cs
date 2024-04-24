@@ -23,9 +23,16 @@ public class ProblemsController : ControllerBase
     }
 
     [HttpGet()]
-    public async Task<IActionResult> GetAllProblemsAsync()
+    public async Task<IActionResult> GetAllProblemsAsync([FromQuery] string? searchTerm)
     {
-        return Ok(await _problemService.GetAllProblemsAsync());
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            return Ok(await _problemService.GetAllProblemsAsync());
+        }
+        else
+        {
+            return Ok(await _problemService.SearchProblemAsync(searchTerm));
+        }
     }
 
     [HttpGet("{problem_id}")]
