@@ -66,7 +66,9 @@ public class ContestsRepository : IContestsRepository
                 ContestId = cu.ContestId,
                 UserId = cu.UserId,
                 IsOwner = cu.IsOwner,
-            }).ToList()
+            })
+            .OrderBy(cp => cp.UserId)
+            .ToList()
         })
         .FirstOrDefaultAsync();
         return _mapper.Map<Contest>(contest);
