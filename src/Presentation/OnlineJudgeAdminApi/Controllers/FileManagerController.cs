@@ -44,35 +44,34 @@ public class FileManagerController : ControllerBase
         return Ok(result);
     }
 
-private object GetDirectoryContents(string path, string rootPath = null)
+    [HttpGet("local-storage/ac")]
+    public IActionResult GetFilesAc(int problemId)
+    {
+        var result = GetDirectoryContents(baseDirectory + problemId + "/ac");
+        return Ok(result);
+    }
+
+    private object GetDirectoryContents(string path, string rootPath = null)
     {
         Console.WriteLine($"Getting directory contents for path: {path}.");
         DirectoryInfo directoryInfo = new DirectoryInfo(path);
         rootPath ??= path;
 
-        var directoryContents = directoryInfo.GetDirectories()
-            .Select(dir => new
-            {
-                Name = dir.Name,
-                Type = "directory",
-                Path = dir.FullName.Substring(rootPath.Length).Replace("\\", "/"),
-                Children = GetDirectoryContents(dir.FullName, rootPath)
-            })
-            .Cast<object>()
-            .Concat(directoryInfo.GetFiles().Select(file => new
+        var directoryContents = directoryInfo.GetFiles()
+            .Select(file => new
             {
                 Name = file.Name,
                 Type = "file",
                 Path = file.FullName.Substring(rootPath.Length).Replace("\\", "/"),
                 Children = new object[0]
             })
-            .Cast<object>())
+            .Cast<object>()
             .ToList();
 
         Console.WriteLine($"Directory contents retrieved for path: {path}.");
         return directoryContents;
     }
-    
+
     [HttpGet("local-storage/content")]
     public IActionResult GetFileContent(int problemId, string fileName)
     {
