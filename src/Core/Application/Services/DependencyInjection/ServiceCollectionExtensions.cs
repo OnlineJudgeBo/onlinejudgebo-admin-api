@@ -15,6 +15,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<IProgrammingLanguageService, ProgrammingLanguageService>();
         services.AddScoped<IFileManagerService, FileManagerService>();
+        services.AddScoped<IStatiscService, StaticsServices>();
+
         return services;
     }
 }
