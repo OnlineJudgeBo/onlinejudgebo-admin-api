@@ -92,7 +92,7 @@ public class ContestService : IContestService
             numeration++;
         }
 
-        string[] users = manualUserList.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+        string[] users = manualUserList.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries);
         HashSet<string> uniqueUserIds = new HashSet<string>();
         /*foreach (var existingUser in contest.ContestUsers)
         {
