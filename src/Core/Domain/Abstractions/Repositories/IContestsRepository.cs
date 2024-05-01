@@ -4,7 +4,7 @@ namespace OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 
 public interface IContestsRepository
 {
-    public Task<IEnumerable<Contest>> GetAllContestsAsync();
+    public Task<IEnumerable<Contest>> GetAllContestsAsync(String userId, bool showAllContest);
     public Task<Contest> CreateContestAsync(Contest contest);
     public Task<Contest> GetContestByIdAsync(int contestId);
     public Task<Contest> UpdateContestAsync(int contestId, Contest contest);

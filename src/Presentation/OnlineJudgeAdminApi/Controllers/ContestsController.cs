@@ -15,7 +15,6 @@ public class ContestsController : ControllerBase
 {
     private readonly IContestService _contestService;
     private readonly IMapper _mapper;
-
     public ContestsController(IContestService contestService, IMapper mapper)
     {
         _contestService = contestService ?? throw new ArgumentNullException(nameof(contestService));
@@ -25,7 +24,8 @@ public class ContestsController : ControllerBase
     [HttpGet()]
     public async Task<IActionResult> GetAllContestAsync()
     {
-        return Ok(await _contestService.GetAllContestAsync());
+        Roles userContextRole = (Roles)HttpContext.Items["UserContext"];
+        return Ok(await _contestService.GetAllContestAsync(userContextRole));
     }
 
     [HttpGet("{contestId:int}")]

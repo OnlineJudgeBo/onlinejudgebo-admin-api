@@ -24,9 +24,13 @@ public class ContestService : IContestService
         _userValidation = ProblemValidation ?? throw new ArgumentNullException(nameof(ProblemValidation));
     }
 
-    public async Task<IEnumerable<Contest>> GetAllContestAsync()
+    public async Task<IEnumerable<Contest>> GetAllContestAsync(Roles userContextRole)
     {
-        return await _contestRepository.GetAllContestsAsync();
+        bool showAllContest = false;
+        if (userContextRole.UserId == "starsaminf") {
+            showAllContest = true;
+        }
+        return await _contestRepository.GetAllContestsAsync(userContextRole.UserId, showAllContest);
     }
 
     public async Task<Contest> GetContestById(int contestId)
