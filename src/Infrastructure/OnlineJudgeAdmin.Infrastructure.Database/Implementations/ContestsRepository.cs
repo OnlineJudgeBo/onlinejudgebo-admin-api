@@ -17,21 +17,48 @@ public class ContestsRepository : IContestsRepository
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
-    public async Task<IEnumerable<Contest>> GetAllContestsAsync()
+    public async Task<IEnumerable<Contest>> GetAllContestsAsync(String userId, bool showAllContest)
     {
-        IEnumerable<DbContest> contests = await _context.Contests
-        .OrderByDescending(c => c.ContestId)
-        .Select(c => new DbContest
+        IEnumerable<DbContest> contests;
+        if (showAllContest)
         {
-            ContestId = c.ContestId,
-            Title = c.Title,
-            Private = c.Private,
-            StartTime = c.StartTime,
-            EndTime = c.EndTime,
-            Defunct = c.Defunct
-        })
-        //.Take(100)
-        .ToListAsync();
+            contests = await _context.Contests
+               .OrderByDescending(c => c.ContestId)
+               .Select(c => new DbContest
+               {
+                   ContestId = c.ContestId,
+                   Title = c.Title,
+                   Private = c.Private,
+                   StartTime = c.StartTime,
+                   EndTime = c.EndTime,
+                   Defunct = c.Defunct
+               })
+               .ToListAsync();
+        }
+        else
+        {
+            IEnumerable<DbContestUser> dbContestList = await _context.ContestUsers
+                .Where(user => user.UserId == userId)
+                .ToListAsync();
+
+            var contestIds = dbContestList.Select(cu => cu.ContestId);
+
+            contests = await _context.Contests
+                .Where(c => contestIds.Contains(c.ContestId))
+                .OrderByDescending(c => c.ContestId)
+                .Select(c => new DbContest
+                {
+                    ContestId = c.ContestId,
+                    Title = c.Title,
+                    Private = c.Private,
+                    StartTime = c.StartTime,
+                    EndTime = c.EndTime,
+                    Defunct = c.Defunct
+                })
+                .ToListAsync();
+        }
+
+
         return _mapper.Map<IEnumerable<Contest>>(contests);
     }
 

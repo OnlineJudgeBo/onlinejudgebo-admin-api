@@ -10,16 +10,10 @@ using System.Reflection;
 using Newtonsoft.Json;
 using OnlineJudgeAdmin.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
+using OnlineJudgeAdminApi.Controllers.Midlewares;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddControllers()
-.AddJsonOptions(options =>
-{
-    options.JsonSerializerOptions.IgnoreNullValues = true;
-});
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -54,11 +48,21 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+builder.Services.AddControllers()
+.AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.IgnoreNullValues = true;
+});
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(builder.Configuration.GetConnectionString("DefaultConnection"),
     Microsoft.EntityFrameworkCore.ServerVersion.Parse("11.2.2-mariadb"))
     .LogTo(Console.WriteLine, LogLevel.Information));
 
+//builder.Services.AddHttpContextAccessor();
 builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
 builder.Services.AddDatabaseRepositories(builder.Configuration);
 builder.Services.AddApplicationValidators();
@@ -74,7 +78,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
 
 app.UseHttpsRedirection();
 
@@ -93,6 +96,8 @@ app.UseCors(builder =>
 app.UseAuthentication();
 
 app.UseAuthorization();
+
+app.UseMiddleware<UserContextMiddleware>();
 
 app.MapControllers();
 
