@@ -33,9 +33,16 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<DbUserProfile> UserProfiles { get; set; }
     public virtual DbSet<DbUserRole> UserRoles { get; set; }
     public virtual DbSet<DbUserSetting> UserSettings { get; set; }
+    public virtual DbSet<DbMonthlySubmission> DbMonthlySubmission { get; set; }
+    public virtual DbSet<DbLanguageSubmission> DbLanguageSubmission { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
+
     {
+        modelBuilder.Entity<DbMonthlySubmission>().HasNoKey();
+        modelBuilder.Entity<DbLanguageSubmission>().HasNoKey();
+
+
         modelBuilder
             .UseCollation("utf8mb4_general_ci")
             .HasCharSet("utf8mb4");
