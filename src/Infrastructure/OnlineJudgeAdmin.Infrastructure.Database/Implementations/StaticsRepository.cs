@@ -40,11 +40,11 @@ public class StaticsRepository : IStaticsRepository
                                     WHEN language IN (15, 17, 19, 6) THEN '19'
                                     WHEN language IN (0, 1, 13, 14, 16) THEN '16'
                                     WHEN language IN (3) THEN '3'
-                                END AS LanguageGroup, COUNT(*) AS TotalSubmissions
+                                END AS Language, COUNT(*) AS TotalSubmissions
                                 FROM solution
                                 WHERE language IN (15, 17, 19, 6, 0, 1, 13, 14, 16, 3)
-                                GROUP BY LanguageGroup
-                                ORDER BY LanguageGroup;";
+                                GROUP BY Language
+                                ORDER BY Language;";
 
         var submissionsList = await _context.Set<DbLanguageSubmission>()
                                             .FromSqlRaw(languageQuery)
