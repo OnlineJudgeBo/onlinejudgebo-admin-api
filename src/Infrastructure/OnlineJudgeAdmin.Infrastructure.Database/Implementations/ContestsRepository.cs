@@ -17,33 +17,32 @@ public class ContestsRepository : IContestsRepository
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
-    public async Task<IEnumerable<Contest>> GetAllContestsAsync(String userId, bool showAllContest)
+    public async Task<IEnumerable<Contest>> GetContestsByUserIdDocenteRoleAsync(string userId, bool showAllContest)
     {
-        IEnumerable<DbContest> contests;
+        IQueryable<DbContest> query;
+
         if (showAllContest)
         {
-            contests = await _context.Contests
-               .OrderByDescending(c => c.ContestId)
-               .Select(c => new DbContest
-               {
-                   ContestId = c.ContestId,
-                   Title = c.Title,
-                   Private = c.Private,
-                   StartTime = c.StartTime,
-                   EndTime = c.EndTime,
-                   Defunct = c.Defunct
-               })
-               .ToListAsync();
+            query = _context.Contests
+                .OrderByDescending(c => c.ContestId)
+                .Select(c => new DbContest
+                {
+                    ContestId = c.ContestId,
+                    Title = c.Title,
+                    Private = c.Private,
+                    StartTime = c.StartTime,
+                    EndTime = c.EndTime,
+                    Defunct = c.Defunct
+                });
         }
         else
         {
-            IEnumerable<DbContestUser> dbContestList = await _context.ContestUsers
+            var contestIds = await _context.ContestUsers
                 .Where(user => user.UserId == userId)
+                .Select(cu => cu.ContestId)
                 .ToListAsync();
 
-            var contestIds = dbContestList.Select(cu => cu.ContestId);
-
-            contests = await _context.Contests
+            query = _context.Contests
                 .Where(c => contestIds.Contains(c.ContestId))
                 .OrderByDescending(c => c.ContestId)
                 .Select(c => new DbContest
@@ -54,11 +53,29 @@ public class ContestsRepository : IContestsRepository
                     StartTime = c.StartTime,
                     EndTime = c.EndTime,
                     Defunct = c.Defunct
-                })
-                .ToListAsync();
+                });
         }
 
+        var contests = await query.ToListAsync();
+        return _mapper.Map<IEnumerable<Contest>>(contests);
+    }
 
+    public async Task<IEnumerable<Contest>> GetContestsByAuxiliarRoleAsync(string userId)
+    {
+        IQueryable<DbContest> query;
+        query = _context.Contests
+            .OrderByDescending(c => c.ContestId)
+            .Select(c => new DbContest
+            {
+                ContestId = c.ContestId,
+                Title = c.Title,
+                Private = c.Private,
+                StartTime = c.StartTime,
+                EndTime = c.EndTime,
+                Defunct = c.Defunct
+            })
+            .Take(100);
+        var contests = await query.ToListAsync();
         return _mapper.Map<IEnumerable<Contest>>(contests);
     }
 

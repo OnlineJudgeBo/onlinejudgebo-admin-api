@@ -29,8 +29,16 @@ public class ContestService : IContestService
         bool showAllContest = false;
         if (userContextRole.UserId == "starsaminf") {
             showAllContest = true;
+            return await _contestRepository.GetContestsByUserIdDocenteRoleAsync(userContextRole.UserId, showAllContest);
         }
-        return await _contestRepository.GetAllContestsAsync(userContextRole.UserId, showAllContest);
+
+        if (userContextRole.RoleList.Contains("Auxiliar")) {
+            showAllContest = false;
+            return await _contestRepository.GetContestsByAuxiliarRoleAsync(userContextRole.UserId);
+        }
+
+        showAllContest = false;
+        return await _contestRepository.GetContestsByUserIdDocenteRoleAsync(userContextRole.UserId, showAllContest);
     }
 
     public async Task<Contest> GetContestById(int contestId)
