@@ -35,19 +35,22 @@ public class StaticsRepository : IStaticsRepository
 
     public async Task<string> GetSubmissionsByLanguageAsync()
     {
-        string languageQuery = @"SELECT
-                                    CAST(
+        string languageQuery = @"SELECT tmp.Language, SUM(tmp.TotalSubmissions) AS TotalSubmissions
+                                FROM (
+                                    SELECT
                                         CASE
-                                            WHEN language IN (15, 17, 19, 6) THEN '19'
-                                            WHEN language IN (0, 1, 13, 14, 16) THEN '16'
-                                            WHEN language IN (3) THEN '3'
-                                        END AS UNSIGNED) AS Language,
+                                            WHEN language IN (15, 17, 19, 6) THEN 19
+                                            WHEN language IN (0, 1, 13, 14, 16) THEN 16
+                                            WHEN language IN (3) THEN 3
+                                        ELSE language
+                                    END AS Language,
                                     COUNT(*) AS TotalSubmissions
                                 FROM solution
                                 WHERE language IN (15, 17, 19, 6, 0, 1, 13, 14, 16, 3)
                                 GROUP BY Language
-                                ORDER BY Language;
-                                ";
+                            ) AS tmp
+                            GROUP BY tmp.Language
+                            ORDER BY tmp.Language;";
 
         var submissionsList = await _context.Set<DbLanguageSubmission>()
                                             .FromSqlRaw(languageQuery)
