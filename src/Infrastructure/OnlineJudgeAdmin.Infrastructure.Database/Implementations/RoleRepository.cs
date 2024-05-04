@@ -32,7 +32,8 @@ public class RoleRepository : IRoleRepository
                 },
                 UserRoles = u.UserRoles.Select(ur => new DbUserRole
                 {
-                    Role = new DbRole{
+                    Role = new DbRole
+                    {
                         RoleId = ur.RoleId,
                         RoleName = ur.Role.RoleName
                     }
@@ -51,5 +52,25 @@ public class RoleRepository : IRoleRepository
             RoleName = t.RoleName,
         }).ToListAsync();
         return _mapper.Map<IEnumerable<Role>>(roles);
+    }
+
+    public async Task AddRoleToUserAsync(string userId, int roleId)
+    {
+        var userRole = new DbUserRole
+        {
+            UserId = userId,
+            RoleId = roleId
+        };
+
+        _context.UserRoles.Add(userRole);
+        _context.SaveChanges();
+    }
+
+    public async Task RemoveRoleFromUserAsync(string userId, int roleId)
+    {
+        var userRole = _context.UserRoles
+            .FirstOrDefault(ur => ur.UserId == userId && ur.RoleId == roleId);
+        _context.UserRoles.Remove(userRole);
+        _context.SaveChangesAsync();
     }
 }
