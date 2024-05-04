@@ -30,5 +30,19 @@ public class RolesController : ControllerBase
     {
         return Ok(await _roleService.GetNameRolesAsync());
     }
+
+    [HttpPost("{userId}/{role}")]
+    public async Task<IActionResult> AddRoleToUserAsync(string userId, int role)
+    {
+        await _roleService.AddRoleToUserAsync(userId, role);
+        return Ok();
+    }
+
+    [HttpDelete("{userId}/{role}")]
+    public async Task<IActionResult> RemoveRoleFromUserAsync(string userId, int role)
+    {
+        await _roleService.RemoveRoleFromUserAsync(userId, role);
+        return Ok();
+    }
 }
 

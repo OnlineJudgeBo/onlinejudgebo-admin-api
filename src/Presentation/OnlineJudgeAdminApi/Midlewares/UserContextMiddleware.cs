@@ -14,7 +14,7 @@ namespace OnlineJudgeAdminApi.Controllers.Midlewares
 
         public async Task InvokeAsync(HttpContext context)
         {
-            var jwtToken = context.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last(); // Obtener el token JWT del encabezado de autorización
+            var jwtToken = context.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
 
             if (!string.IsNullOrEmpty(jwtToken))
             {

@@ -8,7 +8,6 @@ namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
 public class RoleService : IRoleService
 {
     private readonly IRoleRepository _roleRepository;
-
     private readonly IValidator<Problem> _userValidation;
 
     public RoleService(
@@ -27,5 +26,14 @@ public class RoleService : IRoleService
     public async Task<IEnumerable<Role>> GetNameRolesAsync()
     {
         return await _roleRepository.GetNameRolesAsync();
+    }
+
+    public async Task AddRoleToUserAsync(string userId, int roleId)
+    {
+        await _roleRepository.AddRoleToUserAsync(userId, roleId);
+    }
+
+    public async Task RemoveRoleFromUserAsync(string userId, int roleId) {
+        await _roleRepository.RemoveRoleFromUserAsync(userId, roleId);
     }
 }

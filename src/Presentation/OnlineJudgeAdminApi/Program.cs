@@ -11,6 +11,7 @@ using Newtonsoft.Json;
 using OnlineJudgeAdmin.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using OnlineJudgeAdminApi.Controllers.Midlewares;
+using OnlineJudgeAdminApi.ExceptionHandler;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -90,6 +91,8 @@ app.UseCors(builder =>
         .AllowAnyMethod()
         ;
 });
+
+app.UseMiddleware<ExceptionHandler>();
 
 //app.UseCors("AllowAnyOrigin");
 
