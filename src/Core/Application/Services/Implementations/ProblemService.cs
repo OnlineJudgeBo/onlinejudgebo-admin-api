@@ -53,9 +53,9 @@ public class ProblemService : IProblemService
             await _topicRepository.AddClassificationsToProblemAsync(newProblem.ProblemId.Value, newTopic);
         }
 
-        _FileSystemLocalManagerManager.CreateFolder(problem.ProblemId.ToString());
-        _FileSystemLocalManagerManager.WriteToFile(problem.ProblemId.ToString(), "sample.in", problem.SampleInput);
-        _FileSystemLocalManagerManager.WriteToFile(problem.ProblemId.ToString(), "sample.out", problem.SampleOutput);
+        _FileSystemLocalManagerManager.CreateFolder(newProblem.ProblemId.Value.ToString());
+        _FileSystemLocalManagerManager.WriteToFile(newProblem.ProblemId.Value.ToString(), "sample.in", problem.SampleInput);
+        _FileSystemLocalManagerManager.WriteToFile(newProblem.ProblemId.Value.ToString(), "sample.out", problem.SampleOutput);
 
         Privilege privilege = new Privilege();
         privilege.UserId = userId;
@@ -89,9 +89,9 @@ public class ProblemService : IProblemService
             await _topicRepository.AddClassificationsToProblemAsync(updateProblem.ProblemId.Value, newTopic);
         }
 
-        _FileSystemLocalManagerManager.CreateFolder(updateProblem.ProblemId.ToString());
-        _FileSystemLocalManagerManager.WriteToFile(updateProblem.ProblemId.ToString(), "sample.in", updateProblem.SampleInput);
-        _FileSystemLocalManagerManager.WriteToFile(updateProblem.ProblemId.ToString(), "sample.out", updateProblem.SampleOutput);
+        _FileSystemLocalManagerManager.CreateFolder(updateProblem.ProblemId.Value.ToString());
+        _FileSystemLocalManagerManager.WriteToFile(updateProblem.ProblemId.Value.ToString(), "sample.in", updateProblem.SampleInput);
+        _FileSystemLocalManagerManager.WriteToFile(updateProblem.ProblemId.Value.ToString(), "sample.out", updateProblem.SampleOutput);
 
         return updateProblem;
     }
