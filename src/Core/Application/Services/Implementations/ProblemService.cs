@@ -90,6 +90,7 @@ public class ProblemService : IProblemService
         }
 
         _FileSystemLocalManagerManager.CreateFolder(updateProblem.ProblemId.Value.ToString());
+        _FileSystemLocalManagerManager.CreateFolder(updateProblem.ProblemId.Value.ToString() + "/ac");
         _FileSystemLocalManagerManager.WriteToFile(updateProblem.ProblemId.Value.ToString(), "sample.in", updateProblem.SampleInput);
         _FileSystemLocalManagerManager.WriteToFile(updateProblem.ProblemId.Value.ToString(), "sample.out", updateProblem.SampleOutput);
 
