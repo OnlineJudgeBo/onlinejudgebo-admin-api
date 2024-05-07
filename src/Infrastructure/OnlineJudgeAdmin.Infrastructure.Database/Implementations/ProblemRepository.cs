@@ -131,7 +131,20 @@ public class ProblemRepository : IProblemRepository
         DbProblem dbProblem = _mapper.Map<DbProblem>(problem);
         _context.Problems.Add(dbProblem);
         _context.SaveChanges();
-        Problem createdProblem = _mapper.Map<Problem>(dbProblem);
+
+        return await getLastInsert();
+    }
+
+    private async Task<Problem> getLastInsert()
+    {
+        var lastProblemWithDetails = await _context.Problems
+                                        .Include(p => p.ContestProblems)
+                                        .Include(p => p.Solutions)
+                                        .Include(p => p.Classifications)
+                                        .OrderByDescending(p => p.ProblemId)
+                                        .FirstOrDefaultAsync();
+
+        Problem createdProblem = _mapper.Map<Problem>(lastProblemWithDetails);
         return createdProblem;
     }
 
