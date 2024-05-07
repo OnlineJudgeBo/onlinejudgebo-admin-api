@@ -62,11 +62,11 @@ public class ProblemsController : ControllerBase
         return Ok(await _problemService.CreateProblemAsync(userId, problem));
     }
 
-    /*
-        [HttpGet]
-        public async Task<IActionResult> DeleteProblemByIdAsync(int problemId)
-        {
-            return Ok(_problemService.DeleteProblemAsync(problemId));
-        }
-    */
+
+    [HttpPut("problems/delete/{problemId:int}")]
+    public async Task<IActionResult> DeleteProblemByIdAsync(int problemId)
+    {
+        return Ok(_problemService.DeleteProblemAsync(problemId));
+    }
+
 }

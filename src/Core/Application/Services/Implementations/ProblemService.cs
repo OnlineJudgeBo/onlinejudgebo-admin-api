@@ -96,9 +96,9 @@ public class ProblemService : IProblemService
         return updateProblem;
     }
 
-    public Task<Problem> DeleteProblemAsync(int problemId)
+    public async Task DeleteProblemAsync(int problemId)
     {
-        throw new NotImplementedException();
+        await _problemRepository.DeleteProblemAsync(problemId);
     }
 }
 

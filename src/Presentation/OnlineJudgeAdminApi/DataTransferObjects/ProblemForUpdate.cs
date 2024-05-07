@@ -22,7 +22,7 @@ public class ProblemForUpdate
 
     public int MemoryLimit { get; set; }
 
-    public string Defunct { get; set; } = "Y";
+    public string Defunct { get; set; } = "N";
 
     public string Spj { get; set; } = "N";
 
