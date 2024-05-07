@@ -63,7 +63,7 @@ public class ProblemsController : ControllerBase
     }
 
 
-    [HttpPut("problems/delete/{problemId:int}")]
+    [HttpDelete("{problemId:int}")]
     public async Task<IActionResult> DeleteProblemByIdAsync(int problemId)
     {
         return Ok(_problemService.DeleteProblemAsync(problemId));
