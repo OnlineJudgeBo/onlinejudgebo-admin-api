@@ -20,6 +20,7 @@ public class ProblemRepository : IProblemRepository
     public async Task<IEnumerable<Problem>> GetAllProblemsAsync()
     {
         IEnumerable<DbProblem> problems = await _context.Problems
+            .Where(p => p.Defunct == "N")
             .OrderByDescending(p => p.ProblemId)
             .Select(p => new DbProblem
             {
@@ -166,10 +167,7 @@ public class ProblemRepository : IProblemRepository
 
     public async Task DeleteProblemAsync(int problemId)
     {
-        var problem = await _context.Problems.FirstOrDefaultAsync(p => p.ProblemId == problemId);
-        problem.Defunct = "Y";
-
-        await _context.SaveChangesAsync();
+        _context.Database.ExecuteSqlRaw(
+            "UPDATE problem SET defunct = {0} WHERE problem_id = {1}", "Y", problemId);
     }
-
 }
