@@ -163,9 +163,13 @@ public class ProblemRepository : IProblemRepository
             throw new KeyNotFoundException("Problem ID not found.");
         }
     }
-    public Task<Problem> DeleteProblemAsync(int problemId)
+
+    public async Task DeleteProblemAsync(int problemId)
     {
-        throw new NotImplementedException();
+        var problem = await _context.Problems.FirstOrDefaultAsync(p => p.ProblemId == problemId);
+        problem.Defunct = "Y";
+
+        await _context.SaveChangesAsync();
     }
 
 }

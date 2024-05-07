@@ -30,7 +30,7 @@ public class ProblemForCreation
 
     public int MemoryLimit { get; set; } = 128;
 
-    public string Defunct { get; set; } = "Y";
+    public string Defunct { get; set; } = "N";
 
     [JsonIgnore]
     public int Accepted { get; set; } = 0;
