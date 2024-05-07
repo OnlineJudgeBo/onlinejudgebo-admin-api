@@ -20,7 +20,7 @@ public class ProblemRepository : IProblemRepository
     public async Task<IEnumerable<Problem>> GetAllProblemsAsync()
     {
         IEnumerable<DbProblem> problems = await _context.Problems
-            .OrderBy(p => p.ProblemId)
+            .OrderByDescending(p => p.ProblemId)
             .Select(p => new DbProblem
             {
                 ProblemId = p.ProblemId,
@@ -132,10 +132,10 @@ public class ProblemRepository : IProblemRepository
         _context.Problems.Add(dbProblem);
         _context.SaveChanges();
 
-        return await getLastInsert();
+        return await GetLastInsert();
     }
 
-    private async Task<Problem> getLastInsert()
+    private async Task<Problem> GetLastInsert()
     {
         var lastProblemWithDetails = await _context.Problems
                                         .Include(p => p.ContestProblems)
