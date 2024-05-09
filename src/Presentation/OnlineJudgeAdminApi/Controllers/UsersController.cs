@@ -24,13 +24,13 @@ public class UsersController : ControllerBase
     [HttpGet()]
     public async Task<IActionResult> GetAllUserProfilesAsync([FromQuery] string? searchTerm)
     {
-        string termToSearch = searchTerm.Trim();
-        if (string.IsNullOrWhiteSpace(termToSearch))
+        if (string.IsNullOrWhiteSpace(searchTerm))
         {
             return Ok(await _userService.GetAllUserProfilesAsync());
         }
         else
         {
+                string termToSearch = searchTerm.Trim();
             return Ok(await _userService.SearchUserProfilesAsync(termToSearch));
         }
     }
