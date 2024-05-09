@@ -16,6 +16,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProgrammingLanguageService, ProgrammingLanguageService>();
         services.AddScoped<IFileManagerService, FileManagerService>();
         services.AddScoped<IStatiscService, StaticsServices>();
+        services.AddScoped<IJudgeService, JudgeService>();
 
         return services;
     }

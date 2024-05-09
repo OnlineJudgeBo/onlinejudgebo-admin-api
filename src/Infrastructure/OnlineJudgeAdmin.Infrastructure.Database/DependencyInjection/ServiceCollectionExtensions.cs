@@ -20,6 +20,7 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.DependencyInjection
             services.AddScoped<IPrivilegeRepository, PrivilegeRepository>();
             services.AddScoped<IProgrammingLanguagesRepository, ProgrammingLanguageRepository>();
             services.AddScoped<IStaticsRepository, StaticsRepository>();
+            services.AddScoped<IJudgeRepository, JudgeRepository>();
 
             services.AddMysqlClient(configuration);
             return services;
@@ -30,7 +31,7 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.DependencyInjection
             var connectionString = configuration.GetConnectionString("DefaultConnection");
 
             services.AddDbContext<AppDbContext>(options =>
-                  options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 21))));
+                options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 21))));
 
             return services;
         }
