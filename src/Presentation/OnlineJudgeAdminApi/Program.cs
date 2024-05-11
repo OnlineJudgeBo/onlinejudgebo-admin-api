@@ -67,7 +67,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
 builder.Services.AddDatabaseRepositories(builder.Configuration);
 builder.Services.AddApplicationValidators();
-builder.Services.AddApplicationServices();
+builder.Services.AddApplicationServices(builder.Configuration);
 builder.Services.AddFileSystemLocalManagerInfrastructureManager(builder.Configuration);
 builder.Services.AddAwsS3FileManager(builder.Configuration);
 //builder.Services.Add

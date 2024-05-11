@@ -1,7 +1,5 @@
-﻿using System.Security.Cryptography;
-using System.Text;
-using FluentValidation;
-
+﻿using FluentValidation;
+using Microsoft.Extensions.Configuration;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
@@ -10,15 +8,17 @@ namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
 public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
-
     private readonly IValidator<Problem> _userValidation;
+    private readonly IConfiguration _configuration;
 
     public UserService(
         IUserRepository userRepository,
-        IValidator<Problem> userValidator)
+        IValidator<Problem> userValidator,
+        IConfiguration configuration)
     {
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
         _userValidation = userValidator ?? throw new ArgumentNullException(nameof(userValidator));
+        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
     }
 
     public async Task<IEnumerable<User>> GetAllUserProfilesAsync()
@@ -65,7 +65,7 @@ private async Task<string> GeneratePasswordHashAsync(string password)
 {
     using (HttpClient client = new HttpClient())
     {
-        string baseUrl = "https://jv.umsa.bo";
+        string baseUrl = _configuration.GetSection("Base:Url").Value;
         string endpoint = $"/oj/spi.php?spi={Uri.EscapeDataString(password)}";
 
         client.BaseAddress = new Uri(baseUrl);
