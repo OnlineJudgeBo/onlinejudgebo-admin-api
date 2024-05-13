@@ -27,7 +27,7 @@ public class ContestService : IContestService
     public async Task<IEnumerable<Contest>> GetAllContestAsync(Roles userContextRole)
     {
         bool showAllContest = false;
-        if (userContextRole.UserId == "starsaminf") {
+        if (userContextRole.UserId == "starsaminf" || userContextRole.UserId == "SamuelLR") {
             showAllContest = true;
             return await _contestRepository.GetContestsByUserIdDocenteRoleAsync(userContextRole.UserId, showAllContest);
         }
