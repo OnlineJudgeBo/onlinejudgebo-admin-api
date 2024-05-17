@@ -65,6 +65,7 @@ public class FileManagerController : ControllerBase
                 Path = file.FullName.Substring(rootPath.Length).Replace("\\", "/"),
                 Children = new object[0]
             })
+            .OrderBy(x => x.Name)
             .Cast<object>()
             .ToList();
 
