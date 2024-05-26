@@ -29,9 +29,12 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.DependencyInjection
         private static IServiceCollection AddMysqlClient(this IServiceCollection services, IConfiguration configuration)
         {
             var connectionString = configuration.GetConnectionString("DefaultConnection");
+            var mysqlMajor = configuration.GetConnectionString("MysqlMajor");
+            var mysqlMinor = configuration.GetConnectionString("MysqlMinor");
+            var mysqlBuild = configuration.GetConnectionString("MysqlBuild");
 
             services.AddDbContext<AppDbContext>(options =>
-                options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 21))));
+                options.UseMySql(connectionString, new MySqlServerVersion(new Version(int.Parse(mysqlMajor), int.Parse(mysqlMinor), int.Parse(mysqlBuild)))));
 
             return services;
         }
