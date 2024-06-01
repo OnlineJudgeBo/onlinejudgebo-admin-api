@@ -6,6 +6,7 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.Models;
 public partial class DbSolution
 {
     [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     [Column("solution_id")]
     public int SolutionId { get; set; }
 
@@ -36,9 +37,6 @@ public partial class DbSolution
     [Column("contest_id")]
     public int? ContestId { get; set; }
 
-    [Column("valid")]
-    public sbyte Valid { get; set; }
-
     [Column("num")]
     public sbyte Num { get; set; }
 
@@ -50,6 +48,12 @@ public partial class DbSolution
 
     [Column("pass_rate")]
     public decimal PassRate { get; set; }
+
+    [Column("is_remote_oj")]
+    public bool IsRemoteOj { get; set; }
+
+    [Column("remote_id")]
+    public int RemoteId { get; set; }
 
     public virtual DbCompileinfo? Compileinfo { get; set; }
     public virtual DbProblem Problem { get; set; } = null!;

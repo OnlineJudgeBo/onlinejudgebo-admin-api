@@ -1,7 +1,10 @@
-﻿using AutoMapper;
+﻿using System.Security.Claims;
+using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
+using OnlineJudgeAdmin.Core.Domain.Models;
+using OnlineJudgeAdminApi.DataTransferObjects;
 
 namespace OnlineJudgeAdminApi.Controllers;
 
@@ -30,6 +33,18 @@ public class JudgeController : ControllerBase
     public async Task<IActionResult> RejudgeSolutionByProblemIdAsync(int problemId)
     {
         await _judgeService.RejudgeSolutionByProblemIdAsync(problemId);
+        return Ok();
+    }
+
+    [HttpPost("remoteExecutionAsync")]
+    public async Task<IActionResult> RemoteExecutionAsync(RemoteExecutionForCreation remoteExecutionForCreation)
+    {
+        RemoteExecutionRequest remoteExecutionRequest = _mapper.Map<RemoteExecutionRequest>(remoteExecutionForCreation);
+
+        var claimsIdentity = User.Identity as ClaimsIdentity;
+        var userIdClaim = claimsIdentity?.FindFirst(ClaimTypes.NameIdentifier);
+        string userId = userIdClaim?.Value;
+        await _judgeService.RemoteExecutionAsync(remoteExecutionRequest, userId);
         return Ok();
     }
 }
