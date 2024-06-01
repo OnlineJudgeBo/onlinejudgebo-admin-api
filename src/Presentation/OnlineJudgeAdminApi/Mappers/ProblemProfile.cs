@@ -16,6 +16,7 @@ public class ProblemProfile : Profile
         CreateMap<UserForContestCreation, ContestUser>();
         CreateMap<ClassificationsForCreation, Classification>();
         CreateMap<UserAvailableForRequest, UserProfile>();
+        CreateMap<RemoteExecutionForCreation, RemoteExecutionRequest>();
 
         CreateMap<ContestForCreation, Contest>()
         .ForMember(dest => dest.StartTime, opt => opt.MapFrom(src => src.StartDate))

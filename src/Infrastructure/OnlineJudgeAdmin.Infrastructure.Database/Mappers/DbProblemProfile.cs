@@ -11,6 +11,7 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.Mappers
             CreateMap<DbContestProblem, ContestProblem>();
             CreateMap<ContestProblem, DbContestProblem>();
             CreateMap<DbContestUser, ContestUser>();
+
             CreateMap<DbContest, Contest>()
             .ReverseMap()
             .ForMember(dest => dest.ContestId, opt => opt.MapFrom(src => src.ContestId))
@@ -57,7 +58,6 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.Mappers
             CreateMap<Problem, DbProblem>();
 
             CreateMap<DbRuntimeinfo, Runtimeinfo>();
-            CreateMap<DbSolution, Solution>();
             CreateMap<DbSourceCode, SourceCode>();
 
 
@@ -79,6 +79,20 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.Mappers
             CreateMap<DbUserRole, UserRole>()
                 .ForMember(dest => dest.RoleId, opt => opt.MapFrom(src => src.RoleId))
                 .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId));
+
+            CreateMap<DbSolution, Solution>()
+                .ReverseMap()
+                .ForMember(dest => dest.ProblemId, opt => opt.MapFrom(src => src.ProblemId))
+                .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
+                .ForMember(dest => dest.Time, opt => opt.MapFrom(src => src.Time))
+                .ForMember(dest => dest.Memory, opt => opt.MapFrom(src => src.Memory))
+                .ForMember(dest => dest.InDate, opt => opt.MapFrom(src => src.InDate))
+                .ForMember(dest => dest.Result, opt => opt.MapFrom(src => src.Result))
+                .ForMember(dest => dest.Language, opt => opt.MapFrom(src => src.Language))
+                .ForMember(dest => dest.Num, opt => opt.MapFrom(src => src.Num))
+                .ForMember(dest => dest.CodeLength, opt => opt.MapFrom(src => src.CodeLength))
+                .ForMember(dest => dest.IsRemoteOj, opt => opt.MapFrom(src => src.IsRemoteOj))
+                .ForMember(dest => dest.RemoteId, opt => opt.MapFrom(src => src.RemoteId));
         }
     }
 }

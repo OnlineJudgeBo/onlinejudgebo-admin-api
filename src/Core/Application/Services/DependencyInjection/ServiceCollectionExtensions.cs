@@ -18,6 +18,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFileManagerService, FileManagerService>();
         services.AddScoped<IStatiscService, StaticsServices>();
         services.AddScoped<IJudgeService, JudgeService>();
+        services.AddScoped<ISolutionService, SolutionService>();
 
         return services;
     }

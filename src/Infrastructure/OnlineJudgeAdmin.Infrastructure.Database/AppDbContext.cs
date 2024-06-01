@@ -35,6 +35,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<DbUserSetting> UserSettings { get; set; }
     public virtual DbSet<DbMonthlySubmission> DbMonthlySubmission { get; set; }
     public virtual DbSet<DbLanguageSubmission> DbLanguageSubmission { get; set; }
+    public virtual DbSet<DbRemoteClient> DbRemoteClient { get; set; }
+    public virtual DbSet<DbSolutionClient> DbSolutionClient { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
 
@@ -486,10 +488,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.UserId)
                 .HasMaxLength(48)
                 .HasColumnName("user_id");
-            entity.Property(e => e.Valid)
-                .HasDefaultValueSql("'1'")
-                .HasColumnType("tinyint(4)")
-                .HasColumnName("valid");
 
             entity.HasOne(d => d.Problem).WithMany(p => p.Solutions)
                 .HasForeignKey(d => d.ProblemId)
@@ -801,8 +799,55 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.UserId);
         });
 
+        modelBuilder.Entity<DbSolutionClient>(entity =>
+        {
+            entity.ToTable("solution_client");
 
+            entity.HasKey(e => e.Id);
 
+            entity.Property(e => e.Id)
+                .HasColumnName("id")
+                .IsRequired()
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.SolutionId)
+                .HasColumnName("solution_id")
+                .IsRequired();
+
+            entity.Property(e => e.ClientId)
+                .HasColumnName("client_id")
+                .IsRequired();
+
+            entity.Property(e => e.AssignedDate)
+                .HasColumnName("assigned_date")
+                .IsRequired()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+        });
+
+        modelBuilder.Entity<DbRemoteClient>(entity =>
+        {
+            entity.ToTable("remote_clients");
+
+            entity.HasKey(e => e.ClientId);
+
+            entity.Property(e => e.ClientId)
+                .HasColumnName("client_id")
+                .IsRequired()
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.CallbackUrl)
+                .HasColumnName("callback_url")
+                .IsRequired()
+                .HasMaxLength(255);
+
+            entity.Property(e => e.Token)
+                .HasColumnName("token")
+                .IsRequired();
+
+            entity.Property(e => e.IsAvailable)
+                .HasColumnName("is_available")
+                .IsRequired();
+        });
     }
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 }

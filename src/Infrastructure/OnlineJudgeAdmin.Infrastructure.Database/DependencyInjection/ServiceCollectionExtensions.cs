@@ -21,6 +21,8 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.DependencyInjection
             services.AddScoped<IProgrammingLanguagesRepository, ProgrammingLanguageRepository>();
             services.AddScoped<IStaticsRepository, StaticsRepository>();
             services.AddScoped<IJudgeRepository, JudgeRepository>();
+            services.AddScoped<ISolutionRepository, SolutionRepository>();
+            services.AddScoped<ISolutionClientRepository, SolutionClientRepository>();
 
             services.AddMysqlClient(configuration);
             return services;

@@ -1,0 +1,38 @@
+﻿using FluentValidation;
+
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
+using OnlineJudgeAdmin.Core.Domain.Models;
+
+namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
+public class SolutionService : ISolutionService
+{
+    private readonly ISolutionRepository _solutionRepository;
+    private readonly IValidator<Problem> _userValidation;
+
+    public SolutionService(
+        ISolutionRepository solutionRepository,
+        IValidator<Problem> ProblemValidation)
+    {
+        _solutionRepository = solutionRepository ?? throw new ArgumentNullException(nameof(solutionRepository));
+        _userValidation = ProblemValidation ?? throw new ArgumentNullException(nameof(ProblemValidation));
+    }
+
+    public async Task<int> SaveSolutionRemoteAsync(string userId, int problemId, int languageId, string source, int clientSubmitId)
+    {
+        Solution solution = new Solution();
+        solution.UserId = userId;
+        solution.ProblemId = problemId;
+        solution.Time = 0;
+        solution.Memory = 0;
+        solution.InDate = DateTime.Now;
+        solution.Result = 0;
+        solution.Language = languageId;
+        solution.Ip = "0.0.0.0";
+        solution.CodeLength = source.Length;
+        solution.Num = 0;
+        solution.RemoteId = clientSubmitId;
+        solution.IsRemoteOj = true;
+        return await _solutionRepository.SaveSolutionAsync(solution);
+    }
+}
