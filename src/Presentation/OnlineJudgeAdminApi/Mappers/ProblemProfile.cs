@@ -52,5 +52,11 @@ public class ProblemProfile : Profile
                 Lastname = src.LastName
             }));
 
+        CreateMap<RemoteExecutionResult, Solution>()
+            .ForMember(dest => dest.SolutionId, opt => opt.MapFrom(src => src.RemoteId))
+            .ForMember(dest => dest.Memory, opt => opt.MapFrom(src => src.Memory))
+            .ForMember(dest => dest.InDate, opt => opt.MapFrom(src => src.InDate))
+            .ForMember(dest => dest.Result, opt => opt.MapFrom(src => src.Result))
+            .ForMember(dest => dest.JudgeTime, opt => opt.MapFrom(src => src.JudgeTime));
     }
 }

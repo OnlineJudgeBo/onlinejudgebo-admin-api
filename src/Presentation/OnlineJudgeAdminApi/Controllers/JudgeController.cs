@@ -14,11 +14,14 @@ namespace OnlineJudgeAdminApi.Controllers;
 public class JudgeController : ControllerBase
 {
     private readonly IJudgeService _judgeService;
+    private readonly ISolutionService _solutionService;
+
     private readonly IMapper _mapper;
 
-    public JudgeController(IJudgeService judgeService, IMapper mapper)
+    public JudgeController(IJudgeService judgeService, ISolutionService solutionService, IMapper mapper)
     {
         _judgeService = judgeService ?? throw new ArgumentNullException(nameof(judgeService));
+        _solutionService = solutionService ?? throw new ArgumentNullException(nameof(solutionService));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
@@ -45,6 +48,14 @@ public class JudgeController : ControllerBase
         var userIdClaim = claimsIdentity?.FindFirst(ClaimTypes.NameIdentifier);
         string userId = userIdClaim?.Value;
         await _judgeService.RemoteExecutionAsync(remoteExecutionRequest, userId);
+        return Ok();
+    }
+
+    [HttpPost("remoteExecutionResult")]
+    public async Task<IActionResult> RemoteExecutionResult(RemoteExecutionResult remoteResult)
+    {
+        Solution solution = _mapper.Map<Solution>(remoteResult);
+        await _solutionService.UpdateSolutionRemoteAsync(solution);
         return Ok();
     }
 }

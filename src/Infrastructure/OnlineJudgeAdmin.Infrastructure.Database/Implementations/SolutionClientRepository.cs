@@ -17,7 +17,8 @@ public class SolutionClientRepository : ISolutionClientRepository
 
     public async Task<int> SaveRemoteSolutionAsync(int solutionId, int clientId)
     {
-        DbSolutionClient solutionClient = new DbSolutionClient {
+        DbSolutionClient solutionClient = new DbSolutionClient
+        {
             SolutionId = solutionId,
             ClientId = clientId,
             AssignedDate = DateTime.Now,
@@ -26,5 +27,17 @@ public class SolutionClientRepository : ISolutionClientRepository
         await _context.DbSolutionClient.AddAsync(solutionClient);
         await _context.SaveChangesAsync();
         return solutionClient.Id;
+    }
+
+    public async Task SaveSourceCodeAsync(int solutionId, string sourceCode)
+    {
+        DbSourceCode dbSourceCode = new DbSourceCode
+        {
+            SolutionId = solutionId,
+            Source = sourceCode
+        };
+
+        await _context.SourceCodes.AddAsync(dbSourceCode);
+        await _context.SaveChangesAsync();
     }
 }

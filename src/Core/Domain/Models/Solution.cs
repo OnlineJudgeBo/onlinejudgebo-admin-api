@@ -15,7 +15,7 @@ public partial class Solution
     public sbyte Valid { get; set; }
     public sbyte Num { get; set; }
     public int CodeLength { get; set; }
-    public DateTime? Judgetime { get; set; }
+    public DateTime? JudgeTime { get; set; }
     public decimal PassRate { get; set; }
     public bool IsRemoteOj { get; set; } = false;
     public int RemoteId { get; set; } = 0;
