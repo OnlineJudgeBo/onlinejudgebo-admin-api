@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 using OnlineJudgeAdmin.Core.Domain.Models;
 using OnlineJudgeAdmin.Infrastructure.Database.Models;
@@ -16,12 +17,30 @@ public class SolutionRepository : ISolutionRepository
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
+    public async Task<Solution> GetSolutionByIdAsync(int solutionId)
+    {
+        DbSolution solution = await _context.Solutions.FirstOrDefaultAsync(s => s.SolutionId == solutionId);
+        if (solution != null)
+        {
+            _context.Entry(solution).State = EntityState.Detached;
+        }
+        return _mapper.Map<Solution>(solution);
+    }
+
     public async Task<int> SaveSolutionAsync(Solution solutionToCreate)
     {
         DbSolution solution = _mapper.Map<DbSolution>(solutionToCreate);
-
         await _context.Solutions.AddAsync(solution);
         await _context.SaveChangesAsync();
         return solution.SolutionId;
+    }
+
+    public async Task UpdateSolutionRemoteAsync(Solution solutionToCreate)
+    {
+        DbSolution solution = _mapper.Map<DbSolution>(solutionToCreate);
+        _context.Solutions.Attach(solution);
+        _context.Entry(solution).State = EntityState.Modified;
+        await _context.SaveChangesAsync();
+        _context.Entry(solution).State = EntityState.Detached;
     }
 }

@@ -35,4 +35,22 @@ public class SolutionService : ISolutionService
         solution.IsRemoteOj = true;
         return await _solutionRepository.SaveSolutionAsync(solution);
     }
+
+    public async Task UpdateSolutionRemoteAsync(Solution solutionToUpdate)
+    {
+        Solution solution = await _solutionRepository.GetSolutionByIdAsync(solutionToUpdate.SolutionId);
+        if (solution.IsRemoteOj == false)
+        {
+            throw new Exception("You do not own this solution.");
+        }
+        solution.Time = solutionToUpdate.Time;
+        solution.Memory = solutionToUpdate.Memory;
+        solution.JudgeTime = solutionToUpdate.JudgeTime;
+        solution.Result = solutionToUpdate.Result;
+        solution.RemoteId = solution.RemoteId;
+        solution.InDate = solution.InDate;
+        solution.Time = solution.Time;
+
+        await _solutionRepository.UpdateSolutionRemoteAsync(solution);
+    }
 }

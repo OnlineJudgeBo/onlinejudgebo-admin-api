@@ -61,6 +61,7 @@ public class JudgeService : IJudgeService
             throw new Exception("Error in process the remote execution.");
         }
 
+        await _solutionClientRepository.SaveSourceCodeAsync(solution_id, request.ClientSource);
         await _solutionClientRepository.SaveRemoteSolutionAsync(solution_id, request.ClientId);
     }
 }
