@@ -7,14 +7,14 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Reflection;
-using Newtonsoft.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using OnlineJudgeAdmin.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using OnlineJudgeAdminApi.Controllers.Midlewares;
 using OnlineJudgeAdminApi.ExceptionHandler;
 
 var builder = WebApplication.CreateBuilder(args);
-
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -43,7 +43,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
                 context.Response.StatusCode = 401;
                 context.Response.ContentType = "application/json";
-                var result = JsonConvert.SerializeObject(new { error = "Token inválido o expirado" });
+                var result = JsonSerializer.Serialize(new { error = "Token inválido o expirado" });
                 return context.Response.WriteAsync(result);
             },
         };
@@ -52,7 +52,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddControllers()
 .AddJsonOptions(options =>
 {
-    options.JsonSerializerOptions.IgnoreNullValues = true;
+    options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    options.JsonSerializerOptions.Converters.Add(new DateTimeConverterUsingDateTimeParse());
 });
 
 builder.Services.AddEndpointsApiExplorer();
@@ -71,6 +73,7 @@ builder.Services.AddApplicationServices(builder.Configuration);
 builder.Services.AddFileSystemLocalManagerInfrastructureManager(builder.Configuration);
 builder.Services.AddAwsS3FileManager(builder.Configuration);
 //builder.Services.Add
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -88,8 +91,7 @@ app.UseCors(builder =>
 {
     builder.AllowAnyOrigin()
         .AllowAnyHeader()
-        .AllowAnyMethod()
-        ;
+        .AllowAnyMethod();
 });
 
 app.UseMiddleware<ExceptionHandler>();
@@ -97,7 +99,6 @@ app.UseMiddleware<ExceptionHandler>();
 //app.UseCors("AllowAnyOrigin");
 
 app.UseAuthentication();
-
 app.UseAuthorization();
 
 app.UseMiddleware<UserContextMiddleware>();
@@ -105,4 +106,3 @@ app.UseMiddleware<UserContextMiddleware>();
 app.MapControllers();
 
 app.Run();
-
