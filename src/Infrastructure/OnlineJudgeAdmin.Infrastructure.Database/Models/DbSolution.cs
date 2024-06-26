@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 namespace OnlineJudgeAdmin.Infrastructure.Database.Models;
 
@@ -56,8 +56,12 @@ public partial class DbSolution
     public int RemoteId { get; set; }
 
     public virtual DbCompileinfo? Compileinfo { get; set; }
+
     public virtual DbProblem Problem { get; set; } = null!;
+
     public virtual DbRuntimeinfo? Runtimeinfo { get; set; }
+
     public virtual DbSourceCode? SourceCode { get; set; }
+
     public virtual DbUser User { get; set; } = null!;
 }

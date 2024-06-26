@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
@@ -33,7 +33,8 @@ public class RoleService : IRoleService
         await _roleRepository.AddRoleToUserAsync(userId, roleId);
     }
 
-    public async Task RemoveRoleFromUserAsync(string userId, int roleId) {
+    public async Task RemoveRoleFromUserAsync(string userId, int roleId)
+    {
         await _roleRepository.RemoveRoleFromUserAsync(userId, roleId);
     }
 }

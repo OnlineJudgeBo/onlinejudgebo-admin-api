@@ -1,4 +1,4 @@
-﻿namespace OnlineJudgeAdminApi.DataTransferObjects;
+namespace OnlineJudgeAdminApi.DataTransferObjects;
 
 public partial class ClassificationsForCreation
 {

@@ -1,4 +1,4 @@
-﻿namespace OnlineJudgeAdmin.Core.Domain.Models;
+namespace OnlineJudgeAdmin.Core.Domain.Models;
 
 public partial class Problem
 {
@@ -37,6 +37,8 @@ public partial class Problem
     public int? Solved { get; set; }
 
     public virtual ICollection<ContestProblem>? ContestProblems { get; set; }
+
     public virtual ICollection<Solution>? Solutions { get; set; }
+
     public virtual ICollection<Classification>? Classifications { get; set; }
 }

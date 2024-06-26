@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using OnlineJudgeAdmin.Core.Domain.Models;
 using OnlineJudgeAdmin.Infrastructure.Database.Models;
 

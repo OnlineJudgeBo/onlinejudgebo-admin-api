@@ -1,4 +1,4 @@
-﻿using OnlineJudgeAdmin.Core.Domain.Models;
+using OnlineJudgeAdmin.Core.Domain.Models;
 
 namespace OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 

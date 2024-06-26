@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
@@ -30,7 +30,7 @@ public class UsersController : ControllerBase
         }
         else
         {
-                string termToSearch = searchTerm.Trim();
+            string termToSearch = searchTerm.Trim();
             return Ok(await _userService.SearchUserProfilesAsync(termToSearch));
         }
     }

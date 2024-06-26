@@ -1,4 +1,4 @@
-﻿namespace OnlineJudgeAdminApi;
+namespace OnlineJudgeAdminApi;
 
 using System.Text.Json;
 

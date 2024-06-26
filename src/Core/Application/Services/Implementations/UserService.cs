@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
@@ -61,31 +61,28 @@ public class UserService : IUserService
         await _userRepository.DeleteRoleAsync(userId, roleId);
     }
 
-private async Task<string> GeneratePasswordHashAsync(string password)
-{
-    using (HttpClient client = new HttpClient())
+    private async Task<string> GeneratePasswordHashAsync(string password)
     {
-        string baseUrl = _configuration.GetSection("Base:Url").Value;
-        string endpoint = $"/oj/spi.php?spi={Uri.EscapeDataString(password)}";
-
-        client.BaseAddress = new Uri(baseUrl);
-
-        try
+        using (HttpClient client = new HttpClient())
         {
-            HttpResponseMessage response = await client.GetAsync(endpoint);
-            response.EnsureSuccessStatusCode();
+            string baseUrl = _configuration.GetSection("Base:Url").Value;
+            string endpoint = $"/spi.php?spi={Uri.EscapeDataString(password)}";
 
-            return await response.Content.ReadAsStringAsync();
-        }
-        catch (HttpRequestException e)
-        {
-            Console.WriteLine("\nException Caught!");
-            Console.WriteLine("Message :{0} ", e.Message);
-            return $"ERROR: {e.Message}";
+            client.BaseAddress = new Uri(baseUrl);
+
+            try
+            {
+                HttpResponseMessage response = await client.GetAsync(endpoint);
+                response.EnsureSuccessStatusCode();
+
+                return await response.Content.ReadAsStringAsync();
+            }
+            catch (HttpRequestException e)
+            {
+                Console.WriteLine("\nException Caught!");
+                Console.WriteLine("Message :{0} ", e.Message);
+                return $"ERROR: {e.Message}";
+            }
         }
     }
-}
-
-
-
 }

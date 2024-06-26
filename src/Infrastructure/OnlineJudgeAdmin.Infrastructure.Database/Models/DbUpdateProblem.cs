@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 namespace OnlineJudgeAdmin.Infrastructure.Database.Models;
 
 [Table("problem")]
@@ -41,6 +41,8 @@ public partial class DbUpdateProblem
     public string Defunct { get; set; }
 
     public virtual ICollection<DbContestProblem>? ContestProblems { get; set; }
+
     public virtual ICollection<DbSolution>? Solutions { get; set; }
+
     public virtual ICollection<DbClassification>? Classifications { get; set; }
 }

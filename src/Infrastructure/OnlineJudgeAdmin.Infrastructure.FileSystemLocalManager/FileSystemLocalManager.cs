@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
 
 namespace OnlineJudgeAdmin.Infrastructure.FileSystemLocalManager;

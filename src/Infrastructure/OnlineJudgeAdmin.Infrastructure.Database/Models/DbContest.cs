@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 namespace OnlineJudgeAdmin.Infrastructure.Database.Models;
 
@@ -34,6 +34,8 @@ public partial class DbContest
     public bool Obi { get; set; }
 
     public virtual ICollection<DbContestProblem>? ContestProblems { get; set; } = new List<DbContestProblem>();
+
     public ICollection<DbContestUser>? ContestUsers { get; set; } = new List<DbContestUser>();
+
     public virtual ICollection<DbProgrammingLanguage>? ProgrammingLanguages { get; set; } = new List<DbProgrammingLanguage>();
 }

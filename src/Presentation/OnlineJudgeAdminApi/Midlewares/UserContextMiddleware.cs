@@ -1,4 +1,4 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+using System.IdentityModel.Tokens.Jwt;
 using OnlineJudgeAdmin.Core.Domain.Models;
 
 namespace OnlineJudgeAdminApi.Controllers.Midlewares
