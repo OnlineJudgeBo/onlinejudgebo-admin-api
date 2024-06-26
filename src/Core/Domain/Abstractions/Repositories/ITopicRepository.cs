@@ -1,12 +1,17 @@
-﻿using OnlineJudgeAdmin.Core.Domain.Models;
+using OnlineJudgeAdmin.Core.Domain.Models;
 
 namespace OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 
 public interface ITopicRepository
 {
-    public Task<IEnumerable<Topic>> GetAllTopicsAsync();
+    Task<IEnumerable<Topic>> GetAllTopicsAsync();
 
-    public Task AddClassificationsToProblemAsync(int problem_id, IEnumerable<Classification> topics);
+    Task AddClassificationsToProblemAsync(int problem_id, IEnumerable<Classification> topics);
 
-    public Task RemoveAllClassificationsFromProblemAsync(int problemId);
+    Task RemoveAllClassificationsFromProblemAsync(int problemId);
+
+    Task CreateTopic(Topic topic);
+    Task AddClassificationToTopic(Topic topic);
+    Task UpdateClassification(Classification classification);
+    Task<Classification> GetClassificationById(int classificationId);
 }

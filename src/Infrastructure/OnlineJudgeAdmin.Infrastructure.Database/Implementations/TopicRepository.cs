@@ -17,6 +17,14 @@ public class TopicRepository : ITopicRepository
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
+    public async Task<Classification> GetClassificationById(int classificationId)
+    {
+        DbClassification dbClassification = await _context.Classifications
+            .FirstOrDefaultAsync(classification => classification.ClassificationId == classificationId);
+
+        return _mapper.Map<Classification>(dbClassification);
+    }
+
     public async Task<IEnumerable<Topic>> GetAllTopicsAsync()
     {
         var topics = await _context.Topics
@@ -54,18 +62,53 @@ public class TopicRepository : ITopicRepository
             .Include(p => p.Classifications)
             .FirstOrDefaultAsync(p => p.ProblemId == problemId);
 
-        if (problem != null)
+        if (problem == null) throw new ArgumentException("Problem not found.");
+
+        var classificationsToRemove = problem.Classifications
+            .ToList();
+
+        foreach (var classification in classificationsToRemove)
         {
-            var classificationsToRemove = problem.Classifications
-                .ToList();
-
-            foreach (var classification in classificationsToRemove)
-            {
-                problem.Classifications.Remove(classification);
-            }
-
-            await _context.SaveChangesAsync();
+            problem.Classifications.Remove(classification);
         }
+
+        await _context.SaveChangesAsync();
+
     }
 
+    public async Task CreateTopic(Topic newTopic)
+    {
+        DbTopic topic = new DbTopic
+        {
+            Name = newTopic.Name,
+        };
+
+        await _context.Topics.AddAsync(topic);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task AddClassificationToTopic(Topic classificationTopic)
+    {
+        DbTopic topic = _mapper.Map<DbTopic>(classificationTopic);
+        await _context.Topics.FirstOrDefaultAsync(t => t.TopicId == topic.TopicId);
+        foreach (DbClassification classification in topic.Classifications)
+        {
+            _context.Classifications.Add(classification);
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task UpdateClassification(Classification classificationToUpdate)
+    {
+        DbClassification classification = _mapper.Map<DbClassification>(classificationToUpdate);
+        var existingClassification = _context.Classifications
+            .FirstOrDefault(c => c.ClassificationId == classification.ClassificationId);
+
+        if (existingClassification == null) throw new ArgumentException("Classification not found.");
+
+        existingClassification.Name = classificationToUpdate.Name;
+        _context.Entry(existingClassification).Property(c => c.Name).IsModified = true;
+        _context.SaveChanges();
+    }
 }
