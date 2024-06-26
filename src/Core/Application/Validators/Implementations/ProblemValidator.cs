@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using OnlineJudgeAdmin.Core.Domain.Models;
 
 namespace OnlineJudgeAdmin.Core.Application.Validators.Implementations;

@@ -28,7 +28,6 @@ public class ProblemProfile : Profile
         .ForMember(dest => dest.Private, opt => opt.MapFrom(src => src.IsPrivate))
         .ForMember(dest => dest.ProgrammingLanguages, opt => opt.MapFrom(src => src.selectedLanguages));
 
-
         CreateMap<ContestForUpdate, Contest>()
         .ForMember(dest => dest.StartTime, opt => opt.MapFrom(src => src.StartDate))
         .ForMember(dest => dest.EndTime, opt => opt.MapFrom(src => src.EndDate))
@@ -58,5 +57,23 @@ public class ProblemProfile : Profile
             .ForMember(dest => dest.InDate, opt => opt.MapFrom(src => src.InDate))
             .ForMember(dest => dest.Result, opt => opt.MapFrom(src => src.Result))
             .ForMember(dest => dest.JudgeTime, opt => opt.MapFrom(src => src.JudgeTime));
+
+        CreateMap<TopicForCreating, Topic>()
+            .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name));
+
+        CreateMap<TopicAddClassificationForCreation, Topic>()
+            .ForMember(dest => dest.TopicId, opt => opt.MapFrom(src => src.TopicId))
+            .ForMember(dest => dest.Classifications, opt => opt.MapFrom(src => src.Classifications.Select(c => new Classification
+            {
+                TopicId = src.TopicId,
+                Name = c.Name.ToString()
+            }).ToList()));
+
+        CreateMap<ClassificationAddToTopic, Classification>()
+            .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name.ToString()));
+
+        CreateMap<ClassificationForUpdate, Classification>()
+            .ForMember(dest => dest.ClassificationId, opt => opt.MapFrom(src => src.ClassificationId))
+            .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name));
     }
 }

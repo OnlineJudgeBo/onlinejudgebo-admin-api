@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
@@ -27,12 +27,14 @@ public class ContestService : IContestService
     public async Task<IEnumerable<Contest>> GetAllContestAsync(Roles userContextRole)
     {
         bool showAllContest = false;
-        if (userContextRole.UserId == "starsaminf" || userContextRole.UserId == "SamuelLR") {
+        if (userContextRole.UserId == "starsaminf" || userContextRole.UserId == "SamuelLR")
+        {
             showAllContest = true;
             return await _contestRepository.GetContestsByUserIdDocenteRoleAsync(userContextRole.UserId, showAllContest);
         }
 
-        if (userContextRole.RoleList.Contains("Auxiliar")) {
+        if (userContextRole.RoleList.Contains("Auxiliar"))
+        {
             showAllContest = false;
             return await _contestRepository.GetContestsByAuxiliarRoleAsync(userContextRole.UserId);
         }

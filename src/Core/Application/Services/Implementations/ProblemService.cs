@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;

@@ -1,4 +1,4 @@
-﻿namespace OnlineJudgeAdmin.Core.Domain.Models;
+namespace OnlineJudgeAdmin.Core.Domain.Models;
 
 public partial class ContestProblem
 {
@@ -11,5 +11,6 @@ public partial class ContestProblem
     public int? Num { get; set; }
 
     public virtual Contest? Contest { get; set; } = null!;
+
     public virtual Problem? Problem { get; set; } = null!;
 }

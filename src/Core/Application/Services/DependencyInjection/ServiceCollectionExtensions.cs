@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OnlineJudgeAdmin.Core.Application.Services.Implementations;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;

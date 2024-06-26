@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 namespace OnlineJudgeAdmin.Infrastructure.Database.Models;
 
@@ -32,12 +32,20 @@ public partial class DbUser
 
     [Column("is_deleted")]
     public bool IsDeleted { get; set; }
+
     public virtual ICollection<DbNews> News { get; set; }
+
     public virtual ICollection<DbSolution> Solutions { get; set; }
+
     public virtual DbUserActivity? UserActivity { get; set; }
+
     public virtual DbUserProfile? UserProfile { get; set; }
+
     public virtual DbUserSetting? UserSetting { get; set; }
+
     public virtual ICollection<DbRole> Roles { get; set; } = new List<DbRole>();
+
     public ICollection<DbContestUser>? ContestUsers { get; set; }
+
     public ICollection<DbUserRole>? UserRoles { get; set; } = new List<DbUserRole>();
 }

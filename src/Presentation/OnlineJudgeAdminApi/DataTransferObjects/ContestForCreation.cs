@@ -1,4 +1,4 @@
-﻿namespace OnlineJudgeAdminApi.DataTransferObjects;
+namespace OnlineJudgeAdminApi.DataTransferObjects;
 
 public partial class ContestForCreation
 {
@@ -15,7 +15,8 @@ public partial class ContestForCreation
     public string? ManualUserList { get; set; }
 
     public virtual ICollection<ProblemForContestCreation> SelectedProblem { get; set; }
-    public virtual ICollection<UserForContestCreation> SelectedUser { get; set; }
-    public virtual ICollection<ProgrammingLanguageForContestCreation> selectedLanguages { get; set; }
 
+    public virtual ICollection<UserForContestCreation> SelectedUser { get; set; }
+
+    public virtual ICollection<ProgrammingLanguageForContestCreation> selectedLanguages { get; set; }
 }
