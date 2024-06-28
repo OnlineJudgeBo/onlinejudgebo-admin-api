@@ -73,7 +73,6 @@ public class ProblemProfile : Profile
             .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name.ToString()));
 
         CreateMap<ClassificationForUpdate, Classification>()
-            .ForMember(dest => dest.ClassificationId, opt => opt.MapFrom(src => src.ClassificationId))
             .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name));
     }
 }

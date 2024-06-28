@@ -44,11 +44,11 @@ public class TopicsController : ControllerBase
         return Created();
     }
 
-    [HttpPut()]
-    public async Task<IActionResult> UpdateClassificationFromTopic(ClassificationForUpdate topicForCreating)
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> UpdateClassificationFromTopic(ClassificationForUpdate topicForCreating, int id)
     {
         Classification classification = _mapper.Map<Classification>(topicForCreating);
-        await _topicService.UpdateClassification(classification);
+        await _topicService.UpdateClassification(classification, id);
         return NoContent();
     }
 }

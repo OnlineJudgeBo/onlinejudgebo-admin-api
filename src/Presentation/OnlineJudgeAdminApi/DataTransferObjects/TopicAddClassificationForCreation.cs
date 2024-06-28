@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-
 namespace OnlineJudgeAdminApi.DataTransferObjects;
 
 public partial class TopicAddClassificationForCreation
@@ -10,8 +8,6 @@ public partial class TopicAddClassificationForCreation
 
 public partial class ClassificationForUpdate
 {
-    [JsonPropertyName("id")]
-    public int ClassificationId { get; set; }
     public string Name { get; set; }
 }
 

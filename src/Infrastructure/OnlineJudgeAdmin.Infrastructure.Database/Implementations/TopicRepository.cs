@@ -99,11 +99,11 @@ public class TopicRepository : ITopicRepository
         await _context.SaveChangesAsync();
     }
 
-    public async Task UpdateClassification(Classification classificationToUpdate)
+    public async Task UpdateClassification(Classification classificationToUpdate, int classificationId)
     {
         DbClassification classification = _mapper.Map<DbClassification>(classificationToUpdate);
         var existingClassification = _context.Classifications
-            .FirstOrDefault(c => c.ClassificationId == classification.ClassificationId);
+            .FirstOrDefault(c => c.ClassificationId == classificationId);
 
         if (existingClassification == null) throw new ArgumentException("Classification not found.");
 
