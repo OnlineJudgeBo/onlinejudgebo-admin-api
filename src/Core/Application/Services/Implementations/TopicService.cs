@@ -39,16 +39,16 @@ public class TopicService : ITopicService
         await _topicRepository.AddClassificationToTopic(topic);
     }
 
-    public async Task UpdateClassification(Classification classification)
+    public async Task UpdateClassification(Classification classification, int classificationId)
     {
-        var existingClassification = await _topicRepository.GetClassificationById(classification.ClassificationId);
+        var existingClassification = await _topicRepository.GetClassificationById(classificationId);
 
         if (existingClassification == null)
         {
             throw new ArgumentException("Classification not found.");
         }
 
-        await _topicRepository.UpdateClassification(classification);
+        await _topicRepository.UpdateClassification(classification, classificationId);
     }
 }
 

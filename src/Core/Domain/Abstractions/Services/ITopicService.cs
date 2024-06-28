@@ -7,6 +7,6 @@ public interface ITopicService
     Task<IEnumerable<Topic>> GetAllTopicsAsync();
     Task AddTopicAsync(Topic newTopic);
     Task AddClassificationToTopic(Topic newTopic);
-    Task UpdateClassification(Classification classification);
+    Task UpdateClassification(Classification classification, int id);
 }
 

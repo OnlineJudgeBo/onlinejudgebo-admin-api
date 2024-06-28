@@ -12,6 +12,6 @@ public interface ITopicRepository
 
     Task CreateTopic(Topic topic);
     Task AddClassificationToTopic(Topic topic);
-    Task UpdateClassification(Classification classification);
     Task<Classification> GetClassificationById(int classificationId);
+    Task UpdateClassification(Classification classification, int id);
 }
