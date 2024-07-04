@@ -25,10 +25,10 @@ public class JudgeController : ControllerBase
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
-    [HttpGet("rejudge/solution/{solutionId:int}")]
-    public async Task<IActionResult> RejudgeSolutionByIdAsync(int solutionId)
+    [HttpGet("rejudge/solution/{id:int}")]
+    public async Task<IActionResult> RejudgeSolutionByIdAsync(int id)
     {
-        await _judgeService.RejudgeSolutionByIdAsync(solutionId);
+        await _judgeService.RejudgeSolutionByIdAsync(id);
         return Ok();
     }
 
