@@ -36,11 +36,11 @@ public class TopicsController : ControllerBase
         return Ok(await _topicService.GetAllTopicsAsync());
     }
 
-    [HttpPost("classification")]
-    public async Task<IActionResult> AddClassificationToTopic(TopicAddClassificationForCreation addClassification)
+    [HttpPost("{id:int}/classification")]
+    public async Task<IActionResult> AddClassificationToTopic(int id, TopicAddClassificationForCreation addClassification)
     {
         Topic newTopic = _mapper.Map<Topic>(addClassification);
-        await _topicService.AddClassificationToTopic(newTopic);
+        await _topicService.AddClassificationToTopic(id, newTopic);
         return Created();
     }
 
