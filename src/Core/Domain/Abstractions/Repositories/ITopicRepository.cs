@@ -11,7 +11,10 @@ public interface ITopicRepository
     Task RemoveAllClassificationsFromProblemAsync(int problemId);
 
     Task CreateTopic(Topic topic);
-    Task AddClassificationToTopic(Topic topic);
+
+    Task AddClassificationToTopic(int id, Topic topic);
+
     Task<Classification> GetClassificationById(int classificationId);
+
     Task UpdateClassification(Classification classification, int id);
 }

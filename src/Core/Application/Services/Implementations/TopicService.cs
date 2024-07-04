@@ -29,14 +29,14 @@ public class TopicService : ITopicService
         await _topicRepository.CreateTopic(newTopic);
     }
 
-    public async Task AddClassificationToTopic(Topic topic)
+    public async Task AddClassificationToTopic(int id, Topic topic)
     {
         if (topic.Classifications == null || !topic.Classifications.Any())
         {
             throw new ArgumentException("No classifications provided.");
         }
 
-        await _topicRepository.AddClassificationToTopic(topic);
+        await _topicRepository.AddClassificationToTopic(id, topic);
     }
 
     public async Task UpdateClassification(Classification classification, int classificationId)

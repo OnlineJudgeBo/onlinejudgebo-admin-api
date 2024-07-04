@@ -62,10 +62,8 @@ public class ProblemProfile : Profile
             .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name));
 
         CreateMap<TopicAddClassificationForCreation, Topic>()
-            .ForMember(dest => dest.TopicId, opt => opt.MapFrom(src => src.TopicId))
             .ForMember(dest => dest.Classifications, opt => opt.MapFrom(src => src.Classifications.Select(c => new Classification
             {
-                TopicId = src.TopicId,
                 Name = c.Name.ToString()
             }).ToList()));
 
