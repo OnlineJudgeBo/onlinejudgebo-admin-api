@@ -43,7 +43,7 @@ public class RoleRepository : IRoleRepository
         return _mapper.Map<IEnumerable<User>>(rolesWithUsers);
     }
 
-    public async Task<IEnumerable<Role>> GetNameRolesAsync()
+    public async Task<IEnumerable<Role>> GetAllRolesAsync()
     {
         IEnumerable<DbRole> roles = await _context.Roles
         .Select(t => new DbRole
@@ -52,6 +52,15 @@ public class RoleRepository : IRoleRepository
             RoleName = t.RoleName,
         }).ToListAsync();
         return _mapper.Map<IEnumerable<Role>>(roles);
+    }
+
+    public async Task<UserRole> GetUserRoleAsync(string userId)
+    {
+        DbUserRole role = await _context.UserRoles
+        .Where(u => u.UserId == userId)
+        .FirstOrDefaultAsync();
+
+        return _mapper.Map<UserRole>(role);
     }
 
     public async Task AddRoleToUserAsync(string userId, int roleId)

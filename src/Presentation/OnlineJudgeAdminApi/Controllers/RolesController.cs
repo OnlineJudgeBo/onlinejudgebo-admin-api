@@ -26,9 +26,9 @@ public class RolesController : ControllerBase
     }
 
     [HttpGet("rolesAvailable")]
-    public async Task<IActionResult> GetNameRolesAsync()
+    public async Task<IActionResult> GetAllRolesAsync()
     {
-        return Ok(await _roleService.GetNameRolesAsync());
+        return Ok(await _roleService.GetAllRolesAsync());
     }
 
     [HttpPost("{userId}/{role}")]
