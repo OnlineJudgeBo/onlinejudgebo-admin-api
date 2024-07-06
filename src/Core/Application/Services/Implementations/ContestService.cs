@@ -24,22 +24,20 @@ public class ContestService : IContestService
         _userValidation = ProblemValidation ?? throw new ArgumentNullException(nameof(ProblemValidation));
     }
 
-    public async Task<IEnumerable<Contest>> GetAllContestAsync(Roles userContextRole)
+    public async Task<IEnumerable<Contest>> GetAllContestAsync(CurrentUser userContextRole)
     {
         bool showAllContest = false;
-        if (userContextRole.UserId == "starsaminf" || userContextRole.UserId == "SamuelLR")
+        if (userContextRole.Role == UserRolesEnum.Administrador)
         {
             showAllContest = true;
             return await _contestRepository.GetContestsByUserIdDocenteRoleAsync(userContextRole.UserId, showAllContest);
         }
 
-        if (userContextRole.RoleList.Contains("Auxiliar"))
+        if (userContextRole.Role == UserRolesEnum.Auxiliar)
         {
-            showAllContest = false;
             return await _contestRepository.GetContestsByAuxiliarRoleAsync(userContextRole.UserId);
         }
 
-        showAllContest = false;
         return await _contestRepository.GetContestsByUserIdDocenteRoleAsync(userContextRole.UserId, showAllContest);
     }
 

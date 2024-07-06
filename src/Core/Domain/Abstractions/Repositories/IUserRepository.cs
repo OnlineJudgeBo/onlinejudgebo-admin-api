@@ -21,4 +21,5 @@ public interface IUserRepository
     public Task ChangePassword(string passwordEncrypt, string userId);
 
     public Task DeleteRoleAsync(string userId, int roleId);
+    public Task DeleteUserAsync(string userId);
 }

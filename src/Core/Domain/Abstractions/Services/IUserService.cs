@@ -17,4 +17,5 @@ public interface IUserService
     public Task ChangePassword(String passwordEncrypt, string userId);
 
     public Task DeleteRoleAsync(string userId, int roleId);
+    public Task DeleteUserAsync(CurrentUser currentUser, string userId);
 }

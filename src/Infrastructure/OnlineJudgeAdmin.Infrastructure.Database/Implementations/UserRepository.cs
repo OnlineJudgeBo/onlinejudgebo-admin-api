@@ -182,4 +182,13 @@ public class UserRepository : IUserRepository
             await _context.SaveChangesAsync();
         }
     }
+
+    public async Task DeleteUserAsync(string userId)
+    {
+        DbUser user = await _context.Users.Where(ur => ur.UserId == userId).FirstOrDefaultAsync();
+        user.IsActive = false;
+        _context.Entry(user).Property(c => c.IsActive).IsModified = true;
+        _context.SaveChanges();
+        await _context.SaveChangesAsync();
+    }
 }

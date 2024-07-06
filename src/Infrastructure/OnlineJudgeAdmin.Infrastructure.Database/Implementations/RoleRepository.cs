@@ -30,7 +30,9 @@ public class RoleRepository : IRoleRepository
                     Nick = u.UserProfile.Nick,
                     Lastname = u.UserProfile.Lastname
                 },
-                UserRoles = u.UserRoles.Select(ur => new DbUserRole
+                UserRoles = u.UserRoles
+                .Where(ur => ur.Role.RoleId != 1)
+                .Select(ur => new DbUserRole
                 {
                     Role = new DbRole
                     {

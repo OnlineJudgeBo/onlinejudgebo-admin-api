@@ -8,15 +8,18 @@ namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
 public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
+    private readonly IRoleRepository _roleRepository;
     private readonly IValidator<Problem> _userValidation;
     private readonly IConfiguration _configuration;
 
     public UserService(
         IUserRepository userRepository,
+        IRoleRepository roleRepository,
         IValidator<Problem> userValidator,
         IConfiguration configuration)
     {
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+        _roleRepository = roleRepository ?? throw new ArgumentNullException(nameof(roleRepository));
         _userValidation = userValidator ?? throw new ArgumentNullException(nameof(userValidator));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
     }
@@ -58,7 +61,16 @@ public class UserService : IUserService
 
     public async Task DeleteRoleAsync(string userId, int roleId)
     {
-        await _userRepository.DeleteRoleAsync(userId, roleId);
+        UserRole role = await _roleRepository.GetUserRoleAsync(userId);
+
+        if (role.Role.RoleName == "Administrador" || role.Role.RoleName == "Docente" )
+        {
+            await _userRepository.DeleteRoleAsync(userId, roleId);
+        }
+        else
+        {
+            throw new UnauthorizedAccessException("Solo los administradores pueden eliminar roles.");
+        }
     }
 
     private async Task<string> GeneratePasswordHashAsync(string password)
@@ -67,7 +79,6 @@ public class UserService : IUserService
         {
             string baseUrl = _configuration.GetSection("Base:Url").Value;
             string endpoint = $"/spi.php?spi={Uri.EscapeDataString(password)}";
-
             client.BaseAddress = new Uri(baseUrl);
 
             try
@@ -83,6 +94,20 @@ public class UserService : IUserService
                 Console.WriteLine("Message :{0} ", e.Message);
                 return $"ERROR: {e.Message}";
             }
+        }
+    }
+
+    public async Task DeleteUserAsync(CurrentUser currentUser, string userId)
+    {
+        UserRole role = await _roleRepository.GetUserRoleAsync(userId);
+
+        if ( role == null || role.Role.RoleName == "Administrador" || role.Role.RoleName == "Docente" )
+        {
+            await _userRepository.DeleteUserAsync(userId);
+        }
+        else
+        {
+            throw new UnauthorizedAccessException("Solo los administradores pueden eliminar usuarios.");
         }
     }
 }
