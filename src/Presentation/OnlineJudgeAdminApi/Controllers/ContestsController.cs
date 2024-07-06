@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
 using OnlineJudgeAdminApi.DataTransferObjects;
+using OnlineJudgeAdminApi.Helpers;
 
 namespace OnlineJudgeAdminApi.Controllers;
 
@@ -14,18 +15,20 @@ namespace OnlineJudgeAdminApi.Controllers;
 public class ContestsController : ControllerBase
 {
     private readonly IContestService _contestService;
+    private readonly UserClaimsHelper _userClaimsHelper;
     private readonly IMapper _mapper;
-    public ContestsController(IContestService contestService, IMapper mapper)
+    public ContestsController(IContestService contestService, UserClaimsHelper userClaimsHelper, IMapper mapper)
     {
         _contestService = contestService ?? throw new ArgumentNullException(nameof(contestService));
+        _userClaimsHelper = userClaimsHelper ?? throw new ArgumentNullException(nameof(userClaimsHelper));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
     [HttpGet()]
     public async Task<IActionResult> GetAllContestAsync()
     {
-        Roles userContextRole = (Roles)HttpContext.Items["UserContext"];
-        return Ok(await _contestService.GetAllContestAsync(userContextRole));
+        CurrentUser currentUser = _userClaimsHelper.GetUserContextRole();
+        return Ok(await _contestService.GetAllContestAsync(currentUser));
     }
 
     [HttpGet("{contestId:int}")]

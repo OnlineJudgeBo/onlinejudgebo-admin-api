@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
 using OnlineJudgeAdminApi.DataTransferObjects;
+using OnlineJudgeAdminApi.Helpers;
 
 namespace OnlineJudgeAdminApi.Controllers;
 
@@ -14,10 +15,12 @@ public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
     private readonly IMapper _mapper;
+    private readonly UserClaimsHelper _userClaimsHelper;
 
-    public UsersController(IUserService userService, IMapper mapper)
+    public UsersController(IUserService userService, UserClaimsHelper userClaimsHelper, IMapper mapper)
     {
         _userService = userService ?? throw new ArgumentNullException(nameof(userService));
+        _userClaimsHelper = userClaimsHelper ?? throw new ArgumentNullException(nameof(userClaimsHelper));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
@@ -69,6 +72,14 @@ public class UsersController : ControllerBase
     public async Task<ActionResult> DeleteRole(string userId, int roleId)
     {
         await _userService.DeleteRoleAsync(userId, roleId);
+        return Ok();
+    }
+
+    [HttpDelete("{userId}")]
+    public async Task<ActionResult> DeleteUser(string userId)
+    {
+        CurrentUser currentUser = _userClaimsHelper.GetUserContextRole();
+        await _userService.DeleteUserAsync(currentUser, userId);
         return Ok();
     }
 }

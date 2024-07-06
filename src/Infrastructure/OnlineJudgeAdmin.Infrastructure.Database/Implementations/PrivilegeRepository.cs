@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 using OnlineJudgeAdmin.Core.Domain.Models;
 using OnlineJudgeAdmin.Infrastructure.Database.Models;
@@ -21,5 +22,13 @@ public class PrivilegeRepository : IPrivilegeRepository
         DbPrivilege dbPrivilege = _mapper.Map<DbPrivilege>(privilege);
         _context.Privilege.Add(dbPrivilege);
         _context.SaveChanges();
+    }
+
+    public async Task<Privilege> GetUserPrivilegeAsync(string userId)
+    {
+        DbPrivilege dbPrivilege =  await _context.Privilege
+            .Where(x => x.UserId == userId)
+            .FirstOrDefaultAsync();
+            return _mapper.Map<Privilege>(dbPrivilege);
     }
 }

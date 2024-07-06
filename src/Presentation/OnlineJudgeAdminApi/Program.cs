@@ -11,8 +11,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using OnlineJudgeAdmin.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
-using OnlineJudgeAdminApi.Controllers.Midlewares;
 using OnlineJudgeAdminApi.ExceptionHandler;
+using OnlineJudgeAdminApi.Helpers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -69,10 +69,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
 builder.Services.AddDatabaseRepositories(builder.Configuration);
 builder.Services.AddApplicationValidators();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddApplicationServices(builder.Configuration);
 builder.Services.AddFileSystemLocalManagerInfrastructureManager(builder.Configuration);
 builder.Services.AddAwsS3FileManager(builder.Configuration);
-//builder.Services.Add
+builder.Services.AddScoped<UserClaimsHelper>();
 
 var app = builder.Build();
 
@@ -100,8 +101,6 @@ app.UseMiddleware<ExceptionHandler>();
 
 app.UseAuthentication();
 app.UseAuthorization();
-
-app.UseMiddleware<UserContextMiddleware>();
 
 app.MapControllers();
 
