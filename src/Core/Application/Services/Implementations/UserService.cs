@@ -63,7 +63,7 @@ public class UserService : IUserService
     {
         UserRole role = await _roleRepository.GetUserRoleAsync(userId);
 
-        if (role.Role.RoleName == "Administrador" || role.Role.RoleName == "Docente" )
+        if (role.Role.RoleName == "Administrador" || role.Role.RoleName == "Docente")
         {
             await _userRepository.DeleteRoleAsync(userId, roleId);
         }
@@ -101,7 +101,7 @@ public class UserService : IUserService
     {
         UserRole role = await _roleRepository.GetUserRoleAsync(userId);
 
-        if ( role == null || role.Role.RoleName == "Administrador" || role.Role.RoleName == "Docente" )
+        if (role == null || role.Role.RoleName == "Administrador" || role.Role.RoleName == "Docente")
         {
             await _userRepository.DeleteUserAsync(userId);
         }
