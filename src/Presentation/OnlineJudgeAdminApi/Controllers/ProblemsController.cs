@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
 using OnlineJudgeAdminApi.DataTransferObjects;
+using OnlineJudgeAdminApi.Helpers;
 
 namespace OnlineJudgeAdminApi.Controllers;
 
@@ -14,24 +15,27 @@ namespace OnlineJudgeAdminApi.Controllers;
 public class ProblemsController : ControllerBase
 {
     private readonly IProblemService _problemService;
+    private readonly UserClaimsHelper _userClaimsHelper;
     private readonly IMapper _mapper;
 
-    public ProblemsController(IProblemService problemService, IMapper mapper)
+    public ProblemsController(IProblemService problemService, UserClaimsHelper userClaimsHelper, IMapper mapper)
     {
         _problemService = problemService ?? throw new ArgumentNullException(nameof(problemService));
+        _userClaimsHelper = userClaimsHelper ?? throw new ArgumentNullException(nameof(userClaimsHelper));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
     [HttpGet()]
     public async Task<IActionResult> GetAllProblemsAsync([FromQuery] string? searchTerm)
     {
+        CurrentUser currentUser = _userClaimsHelper.GetUserContextRole();
         if (string.IsNullOrWhiteSpace(searchTerm))
         {
-            return Ok(await _problemService.GetAllProblemsAsync());
+            return Ok(await _problemService.GetAllProblemsAsync(currentUser));
         }
         else
         {
-            return Ok(await _problemService.SearchProblemAsync(searchTerm));
+            return Ok(await _problemService.SearchProblemAsync(currentUser, searchTerm));
         }
     }
 

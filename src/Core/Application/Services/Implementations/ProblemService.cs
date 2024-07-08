@@ -27,9 +27,16 @@ public class ProblemService : IProblemService
         _userValidation = ProblemValidation ?? throw new ArgumentNullException(nameof(ProblemValidation));
     }
 
-    public async Task<IEnumerable<Problem>> GetAllProblemsAsync()
+    public async Task<IEnumerable<Problem>> GetAllProblemsAsync(CurrentUser currentUser)
     {
-        return await _problemRepository.GetAllProblemsAsync();
+        if (currentUser.Role == UserRolesEnum.Administrador)
+        {
+            return await _problemRepository.GetAllProblemsForAdminAsync();
+        }
+        else
+        {
+            return await _problemRepository.GetAllProblemsAsync();
+        }
     }
 
     public async Task<Problem> GetProblemByIdAsync(int problemId)
@@ -37,9 +44,16 @@ public class ProblemService : IProblemService
         return await _problemRepository.GetProblemByIdAsync(problemId);
     }
 
-    public async Task<IEnumerable<Problem>> SearchProblemAsync(string searchTerm)
+    public async Task<IEnumerable<Problem>> SearchProblemAsync(CurrentUser currentUser, string searchTerm)
     {
-        return await _problemRepository.SearchProblemAsync(searchTerm);
+        if (currentUser.Role == UserRolesEnum.Administrador)
+        {
+            return await _problemRepository.SearchProblemForAdminAsync(searchTerm);
+        }
+        else
+        {
+            return await _problemRepository.SearchProblemAsync(searchTerm);
+        }
     }
 
     public async Task<Problem> CreateProblemAsync(string userId, Problem problem)

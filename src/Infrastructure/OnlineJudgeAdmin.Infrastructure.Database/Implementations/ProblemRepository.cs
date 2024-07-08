@@ -51,11 +51,76 @@ public class ProblemRepository : IProblemRepository
         return _mapper.Map<IEnumerable<Problem>>(problems);
     }
 
-    public async Task<IEnumerable<Problem>> SearchProblemAsync(string searchTerm)
+    public async Task<IEnumerable<Problem>> GetAllProblemsForAdminAsync()
+    {
+        IEnumerable<DbProblem> problems = await _context.Problems
+            .OrderByDescending(p => p.ProblemId)
+            .Select(p => new DbProblem
+            {
+                ProblemId = p.ProblemId,
+                Title = p.Title,
+                Source = p.Source,
+                InDate = p.InDate,
+                Submit = p.Submit,
+                Accepted = p.Accepted,
+                Classifications = p.Classifications.Select(t => new DbClassification
+                {
+                    Name = t.Name,
+                    Topic = new DbTopic
+                    {
+                        Name = t.Topic.Name
+                    }
+                }).ToList(),
+                ContestProblems = p.ContestProblems.Select(c => new DbContestProblem
+                {
+                    Num = c.Num,
+                    Contest = new DbContest
+                    {
+                        Title = c.Contest.Title,
+                        EndTime = c.Contest.EndTime
+                    }
+                }).ToList()
+            }).ToListAsync();
+        return _mapper.Map<IEnumerable<Problem>>(problems);
+    }
+
+    public async Task<IEnumerable<Problem>> SearchProblemForAdminAsync(string searchTerm)
     {
         IQueryable<DbProblem> query = _context.Problems
             .OrderBy(p => p.ProblemId);
-        //.Where(u => u.);
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            query = query.Where(u =>
+                u.Title.Contains(searchTerm) ||
+                u.ProblemId.ToString().Contains(searchTerm));
+        }
+
+        IEnumerable<DbProblem> users = await query
+            .Select(po => new DbProblem
+            {
+                ProblemId = po.ProblemId,
+                Title = po.Title,
+                Classifications = po.Classifications.Select(t => new DbClassification
+                {
+                    Name = t.Name,
+                    ClassificationId = t.ClassificationId,
+                    Topic = new DbTopic
+                    {
+                        TopicId = t.Topic.TopicId,
+                        Name = t.Topic.Name
+                    }
+                }).ToList(),
+            }).ToListAsync();
+
+        return _mapper.Map<IEnumerable<Problem>>(users);
+    }
+
+    public async Task<IEnumerable<Problem>> SearchProblemAsync(string searchTerm)
+    {
+        IQueryable<DbProblem> query = _context.Problems
+            .Where(p => p.Defunct == "N")
+            .OrderBy(p => p.ProblemId);
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {

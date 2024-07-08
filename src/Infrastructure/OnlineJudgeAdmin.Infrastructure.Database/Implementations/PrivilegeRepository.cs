@@ -26,9 +26,9 @@ public class PrivilegeRepository : IPrivilegeRepository
 
     public async Task<Privilege> GetUserPrivilegeAsync(string userId)
     {
-        DbPrivilege dbPrivilege =  await _context.Privilege
+        DbPrivilege dbPrivilege = await _context.Privilege
             .Where(x => x.UserId == userId)
             .FirstOrDefaultAsync();
-            return _mapper.Map<Privilege>(dbPrivilege);
+        return _mapper.Map<Privilege>(dbPrivilege);
     }
 }
