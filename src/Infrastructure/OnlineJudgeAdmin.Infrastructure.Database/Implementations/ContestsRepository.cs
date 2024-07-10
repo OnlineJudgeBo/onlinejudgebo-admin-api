@@ -65,6 +65,7 @@ public class ContestsRepository : IContestsRepository
         IQueryable<DbContest> query;
         query = _context.Contests
             .OrderByDescending(c => c.ContestId)
+            .Where(c => c.Defunct != "O")
             .Select(c => new DbContest
             {
                 ContestId = c.ContestId,
