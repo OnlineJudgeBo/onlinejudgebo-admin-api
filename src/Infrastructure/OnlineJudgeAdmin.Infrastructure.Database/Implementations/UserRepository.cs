@@ -49,9 +49,8 @@ public class UserRepository : IUserRepository
     public async Task<IEnumerable<User>> GetAllUsersProfilesAsync(int siteId)
     {
         IEnumerable<DbUser> users = await _context.Users
-            .Where(u => u.SiteId == siteId)
             .OrderBy(u => u.UserId)
-            .Where(u => u.IsActive)
+            .Where(u => u.IsActive && u.SiteId == siteId)
             .Take(100)
             .Select(u => new DbUser
             {
@@ -71,8 +70,7 @@ public class UserRepository : IUserRepository
         try
         {
             DbUser user = await _context.Users
-                .Where(u => u.UserId == userId)
-                .Where(u => u.SiteId == siteId)
+                .Where(u => u.SiteId == siteId && u.UserId == userId)
                 .Select(u => new DbUser
                 {
                     UserId = u.UserId
@@ -100,9 +98,8 @@ public class UserRepository : IUserRepository
     public async Task<IEnumerable<User>> SearchUserProfilesAsync(string? searchTerm, int siteId)
     {
         IQueryable<DbUser> query = _context.Users
-            .Where(u => u.SiteId == siteId)
             .OrderBy(u => u.UserId)
-            .Where(u => u.IsActive);
+            .Where(u => u.IsActive && u.SiteId == siteId);
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
