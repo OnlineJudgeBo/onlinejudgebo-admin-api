@@ -99,7 +99,7 @@ public class UserRepository : IUserRepository
     {
         IQueryable<DbUser> query = _context.Users
             .OrderBy(u => u.UserId)
-            .Where(u => u.IsActive && u.SiteId == siteId);
+            .Where(u => u.IsActive && u.SiteId == siteId && u.UserProfile.SiteId == siteId);
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
@@ -123,6 +123,7 @@ public class UserRepository : IUserRepository
 
         return _mapper.Map<IEnumerable<User>>(users);
     }
+
 
     public async Task<User> UpdateUser(User userToUpdate, string userId, int siteId)
     {
