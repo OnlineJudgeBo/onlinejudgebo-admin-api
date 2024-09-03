@@ -62,4 +62,6 @@ public partial class DbProblem
     public virtual ICollection<DbSolution>? Solutions { get; set; }
 
     public virtual ICollection<DbClassification>? Classifications { get; set; }
+
+    public virtual ICollection<DbProblemSite>? ProblemSites { get; set; }
 }

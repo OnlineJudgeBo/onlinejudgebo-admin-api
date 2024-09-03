@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
 using OnlineJudgeAdminApi.DataTransferObjects;
+using OnlineJudgeAdminApi.Helpers;
 
 namespace OnlineJudgeAdminApi.Controllers;
 
@@ -15,14 +16,17 @@ public class JudgeController : ControllerBase
 {
     private readonly IJudgeService _judgeService;
     private readonly ISolutionService _solutionService;
-
     private readonly IMapper _mapper;
+    private readonly UserClaimsHelper _userClaimsHelper;
+    private readonly CurrentUser _currentUser;
 
-    public JudgeController(IJudgeService judgeService, ISolutionService solutionService, IMapper mapper)
+    public JudgeController(IJudgeService judgeService, UserClaimsHelper userClaimsHelper, ISolutionService solutionService, IMapper mapper)
     {
         _judgeService = judgeService ?? throw new ArgumentNullException(nameof(judgeService));
         _solutionService = solutionService ?? throw new ArgumentNullException(nameof(solutionService));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+        _userClaimsHelper = userClaimsHelper ?? throw new ArgumentNullException(nameof(userClaimsHelper));
+        _currentUser = _userClaimsHelper.GetUserContextRole();
     }
 
     [HttpGet("rejudge/solution/{id:int}")]
@@ -47,7 +51,7 @@ public class JudgeController : ControllerBase
         var claimsIdentity = User.Identity as ClaimsIdentity;
         var userIdClaim = claimsIdentity?.FindFirst(ClaimTypes.NameIdentifier);
         string userId = userIdClaim?.Value;
-        await _judgeService.RemoteExecutionAsync(remoteExecutionRequest, userId);
+        await _judgeService.RemoteExecutionAsync(remoteExecutionRequest, userId, _currentUser.SiteId);
         return Ok();
     }
 

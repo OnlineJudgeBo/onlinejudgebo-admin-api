@@ -9,6 +9,9 @@ public partial class DbUserSetting
     [Column("user_id")]
     public string UserId { get; set; } = null!;
 
+    [Column("site_id")]
+    public int SiteId { get; set; }
+
     [Column("volume")]
     public int Volume { get; set; }
 

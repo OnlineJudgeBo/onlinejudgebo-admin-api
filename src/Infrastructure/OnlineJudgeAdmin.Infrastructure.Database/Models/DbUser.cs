@@ -18,6 +18,9 @@ public partial class DbUser
     [Column("accesstime")]
     public DateTime? Accesstime { get; set; }
 
+    [Column("site_id")]
+    public int SiteId { get; set; }
+
     [Column("reg_time")]
     public DateTime? RegTime { get; set; }
 

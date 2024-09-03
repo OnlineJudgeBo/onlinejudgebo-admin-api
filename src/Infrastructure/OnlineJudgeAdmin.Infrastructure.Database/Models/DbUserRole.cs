@@ -14,6 +14,9 @@ public partial class DbUserRole
     [Column("role_id")]
     public int RoleId { get; set; }
 
+    [Column("site_id")]
+    public int SiteId { get; set; }
+
     public virtual DbRole Role { get; set; } = null!;
 
     public virtual DbUser User { get; set; } = null!;

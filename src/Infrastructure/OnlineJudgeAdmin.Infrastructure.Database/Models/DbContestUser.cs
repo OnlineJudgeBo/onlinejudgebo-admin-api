@@ -14,6 +14,10 @@ public partial class DbContestUser
     public string UserId { get; set; }
     public DbUser User { get; set; }
 
+    [Column("site_id")]
+    public int SiteId { get; set; }
+    public DbSite Site { get; set; }
+
     [Column("is_owner")]
     public bool IsOwner { get; set; }
 }

@@ -22,6 +22,18 @@ public class UserClaimsHelper
         return _httpContextAccessor.HttpContext?.User?.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
     }
 
+    private int GetSiteId()
+    {
+        var siteIdClaim = _httpContextAccessor.HttpContext?.User?.Claims.FirstOrDefault(c => c.Type == "site_id")?.Value;
+
+        if (int.TryParse(siteIdClaim, out var siteId))
+        {
+            return siteId;
+        }
+        return -1;
+    }
+
+
     public CurrentUser GetUserContextRole()
     {
         var userId = GetUserId();
@@ -36,7 +48,8 @@ public class UserClaimsHelper
         return new CurrentUser
         {
             UserId = userId ?? "defaultUserId",
-            Role = roleEnum
+            Role = roleEnum,
+            SiteId = GetSiteId()
         };
     }
 }

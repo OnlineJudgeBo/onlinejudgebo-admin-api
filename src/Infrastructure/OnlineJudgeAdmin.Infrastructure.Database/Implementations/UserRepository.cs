@@ -24,58 +24,60 @@ public class UserRepository : IUserRepository
         {
             TopicId = t.TopicId,
             Name = t.Name,
-            Classifications = t.Classifications.Select(t => new DbClassification
+            Classifications = t.Classifications.Select(c => new DbClassification
             {
-                Name = t.Name,
-                ClassificationId = t.ClassificationId
+                Name = c.Name,
+                ClassificationId = c.ClassificationId
             }).ToList(),
         }).ToListAsync();
         return _mapper.Map<IEnumerable<Topic>>(topics);
     }
 
-    public async Task AddClassificationsToProblemAsync(int problem_id, IEnumerable<Classification> Classifications)
+    public async Task AddClassificationsToProblemAsync(int problemId, IEnumerable<Classification> classifications)
     {
-        var problem = await _context.Classifications.FindAsync(problem_id);
+        var problem = await _context.Classifications.FindAsync(problemId);
 
-        foreach (Classification classification in Classifications)
+        foreach (var classification in classifications)
         {
-            var topic1 = await _context.Classifications.FindAsync(classification.TopicId);
+            var topic = await _context.Classifications.FindAsync(classification.TopicId);
 
-            _context.Classifications.Add(topic1);
+            _context.Classifications.Add(topic);
         }
         await _context.SaveChangesAsync();
     }
 
-    public async Task<IEnumerable<User>> GetAllUsersProfilesAsync()
+    public async Task<IEnumerable<User>> GetAllUsersProfilesAsync(int siteId)
     {
         IEnumerable<DbUser> users = await _context.Users
-        .OrderBy(p => p.UserId)
-        .Where(u => u.IsActive)
-        .Take(100)
-        .Select(t => new DbUser
-        {
-            UserId = t.UserId,
-            UserProfile = new DbUserProfile
+            .Where(u => u.SiteId == siteId)
+            .OrderBy(u => u.UserId)
+            .Where(u => u.IsActive)
+            .Take(100)
+            .Select(u => new DbUser
             {
-                Email = t.UserProfile.Email,
-                Nick = t.UserProfile.Nick,
-                Lastname = t.UserProfile.Lastname
-            }
-        }).ToListAsync();
+                UserId = u.UserId,
+                UserProfile = new DbUserProfile
+                {
+                    Email = u.UserProfile.Email,
+                    Nick = u.UserProfile.Nick,
+                    Lastname = u.UserProfile.Lastname
+                }
+            }).ToListAsync();
         return _mapper.Map<IEnumerable<User>>(users);
     }
 
-    public async Task<User> GetUserById(string userId)
+    public async Task<User> GetUserById(string userId, int siteId)
     {
         try
         {
-            DbUser users = await _context.Users
+            DbUser user = await _context.Users
                 .Where(u => u.UserId == userId)
-                .Select(t => new DbUser
+                .Where(u => u.SiteId == siteId)
+                .Select(u => new DbUser
                 {
-                    UserId = t.UserId
+                    UserId = u.UserId
                 }).FirstAsync();
-            return _mapper.Map<User>(users);
+            return _mapper.Map<User>(user);
         }
         catch (Exception e)
         {
@@ -83,20 +85,23 @@ public class UserRepository : IUserRepository
         }
     }
 
-    public async Task<bool> CheckUsernameAvailable(UserProfile userProfile)
+    public async Task<bool> CheckUsernameAvailable(UserProfile userProfile, int siteId)
     {
-        return !await _context.UserSettings.AnyAsync(u => u.UserId == userProfile.UserId);
+        return !await _context.UserSettings
+            .AnyAsync(u => u.UserId == userProfile.UserId && u.SiteId == siteId);
     }
 
-    public async Task<bool> CheckUserEmailAvailable(UserProfile userProfile)
+    public async Task<bool> CheckUserEmailAvailable(UserProfile userProfile, int siteId)
     {
-        return !await _context.UserProfiles.AnyAsync(u => u.Email == userProfile.Email);
+        return !await _context.UserProfiles
+            .AnyAsync(u => u.Email == userProfile.Email && u.SiteId == siteId);
     }
 
-    public async Task<IEnumerable<User>> SearchUserProfilesAsync(string? searchTerm = null)
+    public async Task<IEnumerable<User>> SearchUserProfilesAsync(string? searchTerm, int siteId)
     {
         IQueryable<DbUser> query = _context.Users
-            .OrderBy(p => p.UserId)
+            .Where(u => u.SiteId == siteId)
+            .OrderBy(u => u.UserId)
             .Where(u => u.IsActive);
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
@@ -108,40 +113,41 @@ public class UserRepository : IUserRepository
         }
 
         IEnumerable<DbUser> users = await query
-            .Select(t => new DbUser
+            .Select(u => new DbUser
             {
-                UserId = t.UserId,
+                UserId = u.UserId,
                 UserProfile = new DbUserProfile
                 {
-                    Email = t.UserProfile.Email,
-                    Nick = t.UserProfile.Nick,
-                    Lastname = t.UserProfile.Lastname
+                    Email = u.UserProfile.Email,
+                    Nick = u.UserProfile.Nick,
+                    Lastname = u.UserProfile.Lastname
                 }
             }).ToListAsync();
 
         return _mapper.Map<IEnumerable<User>>(users);
     }
 
-    public async Task<User> UpdateUser(User userToUpdate, string userId)
+    public async Task<User> UpdateUser(User userToUpdate, string userId, int siteId)
     {
         string sqlQuery = @"
             UPDATE users
             SET user_id = @NewUserId
-            WHERE user_id = @UserId;
+            WHERE user_id = @UserId AND site_id = @SiteId;
             ";
 
         await _context.Database.ExecuteSqlRawAsync(sqlQuery,
             new MySqlConnector.MySqlParameter("@NewUserId", userToUpdate.UserId),
-            new MySqlConnector.MySqlParameter("@UserId", userId)
+            new MySqlConnector.MySqlParameter("@UserId", userId),
+            new MySqlConnector.MySqlParameter("@SiteId", siteId)
         );
 
         return _mapper.Map<User>(userToUpdate);
     }
 
-    public async Task<UserProfile> UpdateUserProfile(UserProfile profileToUpdate)
+    public async Task<UserProfile> UpdateUserProfile(UserProfile profileToUpdate, int siteId)
     {
         DbUserProfile userProfile = await _context.UserProfiles
-                .FirstOrDefaultAsync(u => u.UserId == profileToUpdate.UserId);
+            .FirstOrDefaultAsync(u => u.UserId == profileToUpdate.UserId && u.SiteId == siteId);
 
         if (userProfile != null)
         {
@@ -154,9 +160,10 @@ public class UserRepository : IUserRepository
         return _mapper.Map<UserProfile>(userProfile);
     }
 
-    public async Task ChangePassword(string newPasswordEncode, string userId)
+    public async Task ChangePassword(string newPasswordEncode, string userId, int siteId)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.UserId == userId && u.SiteId == siteId);
 
         if (user != null)
         {
@@ -172,9 +179,11 @@ public class UserRepository : IUserRepository
         }
     }
 
-    public async Task DeleteRoleAsync(string userId, int roleId)
+    public async Task DeleteRoleAsync(string userId, int roleId, int siteId)
     {
-        var roles = _context.UserRoles.Where(ur => ur.UserId == userId && ur.RoleId == roleId).ToList();
+        var roles = _context.UserRoles
+            .Where(ur => ur.UserId == userId && ur.RoleId == roleId && ur.SiteId == siteId)
+            .ToList();
 
         if (roles.Any())
         {
@@ -183,12 +192,17 @@ public class UserRepository : IUserRepository
         }
     }
 
-    public async Task DeleteUserAsync(string userId)
+    public async Task DeleteUserAsync(string userId, int siteId)
     {
-        DbUser user = await _context.Users.Where(ur => ur.UserId == userId).FirstOrDefaultAsync();
-        user.IsActive = false;
-        _context.Entry(user).Property(c => c.IsActive).IsModified = true;
-        _context.SaveChanges();
-        await _context.SaveChangesAsync();
+        DbUser user = await _context.Users
+            .Where(u => u.UserId == userId && u.SiteId == siteId)
+            .FirstOrDefaultAsync();
+
+        if (user != null)
+        {
+            user.IsActive = false;
+            _context.Entry(user).Property(c => c.IsActive).IsModified = true;
+            await _context.SaveChangesAsync();
+        }
     }
 }
