@@ -39,7 +39,7 @@ public class JudgeService : IJudgeService
         await _judgeRepository.RejudgeSolutionByProblemIdAsync(problemId);
     }
 
-    public async Task RemoteExecutionAsync(RemoteExecutionRequest request, string userId)
+    public async Task RemoteExecutionAsync(RemoteExecutionRequest request, string userId, int siteId)
     {
 
         Problem problem = await _problemService.GetProblemByIdAsync(request.JudgeProblemId);
@@ -48,7 +48,7 @@ public class JudgeService : IJudgeService
             throw new Exception($"The problem with ID {request.JudgeProblemId} is not a valid id.");
         }
 
-        User user = await _userRepository.GetUserById(userId);
+        User user = await _userRepository.GetUserById(userId, siteId);
         if (user == null)
         {
             throw new Exception($"The user is not valid");

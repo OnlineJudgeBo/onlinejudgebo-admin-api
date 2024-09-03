@@ -30,22 +30,23 @@ public class ContestService : IContestService
         if (userContextRole.Role == UserRolesEnum.Administrador)
         {
             showAllContest = true;
-            return await _contestRepository.GetContestsByUserIdDocenteRoleAsync(userContextRole.UserId, showAllContest);
+            return await _contestRepository.GetContestsByUserIdDocenteRoleAsync(userContextRole.UserId, showAllContest, userContextRole.SiteId);
         }
 
         if (userContextRole.Role == UserRolesEnum.Auxiliar)
         {
-            return await _contestRepository.GetContestsByAuxiliarRoleAsync(userContextRole.UserId);
+            return await _contestRepository.GetContestsByAuxiliarRoleAsync(userContextRole.UserId, userContextRole.SiteId);
         }
 
-        return await _contestRepository.GetContestsByUserIdDocenteRoleAsync(userContextRole.UserId, showAllContest);
+        return await _contestRepository.GetContestsByUserIdDocenteRoleAsync(userContextRole.UserId, showAllContest, userContextRole.SiteId);
     }
 
     public async Task<Contest> GetContestById(int contestId)
     {
         return await _contestRepository.GetContestByIdAsync(contestId);
     }
-    public async Task<Contest> CreateContestAsync(string userIdCreator, Contest contest, string manualUserList)
+
+    public async Task<Contest> CreateContestAsync(string userIdCreator, Contest contest, string manualUserList, int siteId)
     {
         int numeration = 0;
         foreach (var problem in contest.ContestProblems)
@@ -69,7 +70,7 @@ public class ContestService : IContestService
         contest.ContestUsers.Clear();
         foreach (var userId in uniqueUserIds)
         {
-            if (await _userRepository.GetUserById(userId) != null)
+            if (await _userRepository.GetUserById(userId, siteId) != null)
             {
                 contest.ContestUsers.Add(new ContestUser
                 {
@@ -79,11 +80,11 @@ public class ContestService : IContestService
             }
         }
 
-        Contest contestCreated = await _contestRepository.CreateContestAsync(contest);
+        Contest contestCreated = await _contestRepository.CreateContestAsync(contest, siteId);
         return await _contestRepository.GetContestByIdAsync(contestCreated.ContestId);
     }
 
-    public async Task<Contest> UpdateContestAsync(int contestId, Contest contest, string manualUserList)
+    public async Task<Contest> UpdateContestAsync(int contestId, Contest contest, string manualUserList, int siteId)
     {
         var existingContest = await _contestRepository.GetContestByIdAsync(contestId);
 
@@ -119,7 +120,7 @@ public class ContestService : IContestService
         contest.ContestUsers.Clear();
         foreach (var userId in uniqueUserIds)
         {
-            if (await _userRepository.GetUserById(userId) != null)
+            if (await _userRepository.GetUserById(userId, siteId) != null)
             {
                 contest.ContestUsers.Add(new ContestUser
                 {
@@ -129,6 +130,6 @@ public class ContestService : IContestService
             }
         }
 
-        return await _contestRepository.UpdateContestAsync(contestId, contest);
+        return await _contestRepository.UpdateContestAsync(contestId, contest, siteId);
     }
 }

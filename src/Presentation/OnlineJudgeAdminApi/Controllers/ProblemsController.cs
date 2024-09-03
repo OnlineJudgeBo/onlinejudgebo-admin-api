@@ -17,12 +17,14 @@ public class ProblemsController : ControllerBase
     private readonly IProblemService _problemService;
     private readonly UserClaimsHelper _userClaimsHelper;
     private readonly IMapper _mapper;
+    private readonly CurrentUser _currentUser;
 
     public ProblemsController(IProblemService problemService, UserClaimsHelper userClaimsHelper, IMapper mapper)
     {
         _problemService = problemService ?? throw new ArgumentNullException(nameof(problemService));
         _userClaimsHelper = userClaimsHelper ?? throw new ArgumentNullException(nameof(userClaimsHelper));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+        _currentUser = _userClaimsHelper.GetUserContextRole();
     }
 
     [HttpGet()]
@@ -63,14 +65,12 @@ public class ProblemsController : ControllerBase
         var claimsIdentity = User.Identity as ClaimsIdentity;
         var userIdClaim = claimsIdentity?.FindFirst(ClaimTypes.NameIdentifier);
         string userId = userIdClaim?.Value;
-        return Ok(await _problemService.CreateProblemAsync(userId, problem));
+        return Ok(await _problemService.CreateProblemAsync(userId, problem, _currentUser.SiteId));
     }
-
 
     [HttpDelete("{problemId:int}")]
     public async Task<IActionResult> DeleteProblemByIdAsync(int problemId)
     {
-        return Ok(_problemService.DeleteProblemAsync(problemId));
+        return Ok(_problemService.DeleteProblemAsync(problemId, _currentUser.SiteId));
     }
-
 }

@@ -24,48 +24,48 @@ public class UserService : IUserService
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
     }
 
-    public async Task<IEnumerable<User>> GetAllUserProfilesAsync()
+    public async Task<IEnumerable<User>> GetAllUserProfilesAsync(int siteId)
     {
-        return await _userRepository.GetAllUsersProfilesAsync();
+        return await _userRepository.GetAllUsersProfilesAsync(siteId);
     }
 
-    public async Task<bool> CheckUsernameAvailable(UserProfile userProfile)
+    public async Task<bool> CheckUsernameAvailable(UserProfile userProfile, int siteId)
     {
-        return await _userRepository.CheckUsernameAvailable(userProfile);
+        return await _userRepository.CheckUsernameAvailable(userProfile, siteId);
     }
 
-    public async Task<bool> CheckUserEmailAvailable(UserProfile userProfile)
+    public async Task<bool> CheckUserEmailAvailable(UserProfile userProfile, int siteId)
     {
-        return await _userRepository.CheckUserEmailAvailable(userProfile);
+        return await _userRepository.CheckUserEmailAvailable(userProfile, siteId);
     }
 
-    public async Task<IEnumerable<User>> SearchUserProfilesAsync(string searchTerm)
+    public async Task<IEnumerable<User>> SearchUserProfilesAsync(string searchTerm, int siteId)
     {
-        return await _userRepository.SearchUserProfilesAsync(searchTerm);
+        return await _userRepository.SearchUserProfilesAsync(searchTerm, siteId);
     }
 
-    public async Task<UserProfile> UpdateUserProfile(User userToUpdate, string userId)
+    public async Task<UserProfile> UpdateUserProfile(User userToUpdate, string userId, int siteId)
     {
         if (userToUpdate.UserId != userId)
         {
-            await _userRepository.UpdateUser(userToUpdate, userId);
+            await _userRepository.UpdateUser(userToUpdate, userId, siteId);
         }
-        return await _userRepository.UpdateUserProfile(userToUpdate.UserProfile);
+        return await _userRepository.UpdateUserProfile(userToUpdate.UserProfile, siteId);
     }
 
-    public async Task ChangePassword(string password, string userId)
+    public async Task ChangePassword(string password, string userId, int siteId)
     {
         string passwordEncrypt = await GeneratePasswordHashAsync(password);
-        await _userRepository.ChangePassword(passwordEncrypt, userId);
+        await _userRepository.ChangePassword(passwordEncrypt, userId, siteId);
     }
 
-    public async Task DeleteRoleAsync(string userId, int roleId)
+    public async Task DeleteRoleAsync(string userId, int roleId, int siteId)
     {
-        UserRole role = await _roleRepository.GetUserRoleAsync(userId);
+        UserRole role = await _roleRepository.GetUserRoleAsync(userId, siteId);
 
         if (role.Role.RoleName == "Administrador" || role.Role.RoleName == "Docente")
         {
-            await _userRepository.DeleteRoleAsync(userId, roleId);
+            await _userRepository.DeleteRoleAsync(userId, roleId, siteId);
         }
         else
         {
@@ -97,13 +97,13 @@ public class UserService : IUserService
         }
     }
 
-    public async Task DeleteUserAsync(CurrentUser currentUser, string userId)
+    public async Task DeleteUserAsync(CurrentUser currentUser, string userId, int siteId)
     {
-        UserRole role = await _roleRepository.GetUserRoleAsync(userId);
+        UserRole role = await _roleRepository.GetUserRoleAsync(userId, siteId);
 
         if (role == null || role.Role.RoleName == "Administrador" || role.Role.RoleName == "Docente")
         {
-            await _userRepository.DeleteUserAsync(userId);
+            await _userRepository.DeleteUserAsync(userId, siteId);
         }
         else
         {

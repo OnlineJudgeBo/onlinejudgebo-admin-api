@@ -17,9 +17,10 @@ public class ProblemRepository : IProblemRepository
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
-    public async Task<IEnumerable<Problem>> GetAllProblemsAsync()
+    public async Task<IEnumerable<Problem>> GetAllProblemsAsync(int siteId)
     {
         IEnumerable<DbProblem> problems = await _context.Problems
+            .Where(c => c.ProblemSites.Any(site => site.SiteId == siteId))
             .Where(p => p.Defunct == "N")
             .OrderByDescending(p => p.ProblemId)
             .Select(p => new DbProblem
@@ -51,9 +52,10 @@ public class ProblemRepository : IProblemRepository
         return _mapper.Map<IEnumerable<Problem>>(problems);
     }
 
-    public async Task<IEnumerable<Problem>> GetAllProblemsForAdminAsync()
+    public async Task<IEnumerable<Problem>> GetAllProblemsForAdminAsync(int siteId)
     {
         IEnumerable<DbProblem> problems = await _context.Problems
+            .Where(c => c.ProblemSites.Any(site => site.SiteId == siteId))
             .OrderByDescending(p => p.ProblemId)
             .Select(p => new DbProblem
             {
@@ -192,16 +194,23 @@ public class ProblemRepository : IProblemRepository
         return _mapper.Map<Problem>(problem);
     }
 
-    public async Task<Problem> CreateProblemAsync(Problem problem)
+    public async Task<Problem> CreateProblemAsync(Problem problem, int siteId)
     {
         DbProblem dbProblem = _mapper.Map<DbProblem>(problem);
         _context.Problems.Add(dbProblem);
         _context.SaveChanges();
 
-        return await GetLastInsert();
+        DbProblem lastProblem = await GetLastInsert();
+
+        _context.ProblemSites.Add(new DbProblemSite {
+            problemId = lastProblem.ProblemId.Value,
+            SiteId = siteId
+        });
+        _context.SaveChanges();
+        return _mapper.Map<Problem>(lastProblem);
     }
 
-    private async Task<Problem> GetLastInsert()
+    private async Task<DbProblem> GetLastInsert()
     {
         var lastProblemWithDetails = await _context.Problems
                                         .Include(p => p.ContestProblems)
@@ -209,9 +218,7 @@ public class ProblemRepository : IProblemRepository
                                         .Include(p => p.Classifications)
                                         .OrderByDescending(p => p.ProblemId)
                                         .FirstOrDefaultAsync();
-
-        Problem createdProblem = _mapper.Map<Problem>(lastProblemWithDetails);
-        return createdProblem;
+        return lastProblemWithDetails;
     }
 
     public async Task<Problem> UpdateProblemAsync(string userId, int problemId, Problem problemToUpdate)
@@ -230,9 +237,12 @@ public class ProblemRepository : IProblemRepository
         }
     }
 
-    public async Task DeleteProblemAsync(int problemId)
+    public async Task DeleteProblemAsync(int problemId, int siteId)
     {
-        _context.Database.ExecuteSqlRaw(
-            "UPDATE problem SET defunct = {0} WHERE problem_id = {1}", "Y", problemId);
+        await _context.Database.ExecuteSqlRawAsync(
+            "DELETE FROM problem_site WHERE problem_id = @problemId AND site_id = @siteId",
+            new MySqlConnector.MySqlParameter("@problemId", problemId),
+            new MySqlConnector.MySqlParameter("@siteId", siteId)
+        );
     }
 }

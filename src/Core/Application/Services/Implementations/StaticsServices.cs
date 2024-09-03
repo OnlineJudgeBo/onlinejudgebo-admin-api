@@ -21,13 +21,13 @@ public class StaticsServices : IStatiscService
         _userValidation = ProblemValidation ?? throw new ArgumentNullException(nameof(ProblemValidation));
     }
 
-    public async Task<string> GetLast365DaysSubmissionsByMonthAsync()
+    public async Task<string> GetLast365DaysSubmissionsByMonthAsync(int siteId)
     {
-        return await _staticsRepository.GetLast365DaysSubmissionsByMonthAsync();
+        return await _staticsRepository.GetLast365DaysSubmissionsByMonthAsync(siteId);
     }
 
-    public async Task<string> GetSubmissionsByLanguageAsync()
+    public async Task<string> GetSubmissionsByLanguageAsync(int siteId)
     {
-        return await _staticsRepository.GetSubmissionsByLanguageAsync();
+        return await _staticsRepository.GetSubmissionsByLanguageAsync(siteId);
     }
 }

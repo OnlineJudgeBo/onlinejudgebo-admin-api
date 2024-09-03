@@ -17,9 +17,10 @@ public class RoleRepository : IRoleRepository
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
-    public async Task<IEnumerable<User>> GetUserRolesAsync()
+    public async Task<IEnumerable<User>> GetUserRolesAsync(int siteId)
     {
         IEnumerable<DbUser> rolesWithUsers = await _context.Users
+            .Where(u => u.SiteId == siteId)
             .Where(u => u.UserRoles.Any())
             .Select(u => new DbUser
             {
@@ -56,31 +57,32 @@ public class RoleRepository : IRoleRepository
         return _mapper.Map<IEnumerable<Role>>(roles);
     }
 
-    public async Task<UserRole> GetUserRoleAsync(string userId)
+    public async Task<UserRole> GetUserRoleAsync(string userId, int siteId)
     {
         DbUserRole role = await _context.UserRoles
-        .Where(u => u.UserId == userId)
+        .Where(u => u.UserId == userId && u.SiteId == siteId)
         .FirstOrDefaultAsync();
 
         return _mapper.Map<UserRole>(role);
     }
 
-    public async Task AddRoleToUserAsync(string userId, int roleId)
+    public async Task AddRoleToUserAsync(string userId, int roleId, int siteId)
     {
         var userRole = new DbUserRole
         {
             UserId = userId,
-            RoleId = roleId
+            RoleId = roleId,
+            SiteId = siteId
         };
 
         _context.UserRoles.Add(userRole);
         _context.SaveChanges();
     }
 
-    public async Task RemoveRoleFromUserAsync(string userId, int roleId)
+    public async Task RemoveRoleFromUserAsync(string userId, int roleId, int siteId)
     {
         var userRole = _context.UserRoles
-            .FirstOrDefault(ur => ur.UserId == userId && ur.RoleId == roleId);
+            .FirstOrDefault(ur => ur.UserId == userId && ur.RoleId == roleId && ur.SiteId == siteId);
         _context.UserRoles.Remove(userRole);
         _context.SaveChangesAsync();
     }

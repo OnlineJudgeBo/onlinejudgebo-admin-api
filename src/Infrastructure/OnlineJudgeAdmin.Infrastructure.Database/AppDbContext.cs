@@ -37,6 +37,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<DbLanguageSubmission> DbLanguageSubmission { get; set; }
     public virtual DbSet<DbRemoteClient> DbRemoteClient { get; set; }
     public virtual DbSet<DbSolutionClient> DbSolutionClient { get; set; }
+    public virtual DbSet<DbContestSite> ContestSites { get; set; }
+    public virtual DbSet<DbSite> Sites { get; set; }
+    public virtual DbSet<DbProblemSite> ProblemSites { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
 
@@ -179,6 +183,96 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.ProblemId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("contest_problem_ibfk_2");
+        });
+
+        modelBuilder.Entity<DbSite>(entity =>
+        {
+            entity.HasKey(e => e.SiteId)
+                .HasName("PRIMARY");
+
+            entity.ToTable("sites")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_general_ci");
+
+            entity.Property(e => e.SiteId)
+                .HasColumnType("int(11)")
+                .HasColumnName("site_id")
+                .HasDefaultValue(0);
+
+            entity.Property(e => e.Name)
+                .HasColumnType("varchar(100)")
+                .HasColumnName("name");
+        });
+
+        modelBuilder.Entity<DbContestSite>(entity =>
+        {
+            entity.HasKey(e => new { e.ContestId, e.SiteId })
+                .HasName("PRIMARY");
+
+            entity.ToTable("contest_site")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_general_ci");
+
+            entity.HasIndex(e => e.ContestId, "contest_id");
+            entity.HasIndex(e => e.SiteId, "site_id");
+
+            entity.Property(e => e.ContestId)
+                .HasColumnType("int(11)")
+                .HasColumnName("contest_id")
+                .IsRequired(true);
+
+            entity.Property(e => e.SiteId)
+                .HasColumnType("int(11)")
+                .HasColumnName("site_id")
+                .IsRequired(true);
+
+            entity.HasOne(d => d.Contest)
+                .WithMany(p => p.ContestSites)
+                .HasForeignKey(d => d.ContestId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("contest_site_ibfk_2");
+
+            entity.HasOne(d => d.Site)
+                .WithMany(p => p.ContestSites)
+                .HasForeignKey(d => d.SiteId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("contest_site_ibfk_1");
+        });
+
+
+        modelBuilder.Entity<DbProblemSite>(entity =>
+        {
+            entity.HasKey(e => new { e.problemId, e.SiteId })
+                .HasName("PRIMARY");
+
+            entity.ToTable("problems_site")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_general_ci");
+
+            entity.HasIndex(e => e.problemId, "problem_id");
+            entity.HasIndex(e => e.SiteId, "site_id");
+
+            entity.Property(e => e.problemId)
+                .HasColumnType("int(11)")
+                .HasColumnName("problem_id")
+                .IsRequired(true);
+
+            entity.Property(e => e.SiteId)
+                .HasColumnType("int(11)")
+                .HasColumnName("site_id")
+                .IsRequired(true);
+
+            entity.HasOne(d => d.Problem)
+                .WithMany(p => p.ProblemSites)
+                .HasForeignKey(d => d.problemId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("problem_site_ibfk_2");
+
+            entity.HasOne(d => d.Site)
+                .WithMany(p => p.ProblemSites)
+                .HasForeignKey(d => d.SiteId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("problem_site_ib,er4");
         });
 
         modelBuilder.Entity<DbLoginlog>(entity =>

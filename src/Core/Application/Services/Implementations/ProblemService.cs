@@ -31,11 +31,11 @@ public class ProblemService : IProblemService
     {
         if (currentUser.Role == UserRolesEnum.Administrador)
         {
-            return await _problemRepository.GetAllProblemsForAdminAsync();
+            return await _problemRepository.GetAllProblemsForAdminAsync(currentUser.SiteId);
         }
         else
         {
-            return await _problemRepository.GetAllProblemsAsync();
+            return await _problemRepository.GetAllProblemsAsync(currentUser.SiteId);
         }
     }
 
@@ -56,12 +56,12 @@ public class ProblemService : IProblemService
         }
     }
 
-    public async Task<Problem> CreateProblemAsync(string userId, Problem problem)
+    public async Task<Problem> CreateProblemAsync(string userId, Problem problem, int siteId)
     {
         IEnumerable<Classification>? newTopic = problem.Classifications;
         problem.Classifications = null;
 
-        Problem newProblem = await _problemRepository.CreateProblemAsync(problem);
+        Problem newProblem = await _problemRepository.CreateProblemAsync(problem, siteId);
         if (newTopic != null)
         {
             await _topicRepository.AddClassificationsToProblemAsync(newProblem.ProblemId.Value, newTopic);
@@ -111,9 +111,9 @@ public class ProblemService : IProblemService
         return updateProblem;
     }
 
-    public async Task DeleteProblemAsync(int problemId)
+    public async Task DeleteProblemAsync(int problemId, int siteId)
     {
-        await _problemRepository.DeleteProblemAsync(problemId);
+        await _problemRepository.DeleteProblemAsync(problemId, siteId);
     }
 }
 

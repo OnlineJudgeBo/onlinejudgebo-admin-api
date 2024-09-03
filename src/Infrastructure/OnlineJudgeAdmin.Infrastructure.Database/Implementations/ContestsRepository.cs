@@ -17,13 +17,14 @@ public class ContestsRepository : IContestsRepository
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
-    public async Task<IEnumerable<Contest>> GetContestsByUserIdDocenteRoleAsync(string userId, bool showAllContest)
+    public async Task<IEnumerable<Contest>> GetContestsByUserIdDocenteRoleAsync(string userId, bool showAllContest, int siteId)
     {
         IQueryable<DbContest> query;
 
         if (showAllContest)
         {
             query = _context.Contests
+                .Where(c => c.ContestSites.Any(site => site.SiteId == siteId))
                 .OrderByDescending(c => c.ContestId)
                 .Select(c => new DbContest
                 {
@@ -43,6 +44,7 @@ public class ContestsRepository : IContestsRepository
                 .ToListAsync();
 
             query = _context.Contests
+                .Where(c => c.ContestSites.Any(cs => cs.SiteId == siteId))
                 .Where(c => contestIds.Contains(c.ContestId))
                 .OrderByDescending(c => c.ContestId)
                 .Select(c => new DbContest
@@ -60,11 +62,12 @@ public class ContestsRepository : IContestsRepository
         return _mapper.Map<IEnumerable<Contest>>(contests);
     }
 
-    public async Task<IEnumerable<Contest>> GetContestsByAuxiliarRoleAsync(string userId)
+    public async Task<IEnumerable<Contest>> GetContestsByAuxiliarRoleAsync(string userId, int siteId)
     {
         IQueryable<DbContest> query;
         query = _context.Contests
             .OrderByDescending(c => c.ContestId)
+            .Where(c => c.ContestSites.Any(site => site.SiteId == siteId))
             .Where(c => c.Defunct != "O")
             .Select(c => new DbContest
             {
@@ -119,7 +122,7 @@ public class ContestsRepository : IContestsRepository
         return _mapper.Map<Contest>(contest);
     }
 
-    public async Task<Contest> CreateContestAsync(Contest contest)
+    public async Task<Contest> CreateContestAsync(Contest contest, int siteId)
     {
         contest.Defunct = "N";
 
@@ -148,7 +151,6 @@ public class ContestsRepository : IContestsRepository
             };
             _context.ContestProblems.Add(contestProblem);
         }
-        //await _context.SaveChangesAsync();
 
         foreach (var user in dbContestUsers)
         {
@@ -159,13 +161,12 @@ public class ContestsRepository : IContestsRepository
                 {
                     ContestId = newContest.ContestId,
                     UserId = user.UserId,
+                    SiteId = siteId,
                     IsOwner = user.IsOwner
-
                 };
                 _context.ContestUsers.Add(contestUser);
             }
         }
-        //await _context.SaveChangesAsync();
 
         foreach (var lang in dbProgrammingLanguages)
         {
@@ -175,11 +176,20 @@ public class ContestsRepository : IContestsRepository
                 newContest.ProgrammingLanguages.Add(language);
             }
         }
+
+        var newContestSite = new DbContestSite
+        {
+            ContestId = newContest.ContestId,
+            SiteId = siteId
+        };
+
+        _context.ContestSites.Add(newContestSite);
+
         await _context.SaveChangesAsync();
         return await GetContestByIdAsync(newContest.ContestId);
     }
 
-    public async Task<Contest> UpdateContestAsync(int contestId, Contest contest)
+    public async Task<Contest> UpdateContestAsync(int contestId, Contest contest, int siteId)
     {
         contest.Defunct = "N";
         DbContest contestsToUpdate = _mapper.Map<DbContest>(contest);
@@ -193,7 +203,7 @@ public class ContestsRepository : IContestsRepository
         if (existingContest == null)
             throw new KeyNotFoundException("Contest not found with ID: " + contestId);
 
-        var ownerContest = existingContest.ContestUsers.Where(p => p.IsOwner).First();
+        var ownerContest = existingContest.ContestUsers.Where(p => p.IsOwner && p.SiteId == siteId).First();
 
         _context.Entry(existingContest).CurrentValues.SetValues(contest);
 
