@@ -50,7 +50,7 @@ public class UserRepository : IUserRepository
     {
         IEnumerable<DbUser> users = await _context.Users
             .OrderBy(u => u.UserId)
-            .Where(u => u.IsActive && u.SiteId == siteId)
+            .Where(u => u.IsActive && u.SiteId == siteId && u.UserProfile.SiteId == siteId)
             .Take(100)
             .Select(u => new DbUser
             {
