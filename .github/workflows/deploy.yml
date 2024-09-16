@@ -32,31 +32,31 @@ jobs:
       run: |
         docker push ghcr.io/onlinejudgebo/onlinejudgebo-admin-api:development
 
-#  deploy-jv-umsa-bo:
-#    runs-on: ubuntu-latest
-#    needs: docker-package
-#    if: ${{github.ref == 'refs/heads/develop'}}
-#    steps:
-#      - name: Setup SSH connection
-#        uses: webfactory/ssh-agent@v0.9.0
-#        with:
-#          ssh-private-key: ${{ secrets.DEV_SSH_SECRET }}
-#
-#      - name: Adding Known Hosts
-#        run: ssh-keyscan -p ${{ vars.DEV_SSH_PORT }} -H ${{ vars.DEV_SSH_HOST }} >> ~/.ssh/known_hosts
-#
-#      - name: Login to the GitHub Packages Docker Registry
-#        run: ssh -p ${{ vars.DEV_SSH_PORT }} ${{ vars.DEV_SSH_USERNAME }}@${{ vars.DEV_SSH_HOST }} "echo ${{ secrets.DOCKER_REGISTRY_TOKEN }} | docker login ghcr.io -u ${{ vars.DOCKER_REGISTRY_USER }}" --password-stdin
-#
-#      - name: Run docker-compose
-#        continue-on-error: true
-#        run: ssh -p ${{ vars.DEV_SSH_PORT }} ${{ vars.DEV_SSH_USERNAME }}@${{ vars.DEV_SSH_HOST }} "cd /var/www/patito2.0/admin-api && chmod +x deploy.sh && ./deploy.sh"
-#
-#      - name: Delete unused images
-#        run: ssh -p ${{ vars.DEV_SSH_PORT }} ${{ vars.DEV_SSH_USERNAME }}@${{ vars.DEV_SSH_HOST }} "docker image prune -f"
-#
-#      - name: Logout from the GitHub Packages Docker Registry
-#        run: ssh -p ${{ vars.DEV_SSH_PORT }} ${{ vars.DEV_SSH_USERNAME }}@${{ vars.DEV_SSH_HOST }} "docker logout ghcr.io"
+  deploy-jv-umsa-bo:
+    runs-on: ubuntu-latest
+    needs: docker-package
+    if: ${{github.ref == 'refs/heads/develop'}}
+    steps:
+      - name: Setup SSH connection
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEV_SSH_SECRET }}
+
+      - name: Adding Known Hosts
+        run: ssh-keyscan -p ${{ vars.DEV_SSH_PORT }} -H ${{ vars.DEV_SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Login to the GitHub Packages Docker Registry
+        run: ssh -p ${{ vars.DEV_SSH_PORT }} ${{ vars.DEV_SSH_USERNAME }}@${{ vars.DEV_SSH_HOST }} "echo ${{ secrets.DOCKER_REGISTRY_TOKEN }} | docker login ghcr.io -u ${{ vars.DOCKER_REGISTRY_USER }}" --password-stdin
+
+      - name: Run docker-compose
+        continue-on-error: true
+        run: ssh -p ${{ vars.DEV_SSH_PORT }} ${{ vars.DEV_SSH_USERNAME }}@${{ vars.DEV_SSH_HOST }} "cd /var/www/patito2.0/admin-api && chmod +x deploy.sh && ./deploy.sh"
+
+      - name: Delete unused images
+        run: ssh -p ${{ vars.DEV_SSH_PORT }} ${{ vars.DEV_SSH_USERNAME }}@${{ vars.DEV_SSH_HOST }} "docker image prune -f"
+
+      - name: Logout from the GitHub Packages Docker Registry
+        run: ssh -p ${{ vars.DEV_SSH_PORT }} ${{ vars.DEV_SSH_USERNAME }}@${{ vars.DEV_SSH_HOST }} "docker logout ghcr.io"
 
   deploy-juezvirtual:
     runs-on: ubuntu-latest
