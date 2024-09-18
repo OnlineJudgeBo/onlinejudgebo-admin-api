@@ -12,6 +12,7 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.Models
         [Column("name")]
         public string Name { get; set; }
 
+        public ICollection<DbContestUser> ContestUsers { get; set; }
         public ICollection<DbContestSite> ContestSites { get; set; }
         public ICollection<DbProblemSite> ProblemSites { get; set; }
 
