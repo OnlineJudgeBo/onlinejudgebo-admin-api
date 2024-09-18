@@ -10,7 +10,13 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.Mappers
         {
             CreateMap<DbContestProblem, ContestProblem>();
             CreateMap<ContestProblem, DbContestProblem>();
-            CreateMap<DbContestUser, ContestUser>();
+
+            CreateMap<DbContestUser, ContestUser>()
+            .ReverseMap()
+            .ForMember(dest => dest.ContestId, opt => opt.MapFrom(src => src.ContestId))
+            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
+            .ForMember(dest => dest.SiteId, opt => opt.MapFrom(src => src.SiteId))
+            .ForMember(dest => dest.IsOwner, opt => opt.MapFrom(src => src.IsOwner));
 
             CreateMap<DbContest, Contest>()
             .ReverseMap()
@@ -29,9 +35,6 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.Mappers
 
             CreateMap<DbProgrammingLanguage, ProgrammingLanguage>();
             CreateMap<ProgrammingLanguage, DbProgrammingLanguage>();
-
-            CreateMap<DbContestUser, ContestUser>();
-            CreateMap<ContestUser, DbContestUser>();
 
             CreateMap<DbUser, User>();
             CreateMap<User, DbUser>();

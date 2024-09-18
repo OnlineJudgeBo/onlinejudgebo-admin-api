@@ -125,7 +125,8 @@ public class ContestService : IContestService
                 contest.ContestUsers.Add(new ContestUser
                 {
                     UserId = userId,
-                    IsOwner = false
+                    IsOwner = false,
+                    SiteId = siteId,
                 });
             }
         }
