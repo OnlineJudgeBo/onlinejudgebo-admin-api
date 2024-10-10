@@ -9,4 +9,5 @@ public interface IContestsRepository
     public Task<Contest> CreateContestAsync(Contest contest, int site_id);
     public Task<Contest> GetContestByIdAsync(int contestId);
     public Task<Contest> UpdateContestAsync(int contestId, Contest contest, int siteId);
+    public Task<Contest> PromoteContestAsync(int contestId, int siteId);
 }

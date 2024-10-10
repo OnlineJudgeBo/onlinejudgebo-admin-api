@@ -68,6 +68,13 @@ public class ProblemsController : ControllerBase
         return Ok(await _problemService.CreateProblemAsync(userId, problem, _currentUser.SiteId));
     }
 
+    [HttpPut("{problemId:int}/visibility")]
+    public async Task<IActionResult> ChangeProblemVisibilityAsync(int problemId)
+    {
+        await _problemService.ChangeProblemVisibilityAsync(problemId);
+        return Ok();
+    }
+
     [HttpDelete("{problemId:int}")]
     public async Task<IActionResult> DeleteProblemByIdAsync(int problemId)
     {
