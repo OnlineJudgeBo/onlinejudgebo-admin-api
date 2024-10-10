@@ -111,6 +111,11 @@ public class ProblemService : IProblemService
         return updateProblem;
     }
 
+    public async Task ChangeProblemVisibilityAsync(int problemId)
+    {
+        await _problemRepository.ChangeProblemVisibilityAsync(problemId);
+    }
+
     public async Task DeleteProblemAsync(int problemId, int siteId)
     {
         await _problemRepository.DeleteProblemAsync(problemId, siteId);

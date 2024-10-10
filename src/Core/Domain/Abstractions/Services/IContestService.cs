@@ -8,4 +8,5 @@ public interface IContestService
     public Task<Contest> CreateContestAsync(string userId, Contest contest, string ManualUserList, int siteId);
     public Task<Contest> GetContestById(int contestId);
     public Task<Contest> UpdateContestAsync(int contestId, Contest contest, string ManualUserList, int siteId);
+    public Task PromoteContestAsync(int contestId, int siteId);
 }

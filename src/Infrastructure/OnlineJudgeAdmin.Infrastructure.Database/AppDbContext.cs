@@ -833,7 +833,7 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<DbContestUser>(entity =>
         {
-            entity.HasKey(cu => new { cu.ContestId, cu.UserId });
+            entity.HasKey(cu => new { cu.ContestId, cu.UserId, cu.SiteId });
 
             entity.HasOne(cu => cu.Contest)
                 .WithMany(c => c.ContestUsers)
@@ -842,6 +842,10 @@ public partial class AppDbContext : DbContext
             entity.HasOne(cu => cu.User)
                 .WithMany(u => u.ContestUsers)
                 .HasForeignKey(cu => cu.UserId);
+
+            entity.HasOne(cu => cu.Site)
+                .WithMany(u => u.ContestUsers)
+                .HasForeignKey(cu => cu.SiteId);
         });
 
         modelBuilder.Entity<DbContest>()
