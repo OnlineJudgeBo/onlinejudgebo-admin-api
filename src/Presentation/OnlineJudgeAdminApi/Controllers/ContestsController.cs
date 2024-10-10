@@ -57,4 +57,11 @@ public class ContestsController : ControllerBase
         contest.ContestId = contestId;
         return Ok(await _contestService.UpdateContestAsync(contestId, contest, contestForUpdate.ManualUserList, _currentUser.SiteId));
     }
+
+    [HttpPut("{contestId:int}/promote")]
+    public async Task<IActionResult> PromoteContestAsync(int contestId)
+    {
+        await _contestService.PromoteContestAsync(contestId, _currentUser.SiteId);
+        return Ok();
+    }
 }
