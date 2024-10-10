@@ -237,4 +237,18 @@ public class ContestsRepository : IContestsRepository
         await _context.SaveChangesAsync();
         return await GetContestByIdAsync(contestId);
     }
+
+    public async Task<Contest> PromoteContestAsync(int contestId, int siteId)
+    {
+        var existingContest = await _context.Contests
+            .FirstOrDefaultAsync(c => c.ContestId == contestId);
+
+        if (existingContest == null)
+            throw new KeyNotFoundException("Contest not found with ID: " + contestId);
+
+        existingContest.Defunct = "O";
+
+        await _context.SaveChangesAsync();
+        return await GetContestByIdAsync(contestId);
+    }
 }

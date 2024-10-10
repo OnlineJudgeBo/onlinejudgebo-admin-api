@@ -28,7 +28,7 @@ public partial class Problem
 
     public int? MemoryLimit { get; set; }
 
-    public string? Defunct { get; set; } = null!;
+    public string? Defunct { get; set; }
 
     public int? Accepted { get; set; }
 

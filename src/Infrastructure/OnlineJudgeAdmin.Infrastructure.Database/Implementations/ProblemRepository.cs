@@ -21,7 +21,7 @@ public class ProblemRepository : IProblemRepository
     {
         IEnumerable<DbProblem> problems = await _context.Problems
             .Where(c => c.ProblemSites.Any(site => site.SiteId == siteId))
-            .Where(p => p.Defunct == "N")
+            .Where(p => p.Defunct == "N" || p.Defunct == "Y")
             .OrderByDescending(p => p.ProblemId)
             .Select(p => new DbProblem
             {
@@ -65,6 +65,7 @@ public class ProblemRepository : IProblemRepository
                 InDate = p.InDate,
                 Submit = p.Submit,
                 Accepted = p.Accepted,
+                Defunct = p.Defunct,
                 Classifications = p.Classifications.Select(t => new DbClassification
                 {
                     Name = t.Name,
@@ -121,7 +122,7 @@ public class ProblemRepository : IProblemRepository
     public async Task<IEnumerable<Problem>> SearchProblemAsync(string searchTerm)
     {
         IQueryable<DbProblem> query = _context.Problems
-            .Where(p => p.Defunct == "N")
+            .Where(p => p.Defunct == "N" || p.Defunct == "Y")
             .OrderBy(p => p.ProblemId);
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
@@ -202,7 +203,8 @@ public class ProblemRepository : IProblemRepository
 
         DbProblem lastProblem = await GetLastInsert();
 
-        _context.ProblemSites.Add(new DbProblemSite {
+        _context.ProblemSites.Add(new DbProblemSite
+        {
             problemId = lastProblem.ProblemId.Value,
             SiteId = siteId
         });
@@ -235,6 +237,39 @@ public class ProblemRepository : IProblemRepository
         {
             throw new KeyNotFoundException("Problem ID not found.");
         }
+    }
+
+    public async Task PromoteProblemAsync(List<int> problemIds)
+    {
+        var existingProblems = await _context.Problems
+            .Where(p => problemIds.Contains(p.ProblemId ?? 0))
+            .ToListAsync();
+
+        if (existingProblems == null || !existingProblems.Any())
+            throw new KeyNotFoundException("No problems found with the given IDs.");
+
+        foreach (var problem in existingProblems)
+        {
+            problem.Defunct = "O";
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task ChangeProblemVisibilityAsync(int problemId)
+    {
+        var existingProblem = _context.Problems
+            .FirstOrDefault(p => p.ProblemId == problemId);
+
+        if (existingProblem == null)
+            throw new KeyNotFoundException("No problems found with the given IDs.");
+
+        if (existingProblem.Defunct == "Y") {
+            existingProblem.Defunct = "N";
+        } else if (existingProblem.Defunct != "O") {
+            existingProblem.Defunct = "Y";
+        }
+        await _context.SaveChangesAsync();
     }
 
     public async Task DeleteProblemAsync(int problemId, int siteId)
