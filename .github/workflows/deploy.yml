@@ -1,4 +1,4 @@
-name: OnlineJudge - admin - fron
+name: OnlineJudge - admin - front
 on:
   push:
     branches:
