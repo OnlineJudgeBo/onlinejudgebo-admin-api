@@ -1,7 +1,7 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
+using ScheduleManager.Core.Domain.Abstractions.Services;
 namespace OnlineJudgeAdminApi.Controllers;
 
 [Route("api/[controller]")]

@@ -1,5 +1,5 @@
 
-namespace OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
+namespace ScheduleManager.Core.Domain.Abstractions.Infrastructure;
 
 public interface IFileSystemLocalManagerManager
 {

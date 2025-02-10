@@ -1,6 +1,6 @@
-using OnlineJudgeAdmin.Core.Domain.Models;
+using ScheduleManager.Core.Domain.Models;
 
-namespace OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
+namespace ScheduleManager.Core.Domain.Abstractions.Services;
 
 public interface IPrivilegeService
 {

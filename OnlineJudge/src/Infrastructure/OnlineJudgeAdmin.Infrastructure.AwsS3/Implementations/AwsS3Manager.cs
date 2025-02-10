@@ -2,9 +2,9 @@ using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Transfer;
 using Microsoft.Extensions.Configuration;
-using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
+using ScheduleManager.Core.Domain.Abstractions.Infrastructure;
 
-namespace OnlineJudgeAdmin.Infrastructure.AwsS3.Implementations;
+namespace ScheduleManager.Infrastructure.AwsS3.Implementations;
 public class AwsS3Manager : IAwsS3FileManager
 {
     private readonly AmazonS3Client _s3Client;

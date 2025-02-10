@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace OnlineJudgeAdmin.Infrastructure.Database.Models
+namespace ScheduleManager.Infrastructure.Database.Models
 {
     [Table("contest_site")]
     public class DbContestSite

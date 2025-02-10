@@ -1,7 +1,7 @@
 using FluentValidation;
-using OnlineJudgeAdmin.Core.Domain.Models;
+using ScheduleManager.Core.Domain.Models;
 
-namespace OnlineJudgeAdmin.Core.Application.Validators.Implementations;
+namespace ScheduleManager.Core.Application.Validators.Implementations;
 
 public class ProblemValidator : AbstractValidator<Problem>
 {

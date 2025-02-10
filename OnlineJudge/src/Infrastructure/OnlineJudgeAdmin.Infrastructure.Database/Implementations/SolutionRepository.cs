@@ -1,10 +1,10 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
-using OnlineJudgeAdmin.Core.Domain.Models;
-using OnlineJudgeAdmin.Infrastructure.Database.Models;
+using ScheduleManager.Core.Domain.Abstractions.Repositories;
+using ScheduleManager.Core.Domain.Models;
+using ScheduleManager.Infrastructure.Database.Models;
 
-namespace OnlineJudgeAdmin.Infrastructure.Database.Implementations;
+namespace ScheduleManager.Infrastructure.Database.Implementations;
 
 public class SolutionRepository : ISolutionRepository
 {

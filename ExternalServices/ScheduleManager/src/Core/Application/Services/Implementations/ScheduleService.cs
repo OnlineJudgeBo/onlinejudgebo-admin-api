@@ -1,21 +1,19 @@
-using FluentValidation;
+using ScheduleManager.Core.Domain.Abstractions.Repositories;
+using ScheduleManager.Core.Domain.Abstractions.Services;
+using ScheduleManager.Core.Domain.Models;
 
-using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
-using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
-using OnlineJudgeAdmin.Core.Domain.Models;
-
-namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
+namespace ScheduleManager.Core.Application.Services.Implementations;
 public class ScheduleService : IScheduleService
 {
-    private readonly IScheduleRepository _scheduleRepository;
+    private readonly IScheduleManagerRepository _ScheduleManagerRepository;
 
-    public ScheduleService(IScheduleRepository scheduleRepository)
+    public ScheduleService(IScheduleManagerRepository ScheduleManagerRepository)
     {
-        _scheduleRepository = scheduleRepository ?? throw new ArgumentNullException(nameof(scheduleRepository));
+        _ScheduleManagerRepository = ScheduleManagerRepository ?? throw new ArgumentNullException(nameof(ScheduleManagerRepository));
     }
     public async Task<IEnumerable<Schedule>> GetSchedulesAsync()
     {
-        return await _scheduleRepository.GetSchedulesAsync();
+        return await _ScheduleManagerRepository.GetSchedulesAsync();
     }
 
     public Task<Schedule> CreateScheduleAsync(Schedule scheduleDto)
