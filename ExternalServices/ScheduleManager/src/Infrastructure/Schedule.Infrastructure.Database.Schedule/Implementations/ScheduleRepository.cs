@@ -16,14 +16,14 @@ public class ScheduleRepository : IScheduleRepository
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
-    public Task<IEnumerable<Core.Domain.Models.Schedule>> GetAllAsync()
+    public Task<IEnumerable<Schedule>> GetAllAsync()
     {
         IEnumerable<DbSchedule> roles = await _context.Schedules;
 
         return _mapper.Map<IEnumerable<Core.Domain.Models.Schedule>>(roles);
     }
 
-    public Task AddAsync(Core.Domain.Models.Schedule schedule)
+    public Task AddAsync(Schedule schedule)
     {
         throw new NotImplementedException();
     }
@@ -34,7 +34,7 @@ public class ScheduleRepository : IScheduleRepository
     }
 
 
-    public Task<Core.Domain.Models.Schedule?> GetByIdAsync(int id)
+    public Task<Schedule?> GetByIdAsync(int id)
     {
         throw new NotImplementedException();
     }

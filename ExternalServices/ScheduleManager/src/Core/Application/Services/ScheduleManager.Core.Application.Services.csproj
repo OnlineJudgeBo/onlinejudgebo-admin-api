@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Domain\Abstractions\OnlineJudgeAdmin.Core.Domain.Abstractions.csproj" />
+    <ProjectReference Include="..\..\Domain\Abstractions\ScheduleManager.Core.Domain.Abstractions.csproj" />
   </ItemGroup>
 
 </Project>

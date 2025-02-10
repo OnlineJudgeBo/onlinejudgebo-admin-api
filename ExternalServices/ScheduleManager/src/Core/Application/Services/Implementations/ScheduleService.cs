@@ -8,14 +8,10 @@ namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
 public class ScheduleService : IScheduleService
 {
     private readonly IScheduleRepository _scheduleRepository;
-    private readonly IValidator<Problem> _userValidation;
 
-    public ScheduleService(
-        IScheduleRepository scheduleRepository,
-        IValidator<Problem> userValidator)
+    public ScheduleService(IScheduleRepository scheduleRepository)
     {
         _scheduleRepository = scheduleRepository ?? throw new ArgumentNullException(nameof(scheduleRepository));
-        _userValidation = userValidator ?? throw new ArgumentNullException(nameof(userValidator));
     }
     public async Task<IEnumerable<Schedule>> GetSchedulesAsync()
     {
