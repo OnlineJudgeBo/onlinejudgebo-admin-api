@@ -7,7 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Models\OnlineJudgeAdmin.Core.Domain.Models.csproj" />
+    <ProjectReference Include="..\Models\ScheduleManager.Core.Domain.Models.csproj" />
   </ItemGroup>
+
+
 
 </Project>
