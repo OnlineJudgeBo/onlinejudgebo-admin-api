@@ -13,9 +13,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Infrastructure\OnlineJudgeAdmin.Infrastructure.Database\OnlineJudgeAdmin.Infrastructure.Database.csproj" />
-    <ProjectReference Include="..\..\Domain\Abstractions\OnlineJudgeAdmin.Core.Domain.Abstractions.csproj" />
-    <ProjectReference Include="..\..\Domain\Models\OnlineJudgeAdmin.Core.Domain.Models.csproj" />
+    <ProjectReference Include="..\..\..\Infrastructure\Schedule.Infrastructure.Database.Schedule\ScheduleManager.Infrastructure.Database.Schedule.csproj" />
+    <ProjectReference Include="..\..\Domain\Abstractions\ScheduleManager.Core.Domain.Abstractions.csproj" />
+    <ProjectReference Include="..\..\Domain\Models\ScheduleManager.Core.Domain.Models.csproj" />
   </ItemGroup>
 
 </Project>

@@ -25,12 +25,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\ExternalServices\Schedule\src\Core\Application\Services\Schedule.Core.Application.Services.csproj" />
+    <ProjectReference Include="..\..\..\..\ExternalServices\Schedule\src\Infrastructure\Schedule.Infrastructure.Database.Schedule\Schedule.Infrastructure.Database.Schedule.csproj" />
     <ProjectReference Include="..\..\Core\Domain\Models\OnlineJudgeAdmin.Core.Domain.Models.csproj" />
     <ProjectReference Include="..\..\Core\Application\Validators\OnlineJudgeAdmin.Core.Application.Validators.csproj" />
     <ProjectReference Include="..\..\Core\Domain\Abstractions\OnlineJudgeAdmin.Core.Domain.Abstractions.csproj" />
     <ProjectReference Include="..\..\Core\Application\Services\OnlineJudgeAdmin.Core.Application.Services.csproj" />
     <ProjectReference Include="..\..\Infrastructure\OnlineJudgeAdmin.Infrastructure.Database\OnlineJudgeAdmin.Infrastructure.Database.csproj" />
-    <ProjectReference Include="..\..\Infrastructure\OnlineJudgeAdmin.Infrastructure.Database.Schedule\OnlineJudgeAdmin.Infrastructure.Database.Schedule.csproj" />
     <ProjectReference Include="..\..\Infrastructure\OnlineJudgeAdmin.Infrastructure.AwsS3\OnlineJudgeAdmin.Infrastructure.AwsS3.csproj" />
     <ProjectReference Include="..\..\Infrastructure\OnlineJudgeAdmin.Infrastructure.FileSystemLocalManager\OnlineJudgeAdmin.Infrastructure.FileSystemLocalManager.csproj" />
 

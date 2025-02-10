@@ -12,5 +12,6 @@ public interface IScheduleRepository
     public Task AddAsync(Schedule schedule);
 
     public Task DeleteAsync(int id);
+    Task<IEnumerable<Schedule>> GetSchedulesAsync();
 }
 

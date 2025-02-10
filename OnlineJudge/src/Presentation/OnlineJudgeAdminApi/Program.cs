@@ -79,6 +79,7 @@ builder.Services.AddScheduleDatabaseRepositories(builder.Configuration);
 builder.Services.AddApplicationValidators();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddApplicationServices(builder.Configuration);
+builder.Services.AddApplicationScheduleServices(builder.Configuration);
 builder.Services.AddFileSystemLocalManagerInfrastructureManager(builder.Configuration);
 builder.Services.AddAwsS3FileManager(builder.Configuration);
 builder.Services.AddScoped<UserClaimsHelper>();
