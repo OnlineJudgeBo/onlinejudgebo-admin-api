@@ -1,9 +1,9 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using OnlineJudgeAdmin.Core.Application.Services.Implementations;
-using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
+using ScheduleManager.Core.Application.Services.Implementations;
+using ScheduleManager.Core.Domain.Abstractions.Services;
 
-namespace OnlineJudgeAdmin.Core.Application.Services.DependencyInjection;
+namespace ScheduleManager.Core.Application.Services.DependencyInjection;
 
 public static class ServiceCollectionExtensions
 {

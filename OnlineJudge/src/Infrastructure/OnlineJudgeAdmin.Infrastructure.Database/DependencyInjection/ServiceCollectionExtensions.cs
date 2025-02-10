@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
-using OnlineJudgeAdmin.Infrastructure.Database.Implementations;
+using ScheduleManager.Core.Domain.Abstractions.Repositories;
+using ScheduleManager.Infrastructure.Database.Implementations;
 using System.Reflection;
 
-namespace OnlineJudgeAdmin.Infrastructure.Database.DependencyInjection
+namespace ScheduleManager.Infrastructure.Database.DependencyInjection
 {
     public static class ServiceCollectionExtensions
     {

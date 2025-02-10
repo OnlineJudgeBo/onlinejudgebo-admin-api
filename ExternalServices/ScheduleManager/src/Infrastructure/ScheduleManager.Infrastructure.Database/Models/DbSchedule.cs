@@ -1,4 +1,4 @@
-namespace OnlineJudgeAdmin.Infrastructure.Database.Schedule.Models;
+namespace ScheduleManager.Infrastructure.Database.Models;
 
 public partial class DbSchedule
 {

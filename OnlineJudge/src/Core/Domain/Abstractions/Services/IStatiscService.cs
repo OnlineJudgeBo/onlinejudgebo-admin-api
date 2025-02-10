@@ -1,4 +1,4 @@
-namespace OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
+namespace ScheduleManager.Core.Domain.Abstractions.Services;
 
 public interface IStatiscService
 {

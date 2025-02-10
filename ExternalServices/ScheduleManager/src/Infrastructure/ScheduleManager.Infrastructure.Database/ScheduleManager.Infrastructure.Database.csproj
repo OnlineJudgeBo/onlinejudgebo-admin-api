@@ -24,8 +24,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Core\Domain\Abstractions\Schedule.Core.Domain.Abstractions.csproj" />
-    <ProjectReference Include="..\..\Core\Domain\Models\Schedule.Core.Domain.Models.csproj" />
+    <ProjectReference Include="../../Core/Domain/Abstractions/ScheduleManager.Core.Domain.Abstractions.csproj" />
+    <ProjectReference Include="../../Core/Domain/Models/ScheduleManager.Core.Domain.Models.csproj" />
   </ItemGroup>
 
 </Project>

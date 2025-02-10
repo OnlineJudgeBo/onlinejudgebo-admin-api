@@ -1,4 +1,4 @@
-namespace OnlineJudgeAdmin.Core.Domain.Models;
+namespace ScheduleManager.Core.Domain.Models;
 
 public partial class ContestProblem
 {
