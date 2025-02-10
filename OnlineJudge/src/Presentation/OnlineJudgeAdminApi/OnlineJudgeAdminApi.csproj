@@ -25,8 +25,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\ExternalServices\Schedule\src\Core\Application\Services\Schedule.Core.Application.Services.csproj" />
-    <ProjectReference Include="..\..\..\..\ExternalServices\Schedule\src\Infrastructure\Schedule.Infrastructure.Database.Schedule\Schedule.Infrastructure.Database.Schedule.csproj" />
+    <ProjectReference Include="../../../../ExternalServices/ScheduleManager/src/Core/Application/Services/ScheduleManager.Core.Application.Services.csproj" />
+    <ProjectReference Include="../../../../ExternalServices/ScheduleManager/src/Infrastructure/ScheduleManager.Infrastructure.Database/ScheduleManager.Infrastructure.Database.csproj" />
     <ProjectReference Include="..\..\Core\Domain\Models\OnlineJudgeAdmin.Core.Domain.Models.csproj" />
     <ProjectReference Include="..\..\Core\Application\Validators\OnlineJudgeAdmin.Core.Application.Validators.csproj" />
     <ProjectReference Include="..\..\Core\Domain\Abstractions\OnlineJudgeAdmin.Core.Domain.Abstractions.csproj" />

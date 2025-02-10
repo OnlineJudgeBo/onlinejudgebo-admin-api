@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace OnlineJudgeAdmin.Infrastructure.Database.Schedule.Migrations
+namespace ScheduleManager.Infrastructure.Database.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration

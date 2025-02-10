@@ -1,4 +1,4 @@
-namespace OnlineJudgeAdmin.Infrastructure.Database.Models;
+namespace ScheduleManager.Infrastructure.Database.Models;
 
 public class DbLanguageSubmission
 {

@@ -1,9 +1,9 @@
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
-using OnlineJudgeAdmin.Core.Application.Validators.Implementations;
-using OnlineJudgeAdmin.Core.Domain.Models;
+using ScheduleManager.Core.Application.Validators.Implementations;
+using ScheduleManager.Core.Domain.Models;
 
-namespace OnlineJudgeAdmin.Core.Application.Validators.DependencyInjection;
+namespace ScheduleManager.Core.Application.Validators.DependencyInjection;
 
 public static class ServiceCollectionExtensions
 {

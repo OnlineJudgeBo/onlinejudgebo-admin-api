@@ -1,4 +1,4 @@
-namespace OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
+namespace ScheduleManager.Core.Domain.Abstractions.Repositories;
 
 public interface IJudgeRepository
 {

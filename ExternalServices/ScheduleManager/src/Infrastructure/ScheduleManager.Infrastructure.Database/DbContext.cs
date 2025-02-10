@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using OnlineJudgeAdmin.Infrastructure.Database.Schedule.Models;
+using ScheduleManager.Infrastructure.Database.Models;
 
-namespace OnlineJudgeAdmin.Infrastructure.Database.Schedule;
+namespace ScheduleManager.Infrastructure.Database;
 
 public partial class ScheduleDbContext : DbContext
 {

@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using OnlineJudgeAdmin.Infrastructure.Database.Schedule.Models;
+using ScheduleManager.Infrastructure.Database.Models;
 
 #nullable disable
 
-namespace OnlineJudgeAdmin.Infrastructure.Database.Schedule.Migrations
+namespace ScheduleManager.Infrastructure.Database.Migrations
 {
     [DbContext(typeof(ScheduleDbContext))]
     partial class ScheduleDbContextModelSnapshot : ModelSnapshot

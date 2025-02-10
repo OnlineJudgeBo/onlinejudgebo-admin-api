@@ -1,18 +1,18 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
-using OnlineJudgeAdmin.Infrastructure.Database.Schedule.Implementations;
+using ScheduleManager.Core.Domain.Abstractions.Repositories;
+using ScheduleManager.Infrastructure.Database.Implementations;
 using System.Reflection;
 
-namespace OnlineJudgeAdmin.Infrastructure.Database.Schedule.DependencyInjection
+namespace ScheduleManager.Infrastructure.Database.DependencyInjection
 {
     public static class ServiceCollectionExtensions
     {
         public static IServiceCollection AddScheduleDatabaseRepositories(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddAutoMapper(Assembly.GetExecutingAssembly());
-            services.AddScoped<IScheduleRepository, ScheduleRepository>();
+            services.AddScoped<IScheduleManagerRepository, ScheduleManagerRepository>();
 
             services.AddMysqlClient(configuration);
             return services;

@@ -1,8 +1,8 @@
 using AutoMapper;
-using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
-using OnlineJudgeAdmin.Infrastructure.Database.Models;
+using ScheduleManager.Core.Domain.Abstractions.Repositories;
+using ScheduleManager.Infrastructure.Database.Models;
 
-namespace OnlineJudgeAdmin.Infrastructure.Database.Implementations;
+namespace ScheduleManager.Infrastructure.Database.Implementations;
 
 public class SolutionClientRepository : ISolutionClientRepository
 {

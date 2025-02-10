@@ -2,7 +2,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OnlineJudgeAdmin.Infrastructure.Database.Schedule", "OnlineJudgeAdmin.Infrastructure.Database.Schedule.csproj", "{2F57DBF0-33A9-973B-8E6A-B0267F8AD878}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScheduleManager.Infrastructure.Database", "ScheduleManager.Infrastructure.Database.csproj", "{2F57DBF0-33A9-973B-8E6A-B0267F8AD878}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
