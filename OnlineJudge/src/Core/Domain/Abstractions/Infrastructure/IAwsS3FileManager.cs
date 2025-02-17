@@ -1,5 +1,5 @@
 
-namespace ScheduleManager.Core.Domain.Abstractions.Infrastructure;
+namespace OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
 
 public interface IAwsS3FileManager
 {

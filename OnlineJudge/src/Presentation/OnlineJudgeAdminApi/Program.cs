@@ -1,8 +1,8 @@
-using ScheduleManager.Infrastructure.Database.DependencyInjection;
-using ScheduleManager.Infrastructure.AwsS3.DependencyInjection;
-using ScheduleManager.Infrastructure.FileSystemLocalManager.DependencyInjection;
-using ScheduleManager.Core.Application.Validators.DependencyInjection;
-using ScheduleManager.Core.Application.Services.DependencyInjection;
+using OnlineJudgeAdmin.Infrastructure.Database.DependencyInjection;
+using OnlineJudgeAdmin.Infrastructure.AwsS3.DependencyInjection;
+using OnlineJudgeAdmin.Infrastructure.FileSystemLocalManager.DependencyInjection;
+using OnlineJudgeAdmin.Core.Application.Validators.DependencyInjection;
+using OnlineJudgeAdmin.Core.Application.Services.DependencyInjection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -12,7 +12,11 @@ using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using OnlineJudgeAdminApi.ExceptionHandler;
 using OnlineJudgeAdminApi.Helpers;
+using OnlineJudgeAdmin.Infrastructure.Database.Models;
+using ScheduleManager.Infrastructure.Database.DependencyInjection;
 using ScheduleManager.Infrastructure.Database;
+using ScheduleManager.Core.Application.Services.DependencyInjection;
+
 
 var builder = WebApplication.CreateBuilder(args);
 

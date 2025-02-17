@@ -1,8 +1,9 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using ScheduleManager.Core.Domain.Abstractions.Services;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdminApi.Helpers;
-using ScheduleManager.Core.Domain.Models;
+using OnlineJudgeAdmin.Core.Domain.Models;
+using ScheduleManager.Core.Domain.Abstractions.Services;
 
 namespace OnlineJudgeAdminApi.Controllers
 {
