@@ -1,8 +1,9 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using ScheduleManager.Core.Domain.Abstractions.Repositories;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
+using OnlineJudgeAdmin.Infrastructure.Database.Models;
 
-namespace ScheduleManager.Infrastructure.Database.Implementations;
+namespace OnlineJudgeAdmin.Infrastructure.Database.Implementations;
 
 public class JudgeRepository : IJudgeRepository
 {

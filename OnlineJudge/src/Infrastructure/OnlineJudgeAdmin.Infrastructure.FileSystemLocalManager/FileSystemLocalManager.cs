@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Configuration;
-using ScheduleManager.Core.Domain.Abstractions.Infrastructure;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
 
-namespace ScheduleManager.Infrastructure.FileSystemLocalManager;
+namespace OnlineJudgeAdmin.Infrastructure.FileSystemLocalManager;
 
 public class FileSystemLocalManagerManager : IFileSystemLocalManagerManager
 {

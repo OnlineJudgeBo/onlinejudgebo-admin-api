@@ -7,13 +7,19 @@ namespace ScheduleManager.Infrastructure.Database.Implementations;
 
 public class ScheduleManagerRepository : IScheduleManagerRepository
 {
-    private readonly DbContext _context;
+    private readonly ScheduleDbContext _context;
     private readonly IMapper _mapper;
 
-    public ScheduleManagerRepository(DbContext context, IMapper mapper)
+    public ScheduleManagerRepository(ScheduleDbContext context, IMapper mapper)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+    }
+
+    public async Task<IEnumerable<Schedule>> GetSchedulesAsync()
+    {
+        var schedules = await _context.Schedules.ToListAsync();
+        return null;
     }
 
     public Task AddAsync(Schedule schedule)
@@ -38,9 +44,4 @@ public class ScheduleManagerRepository : IScheduleManagerRepository
         throw new NotImplementedException();
     }
 
-    public Task<IEnumerable<Schedule>> GetSchedulesAsync()
-    {
-        throw new NotImplementedException();
-    }
 }
-

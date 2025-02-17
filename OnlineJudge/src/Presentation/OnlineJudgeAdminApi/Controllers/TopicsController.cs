@@ -1,8 +1,8 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using ScheduleManager.Core.Domain.Abstractions.Services;
-using ScheduleManager.Core.Domain.Models;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
+using OnlineJudgeAdmin.Core.Domain.Models;
 using OnlineJudgeAdminApi.DataTransferObjects;
 
 namespace OnlineJudgeAdminApi.Controllers;

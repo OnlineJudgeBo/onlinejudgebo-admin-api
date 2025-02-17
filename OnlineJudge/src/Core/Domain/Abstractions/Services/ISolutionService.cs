@@ -1,6 +1,6 @@
-using ScheduleManager.Core.Domain.Models;
+using OnlineJudgeAdmin.Core.Domain.Models;
 
-namespace ScheduleManager.Core.Domain.Abstractions.Services;
+namespace OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 
 public interface ISolutionService
 {

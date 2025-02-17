@@ -1,10 +1,10 @@
 using FluentValidation;
 using Microsoft.Extensions.Configuration;
-using ScheduleManager.Core.Domain.Abstractions.Infrastructure;
-using ScheduleManager.Core.Domain.Abstractions.Services;
-using ScheduleManager.Core.Domain.Models;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
+using OnlineJudgeAdmin.Core.Domain.Models;
 
-namespace ScheduleManager.Core.Application.Services.Implementations;
+namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
 public class FileManagerService : IFileManagerService
 {
     private readonly IAwsS3FileManager _awsS3FileManager;

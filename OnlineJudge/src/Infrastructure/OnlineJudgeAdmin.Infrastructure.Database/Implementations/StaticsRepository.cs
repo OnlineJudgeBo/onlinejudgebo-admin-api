@@ -1,10 +1,9 @@
 using System.Text.Json;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using ScheduleManager.Core.Domain.Abstractions.Repositories;
-using ScheduleManager.Infrastructure.Database.Models;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 
-namespace ScheduleManager.Infrastructure.Database.Implementations;
+namespace OnlineJudgeAdmin.Infrastructure.Database.Models;
 
 public class StaticsRepository : IStaticsRepository
 {

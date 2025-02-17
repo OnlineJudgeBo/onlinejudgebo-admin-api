@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
-namespace ScheduleManager.Infrastructure.Database.Models;
+namespace OnlineJudgeAdmin.Infrastructure.Database.Models;
 
 [Table("problem")]
 public partial class DbUpdateProblem

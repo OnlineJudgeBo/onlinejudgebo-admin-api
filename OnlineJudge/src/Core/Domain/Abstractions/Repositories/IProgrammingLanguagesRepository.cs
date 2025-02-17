@@ -1,6 +1,6 @@
-using ScheduleManager.Core.Domain.Models;
+using OnlineJudgeAdmin.Core.Domain.Models;
 
-namespace ScheduleManager.Core.Domain.Abstractions.Repositories;
+namespace OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 
 public interface IProgrammingLanguagesRepository
 {

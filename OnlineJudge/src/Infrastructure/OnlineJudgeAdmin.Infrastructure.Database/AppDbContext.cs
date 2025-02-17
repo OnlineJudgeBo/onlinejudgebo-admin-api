@@ -1,8 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using ScheduleManager.Infrastructure.Database.Models;
+namespace OnlineJudgeAdmin.Infrastructure.Database.Models;
 
-namespace ScheduleManager.Infrastructure.Database;
 public partial class AppDbContext : DbContext
 {
     public AppDbContext()
