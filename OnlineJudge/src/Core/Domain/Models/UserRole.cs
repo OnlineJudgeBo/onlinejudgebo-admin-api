@@ -1,4 +1,4 @@
-namespace ScheduleManager.Core.Domain.Models;
+namespace OnlineJudgeAdmin.Core.Domain.Models;
 
 public partial class UserRole
 {

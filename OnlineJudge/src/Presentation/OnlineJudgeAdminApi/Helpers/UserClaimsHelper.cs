@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using ScheduleManager.Core.Domain.Models;
+using OnlineJudgeAdmin.Core.Domain.Models;
 
 namespace OnlineJudgeAdminApi.Helpers;
 

@@ -1,9 +1,9 @@
 using FluentValidation;
-using ScheduleManager.Core.Domain.Abstractions.Repositories;
-using ScheduleManager.Core.Domain.Abstractions.Services;
-using ScheduleManager.Core.Domain.Models;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
+using OnlineJudgeAdmin.Core.Domain.Models;
 
-namespace ScheduleManager.Core.Application.Services.Implementations;
+namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
 public class JudgeService : IJudgeService
 {
     private readonly IJudgeRepository _judgeRepository;

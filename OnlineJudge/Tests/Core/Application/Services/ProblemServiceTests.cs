@@ -1,7 +1,7 @@
-using ScheduleManager.Core.Domain.Abstractions.Repositories;
-using ScheduleManager.Core.Domain.Models;
-using ScheduleManager.Core.Application.Services.Implementations;
-using ScheduleManager.Core.Domain.Abstractions.Infrastructure;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
+using OnlineJudgeAdmin.Core.Domain.Models;
+using OnlineJudgeAdmin.Core.Application.Services.Implementations;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
 
 public class ProblemServiceTests
 {

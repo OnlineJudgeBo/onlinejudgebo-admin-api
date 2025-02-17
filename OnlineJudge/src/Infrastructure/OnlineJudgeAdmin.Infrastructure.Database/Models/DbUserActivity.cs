@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-namespace ScheduleManager.Infrastructure.Database.Models;
+namespace OnlineJudgeAdmin.Infrastructure.Database.Models;
 
 [Table("user_activity")]
 public partial class DbUserActivity

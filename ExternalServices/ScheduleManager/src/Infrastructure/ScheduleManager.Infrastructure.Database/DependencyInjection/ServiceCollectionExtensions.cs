@@ -25,7 +25,7 @@ namespace ScheduleManager.Infrastructure.Database.DependencyInjection
             var mysqlMinor = configuration.GetConnectionString("MysqlMinor");
             var mysqlBuild = configuration.GetConnectionString("MysqlBuild");
 
-            services.AddDbContext<DbContext>(options =>
+            services.AddDbContext<ScheduleDbContext>(options =>
                 options.UseMySql(connectionString, new MySqlServerVersion(new Version(int.Parse(mysqlMajor), int.Parse(mysqlMinor), int.Parse(mysqlBuild)))));
 
             return services;
