@@ -46,7 +46,7 @@ public class ProblemService : IProblemService
 
     public async Task<IEnumerable<Problem>> SearchProblemAsync(CurrentUser currentUser, string searchTerm)
     {
-        if (currentUser.Role == UserRolesEnum.Administrador)
+        if (currentUser.Role == UserRolesEnum.Administrador || currentUser.Role == UserRolesEnum.Docente)
         {
             return await _problemRepository.SearchProblemForAdminAsync(searchTerm);
         }
