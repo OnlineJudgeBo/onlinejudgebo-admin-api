@@ -122,7 +122,7 @@ public class ProblemRepository : IProblemRepository
     public async Task<IEnumerable<Problem>> SearchProblemAsync(string searchTerm)
     {
         IQueryable<DbProblem> query = _context.Problems
-            .Where(p => p.Defunct == "N" || p.Defunct == "Y")
+            //.Where(p => p.Defunct == "N" || p.Defunct == "Y")
             .OrderBy(p => p.ProblemId);
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
