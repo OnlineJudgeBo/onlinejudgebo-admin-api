@@ -1,15 +1,17 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
-using OnlineJudgeAdminApi.Helpers;
 using OnlineJudgeAdmin.Core.Domain.Models;
+using OnlineJudgeAdminApi.DataTransferObjects;
+using OnlineJudgeAdminApi.Helpers;
 using ScheduleManager.Core.Domain.Abstractions.Services;
+using ScheduleManager.Core.Domain.Models;
 
 namespace OnlineJudgeAdminApi.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/schedule-management/schedules")]
     [ApiController]
-    //[Authorize]
+    [Authorize]
 
     public class ScheduleController : ControllerBase
     {
@@ -27,10 +29,32 @@ namespace OnlineJudgeAdminApi.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetSchedule()
+        public async Task<IActionResult> GetSchedules()
         {
             var schedules = await _scheduleService.GetSchedulesAsync();
             return Ok(schedules);
+        }
+
+        [HttpGet("teachers")]
+        public async Task<IActionResult> GetSchedulesWithTeachers()
+        {
+            var schedules = await _scheduleService.GetSchedulesWithTeachersAsync();
+            return Ok(schedules);
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteSchedule(int id)
+        {
+            await _scheduleService.DeleteScheduleAsync(id);
+            return Ok();
+        }
+
+        [HttpPost()]
+        public async Task<IActionResult> CreateSchedule(ScheduleForCreation scheduleForCreation)
+        {
+            ScheduleForCreationModel schedule =  _mapper.Map<ScheduleForCreationModel>(scheduleForCreation);
+            await _scheduleService.CreateScheduleAsync(schedule);
+            return Ok("Horarios creados correctamente.");
         }
     }
 }

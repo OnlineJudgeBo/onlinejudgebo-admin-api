@@ -2,7 +2,7 @@ namespace ScheduleManager.Core.Domain.Models;
 
 public partial class Schedule
 {
-    public int ScheduleId { get; set; }
+    public int Id { get; set; }
 
     public string DayOfWeek { get; set; } = null!;
 
@@ -10,9 +10,7 @@ public partial class Schedule
 
     public TimeOnly EndTime { get; set; }
 
-    public string Subject { get; set; } = null!;
+    public Subject Subject { get; set; } = null!;
 
-    public int? TeacherId { get; set; }
-
-    public virtual Teacher? Teacher { get; set; }
+    public Teacher? Teacher { get; set; }
 }
