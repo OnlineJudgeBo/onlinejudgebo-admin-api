@@ -10,9 +10,9 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/src/Presentation/OnlineJudgeAdminApi/bin/Debug/net8.0/OnlineJudgeAdminApi.dll",
+            "program": "${workspaceFolder}/OnlineJudge/src/Presentation/OnlineJudgeAdminApi/bin/Debug/net8.0/OnlineJudgeAdminApi.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/src/Presentation/OnlineJudgeAdminApi",
+            "cwd": "${workspaceFolder}/OnlineJudge/src/Presentation/OnlineJudgeAdminApi",
             "stopAtEntry": false,
             // Enable launching a web browser when ASP.NET Core starts. For more information: https://aka.ms/VSCode-CS-LaunchJson-WebBrowser
             "serverReadyAction": {
