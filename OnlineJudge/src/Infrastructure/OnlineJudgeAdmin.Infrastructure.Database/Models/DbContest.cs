@@ -33,6 +33,12 @@ public partial class DbContest
     [Column("obi")]
     public bool Obi { get; set; }
 
+    [Column("track")]
+    public string Track { get; set; } = "GENERAL";
+
+    [Column("level")]
+    public string Level { get; set; } = "PRACTICE";
+
     public virtual ICollection<DbContestProblem>? ContestProblems { get; set; } = new List<DbContestProblem>();
 
     public ICollection<DbContestUser>? ContestUsers { get; set; } = new List<DbContestUser>();

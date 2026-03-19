@@ -49,11 +49,16 @@ public class UserRepository : IUserRepository
     {
         IEnumerable<DbUser> users = await _context.Users
             .OrderBy(u => u.UserId)
-            .Where(u => u.IsActive && u.SiteId == siteId && u.UserProfile.SiteId == siteId)
+            .Where(u => u.IsActive
+                && !u.IsDeleted
+                && u.SiteId == siteId
+                && u.UserProfile.SiteId == siteId)
             .Take(100)
             .Select(u => new DbUser
             {
                 UserId = u.UserId,
+                IsActive = u.IsActive,
+                IsDeleted = u.IsDeleted,
                 UserProfile = new DbUserProfile
                 {
                     Email = u.UserProfile.Email,
@@ -98,13 +103,17 @@ public class UserRepository : IUserRepository
     {
         IQueryable<DbUser> query = _context.Users
             .OrderBy(u => u.UserId)
-            .Where(u => u.IsActive && u.SiteId == siteId && u.UserProfile.SiteId == siteId);
+            .Where(u => u.IsActive
+                && !u.IsDeleted
+                && u.SiteId == siteId
+                && u.UserProfile.SiteId == siteId);
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
             query = query.Where(u =>
                 u.UserProfile.Nick.Contains(searchTerm) ||
                 u.UserProfile.Lastname.Contains(searchTerm) ||
+                u.UserProfile.Email.Contains(searchTerm) ||
                 u.UserId.Contains(searchTerm));
         }
 
@@ -112,6 +121,8 @@ public class UserRepository : IUserRepository
             .Select(u => new DbUser
             {
                 UserId = u.UserId,
+                IsActive = u.IsActive,
+                IsDeleted = u.IsDeleted,
                 UserProfile = new DbUserProfile
                 {
                     Email = u.UserProfile.Email,

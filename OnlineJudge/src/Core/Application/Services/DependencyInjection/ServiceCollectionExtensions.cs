@@ -19,6 +19,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IStatiscService, StaticsServices>();
         services.AddScoped<IJudgeService, JudgeService>();
         services.AddScoped<ISolutionService, SolutionService>();
+        services.AddScoped<IAcademicService, AcademicService>();
+        services.AddScoped<IPasswordRecoveryEmailService, PasswordRecoveryEmailService>();
+        services.AddScoped<IWelcomeEmailService, WelcomeEmailService>();
+        services.AddScoped<IPublicService, PublicService>();
         return services;
     }
 }

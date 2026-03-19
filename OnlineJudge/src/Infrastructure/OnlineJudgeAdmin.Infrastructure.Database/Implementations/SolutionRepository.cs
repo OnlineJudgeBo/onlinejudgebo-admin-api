@@ -16,14 +16,18 @@ public class SolutionRepository : ISolutionRepository
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
-    public async Task<Solution> GetSolutionByIdAsync(int solutionId)
+    public async Task<Solution?> GetSolutionByIdAsync(int solutionId)
     {
-        DbSolution solution = await _context.Solutions.FirstOrDefaultAsync(s => s.SolutionId == solutionId);
-        if (solution != null)
-        {
-            _context.Entry(solution).State = EntityState.Detached;
-        }
-        return _mapper.Map<Solution>(solution);
+        var solution = await _context.Solutions
+            .AsNoTracking()
+            .Include(item => item.Compileinfo)
+            .Include(item => item.Runtimeinfo)
+            .Include(item => item.SourceCode)
+            .Include(item => item.User)
+            .ThenInclude(item => item!.UserProfile)
+            .FirstOrDefaultAsync(item => item.SolutionId == solutionId);
+
+        return _mapper.Map<Solution?>(solution);
     }
 
     public async Task<int> SaveSolutionAsync(Solution solutionToCreate)

@@ -52,7 +52,7 @@ namespace OnlineJudgeAdminApi.Controllers
         [HttpPost()]
         public async Task<IActionResult> CreateSchedule(ScheduleForCreation scheduleForCreation)
         {
-            ScheduleForCreationModel schedule =  _mapper.Map<ScheduleForCreationModel>(scheduleForCreation);
+            ScheduleForCreationModel schedule = _mapper.Map<ScheduleForCreationModel>(scheduleForCreation);
             await _scheduleService.CreateScheduleAsync(schedule);
             return Ok("Horarios creados correctamente.");
         }
