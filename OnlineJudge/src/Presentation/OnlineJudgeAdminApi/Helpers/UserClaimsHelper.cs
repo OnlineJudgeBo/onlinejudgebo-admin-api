@@ -12,19 +12,41 @@ public class UserClaimsHelper
         _httpContextAccessor = httpContextAccessor;
     }
 
-    private string GetUserId()
+    private string? GetUserId()
     {
-        return _httpContextAccessor.HttpContext?.User?.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+        var user = _httpContextAccessor.HttpContext?.User;
+        if (user == null)
+        {
+            return null;
+        }
+
+        return GetClaimValue(user,
+            ClaimTypes.NameIdentifier,
+            "nameid",
+            "sub",
+            "user_id");
     }
 
-    private string GetUserRole()
+    private string? GetUserRole()
     {
-        return _httpContextAccessor.HttpContext?.User?.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+        var user = _httpContextAccessor.HttpContext?.User;
+        if (user == null)
+        {
+            return null;
+        }
+
+        return GetClaimValue(user,
+            ClaimTypes.Role,
+            "role",
+            "roles");
     }
 
     private int GetSiteId()
     {
-        var siteIdClaim = _httpContextAccessor.HttpContext?.User?.Claims.FirstOrDefault(c => c.Type == "site_id")?.Value;
+        var user = _httpContextAccessor.HttpContext?.User;
+        var siteIdClaim = user == null
+            ? null
+            : GetClaimValue(user, "site_id", "siteId");
 
         if (int.TryParse(siteIdClaim, out var siteId))
         {
@@ -39,17 +61,62 @@ public class UserClaimsHelper
         var userId = GetUserId();
         var roleString = GetUserRole();
 
-        var roleEnum = UserRolesEnum.Invitado;
-        if (!string.IsNullOrEmpty(roleString) && Enum.TryParse<UserRolesEnum>(roleString, out var parsedRole))
-        {
-            roleEnum = parsedRole;
-        }
-
         return new CurrentUser
         {
             UserId = userId ?? "defaultUserId",
-            Role = roleEnum,
+            Role = ParseRole(roleString),
             SiteId = GetSiteId()
+        };
+    }
+
+    public CurrentUser? TryGetUserContextRole()
+    {
+        if (_httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated != true)
+        {
+            return null;
+        }
+
+        return GetUserContextRole();
+    }
+
+    private static string? GetClaimValue(ClaimsPrincipal user, params string[] claimTypes)
+    {
+        foreach (var claimType in claimTypes)
+        {
+            var claimValue = user.Claims.FirstOrDefault(c => c.Type == claimType)?.Value;
+            if (!string.IsNullOrWhiteSpace(claimValue))
+            {
+                return claimValue.Trim();
+            }
+        }
+
+        return null;
+    }
+
+    private static UserRolesEnum ParseRole(string? roleString)
+    {
+        if (string.IsNullOrWhiteSpace(roleString))
+        {
+            return UserRolesEnum.Invitado;
+        }
+
+        var normalizedRole = roleString.Trim();
+        if (Enum.TryParse<UserRolesEnum>(normalizedRole, ignoreCase: true, out var parsedRole))
+        {
+            return parsedRole;
+        }
+
+        return normalizedRole.ToLowerInvariant() switch
+        {
+            "admin" => UserRolesEnum.Administrador,
+            "administrator" => UserRolesEnum.Administrador,
+            "teacher" => UserRolesEnum.Docente,
+            "docente" => UserRolesEnum.Docente,
+            "assistant" => UserRolesEnum.Auxiliar,
+            "auxiliar" => UserRolesEnum.Auxiliar,
+            "guest" => UserRolesEnum.Invitado,
+            "invitado" => UserRolesEnum.Invitado,
+            _ => UserRolesEnum.Invitado
         };
     }
 }

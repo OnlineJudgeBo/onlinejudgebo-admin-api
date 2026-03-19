@@ -36,9 +36,24 @@ public class SolutionService : ISolutionService
         return await _solutionRepository.SaveSolutionAsync(solution);
     }
 
+    public Task<Solution?> GetSolutionByIdAsync(int solutionId)
+    {
+        if (solutionId <= 0)
+        {
+            throw new ArgumentException("SolutionId inválido.");
+        }
+
+        return _solutionRepository.GetSolutionByIdAsync(solutionId);
+    }
+
     public async Task UpdateSolutionRemoteAsync(Solution solutionToUpdate)
     {
-        Solution solution = await _solutionRepository.GetSolutionByIdAsync(solutionToUpdate.SolutionId);
+        Solution? solution = await _solutionRepository.GetSolutionByIdAsync(solutionToUpdate.SolutionId);
+        if (solution == null)
+        {
+            throw new ArgumentException("Solution not found.");
+        }
+
         if (solution.IsRemoteOj == false)
         {
             throw new Exception("You do not own this solution.");

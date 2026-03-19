@@ -1,4 +1,5 @@
 using System.Net;
+using MySqlConnector;
 namespace OnlineJudgeAdminApi.ExceptionHandler;
 
 public class ExceptionHandler
@@ -30,6 +31,14 @@ public class ExceptionHandler
         catch (InvalidOperationException ex)
         {
             await this.HandleExceptionAsync(httpContext, Exceptions.InvalidOperation, ex);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            await this.HandleNotFoundExceptionAsync(httpContext, ex);
+        }
+        catch (MySqlException ex) when (this.IsMissingAcademicSchemaException(ex))
+        {
+            await this.HandleAcademicSchemaExceptionAsync(httpContext, ex);
         }
         catch (Exception ex)
         {
@@ -65,5 +74,51 @@ public class ExceptionHandler
             StatusCode = context.Response.StatusCode,
             Message = messageToUse,
         }.ToString());
+    }
+
+    private async Task HandleNotFoundExceptionAsync(HttpContext context, Exception ex)
+    {
+        context.Response.ContentType = "application/json";
+        context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+        this.logger.LogInformation(ex.ToString());
+
+        await context.Response.WriteAsync(new ErrorDetails
+        {
+            StatusCode = context.Response.StatusCode,
+            Message = $"Cannot complete the operation, {ex.Message}",
+        }.ToString());
+    }
+
+    private async Task HandleAcademicSchemaExceptionAsync(HttpContext context, MySqlException ex)
+    {
+        context.Response.ContentType = "application/json";
+        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+
+        const string message =
+            "Cannot complete the operation, required academic tables are not available for this request.";
+
+        this.logger.LogError(ex.ToString());
+
+        await context.Response.WriteAsync(new ErrorDetails
+        {
+            StatusCode = context.Response.StatusCode,
+            Message = message,
+        }.ToString());
+    }
+
+    private bool IsMissingAcademicSchemaException(MySqlException ex)
+    {
+        if (!ex.Message.Contains("doesn't exist", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return ex.Message.Contains("course", StringComparison.OrdinalIgnoreCase)
+            || ex.Message.Contains("course_assignment", StringComparison.OrdinalIgnoreCase)
+            || ex.Message.Contains("course_assignment_problem", StringComparison.OrdinalIgnoreCase)
+            || ex.Message.Contains("course_submission_context", StringComparison.OrdinalIgnoreCase)
+            || ex.Message.Contains("learning_path", StringComparison.OrdinalIgnoreCase)
+            || ex.Message.Contains("topic", StringComparison.OrdinalIgnoreCase)
+            || ex.Message.Contains("subtopic", StringComparison.OrdinalIgnoreCase);
     }
 }

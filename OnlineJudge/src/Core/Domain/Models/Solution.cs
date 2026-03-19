@@ -22,6 +22,10 @@ public partial class Solution
 
     public int? ContestId { get; set; }
 
+    public int? CourseId { get; set; }
+
+    public int? AssignmentId { get; set; }
+
     public sbyte Valid { get; set; }
 
     public sbyte Num { get; set; }
@@ -35,6 +39,8 @@ public partial class Solution
     public bool IsRemoteOj { get; set; } = false;
 
     public int RemoteId { get; set; } = 0;
+
+    public int SiteId { get; set; }
 
     public virtual Compileinfo? Compileinfo { get; set; }
 

@@ -31,6 +31,9 @@ public partial class DbUpdateProblem
     [Column("source")]
     public string? Source { get; set; }
 
+    [Column("origin_source")]
+    public string? OriginSource { get; set; }
+
     [Column("time_limit")]
     public int TimeLimit { get; set; }
 
