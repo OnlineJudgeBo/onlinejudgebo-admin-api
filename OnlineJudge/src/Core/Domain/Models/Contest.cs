@@ -20,6 +20,10 @@ public partial class Contest
 
     public bool Obi { get; set; }
 
+    public string Track { get; set; } = "GENERAL";
+
+    public string Level { get; set; } = "PRACTICE";
+
     public virtual ICollection<ContestProblem> ContestProblems { get; set; } = new List<ContestProblem>();
 
     public virtual ICollection<ContestUser>? ContestUsers { get; set; } = new List<ContestUser>();

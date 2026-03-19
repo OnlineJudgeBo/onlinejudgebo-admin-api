@@ -24,6 +24,8 @@ public class ProblemForCreation
 
     public string Source { get; set; } = String.Empty;
 
+    public string OriginSource { get; set; } = String.Empty;
+
     public DateTime InDate { get; set; } = DateTime.Now;
 
     public int TimeLimit { get; set; } = 0;

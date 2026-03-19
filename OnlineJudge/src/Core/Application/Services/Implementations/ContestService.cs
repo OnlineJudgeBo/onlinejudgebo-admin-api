@@ -1,5 +1,4 @@
 using FluentValidation;
-
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
@@ -52,6 +51,7 @@ public class ContestService : IContestService
 
     public async Task<Contest> CreateContestAsync(string userIdCreator, Contest contest, string manualUserList, int siteId)
     {
+        EnsureContestMetadata(contest);
         int numeration = 0;
         foreach (var problem in contest.ContestProblems)
         {
@@ -102,6 +102,7 @@ public class ContestService : IContestService
             throw new ApplicationException("Contest does not exist.");
         }
 
+        EnsureContestMetadata(contest);
         int numeration = 0;
         foreach (var problem in contest.ContestProblems)
         {
@@ -158,5 +159,26 @@ public class ContestService : IContestService
         }
         await _contestRepository.PromoteContestAsync(contestId, siteId);
         await _problemRepository.PromoteProblemAsync(problemIdList);
+    }
+
+    private static void EnsureContestMetadata(Contest contest)
+    {
+        contest.Track = string.IsNullOrWhiteSpace(contest.Track) ? "GENERAL" : contest.Track;
+        contest.Level = string.IsNullOrWhiteSpace(contest.Level) ? "PRACTICE" : contest.Level;
+
+        if (contest.Track != "OBI"
+            && contest.Track != "ICPC_BOLIVIA"
+            && contest.Track != "GENERAL")
+        {
+            throw new ArgumentException("Contest track must be OBI, ICPC_BOLIVIA or GENERAL.");
+        }
+
+        if (contest.Level != "REGIONAL"
+            && contest.Level != "NATIONAL"
+            && contest.Level != "PRACTICE"
+            && contest.Level != "TRAINING")
+        {
+            throw new ArgumentException("Contest level must be REGIONAL, NATIONAL, PRACTICE or TRAINING.");
+        }
     }
 }

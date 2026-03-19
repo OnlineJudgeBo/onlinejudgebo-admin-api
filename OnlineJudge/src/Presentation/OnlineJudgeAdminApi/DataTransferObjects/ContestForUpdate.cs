@@ -11,6 +11,10 @@ public partial class ContestForUpdate
 
     public bool IsPrivate { get; set; }
 
+    public string Track { get; set; } = "GENERAL";
+
+    public string Level { get; set; } = "PRACTICE";
+
     public string? ManualUserList { get; set; }
 
     public virtual ICollection<ProblemForContestCreation> SelectedProblem { get; set; }

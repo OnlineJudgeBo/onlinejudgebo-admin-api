@@ -18,6 +18,8 @@ public class ProblemForUpdate
 
     public string Source { get; set; }
 
+    public string OriginSource { get; set; }
+
     public int TimeLimit { get; set; }
 
     public int MemoryLimit { get; set; }

@@ -36,6 +36,9 @@ public partial class DbProblem
     [Column("source")]
     public string? Source { get; set; }
 
+    [Column("origin_source")]
+    public string? OriginSource { get; set; }
+
     [Column("in_date")]
     public DateTime? InDate { get; set; } = DateTime.MinValue;
 
