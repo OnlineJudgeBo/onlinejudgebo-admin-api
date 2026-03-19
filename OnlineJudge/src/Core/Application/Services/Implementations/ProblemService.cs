@@ -29,7 +29,9 @@ public class ProblemService : IProblemService
 
     public async Task<IEnumerable<Problem>> GetAllProblemsAsync(CurrentUser currentUser)
     {
-        if (currentUser.Role == UserRolesEnum.Administrador)
+        if (currentUser.Role == UserRolesEnum.Administrador
+            || currentUser.Role == UserRolesEnum.Docente
+            || currentUser.Role == UserRolesEnum.Auxiliar)
         {
             return await _problemRepository.GetAllProblemsForAdminAsync(currentUser.SiteId);
         }
@@ -46,7 +48,9 @@ public class ProblemService : IProblemService
 
     public async Task<IEnumerable<Problem>> SearchProblemAsync(CurrentUser currentUser, string searchTerm)
     {
-        if (currentUser.Role == UserRolesEnum.Administrador || currentUser.Role == UserRolesEnum.Docente)
+        if (currentUser.Role == UserRolesEnum.Administrador
+            || currentUser.Role == UserRolesEnum.Docente
+            || currentUser.Role == UserRolesEnum.Auxiliar)
         {
             return await _problemRepository.SearchProblemForAdminAsync(searchTerm);
         }
@@ -58,6 +62,9 @@ public class ProblemService : IProblemService
 
     public async Task<Problem> CreateProblemAsync(string userId, Problem problem, int siteId)
     {
+        problem.OriginSource = string.IsNullOrWhiteSpace(problem.OriginSource)
+            ? "General"
+            : string.Join(' ', problem.OriginSource.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
         IEnumerable<Classification>? newTopic = problem.Classifications;
         problem.Classifications = null;
 
@@ -93,6 +100,9 @@ public class ProblemService : IProblemService
             throw new ApplicationException("Problem does not exist.");
         }
 
+        problem.OriginSource = string.IsNullOrWhiteSpace(problem.OriginSource)
+            ? "General"
+            : string.Join(' ', problem.OriginSource.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
         await _topicRepository.RemoveAllClassificationsFromProblemAsync(existingProblem.ProblemId.Value);
         IEnumerable<Classification>? newTopic = problem.Classifications;
         problem.Classifications = null;
@@ -121,4 +131,3 @@ public class ProblemService : IProblemService
         await _problemRepository.DeleteProblemAsync(problemId, siteId);
     }
 }
-

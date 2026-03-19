@@ -28,6 +28,7 @@ public class ProblemRepository : IProblemRepository
                 ProblemId = p.ProblemId,
                 Title = p.Title,
                 Source = p.Source,
+                OriginSource = p.OriginSource,
                 InDate = p.InDate,
                 Submit = p.Submit,
                 Accepted = p.Accepted,
@@ -62,6 +63,7 @@ public class ProblemRepository : IProblemRepository
                 ProblemId = p.ProblemId,
                 Title = p.Title,
                 Source = p.Source,
+                OriginSource = p.OriginSource,
                 InDate = p.InDate,
                 Submit = p.Submit,
                 Accepted = p.Accepted,
@@ -104,6 +106,7 @@ public class ProblemRepository : IProblemRepository
             {
                 ProblemId = po.ProblemId,
                 Title = po.Title,
+                OriginSource = po.OriginSource,
                 Classifications = po.Classifications.Select(t => new DbClassification
                 {
                     Name = t.Name,
@@ -137,6 +140,7 @@ public class ProblemRepository : IProblemRepository
             {
                 ProblemId = po.ProblemId,
                 Title = po.Title,
+                OriginSource = po.OriginSource,
                 Classifications = po.Classifications.Select(t => new DbClassification
                 {
                     Name = t.Name,
@@ -168,6 +172,7 @@ public class ProblemRepository : IProblemRepository
                 TimeLimit = p.TimeLimit,
                 MemoryLimit = p.MemoryLimit,
                 Source = p.Source,
+                OriginSource = p.OriginSource,
                 InDate = p.InDate,
                 Submit = p.Submit,
                 Accepted = p.Accepted,

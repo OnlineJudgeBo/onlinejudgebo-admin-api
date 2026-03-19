@@ -27,15 +27,15 @@ public class ProblemServiceTests
     {
         // Arrange
         var problems = new List<Problem> { new Problem(), new Problem() };
-        //mockProblemRepo.Setup(x => x.GetAllProblemsForAdminAsync()).ReturnsAsync(problems);
-        var currentUser = new CurrentUser { Role = UserRolesEnum.Administrador };
+        var currentUser = new CurrentUser { Role = UserRolesEnum.Administrador, SiteId = 1 };
+        mockProblemRepo.Setup(x => x.GetAllProblemsForAdminAsync(currentUser.SiteId)).ReturnsAsync(problems);
 
         // Act
         var result = await service.GetAllProblemsAsync(currentUser);
 
         // Assert
         Assert.Equal(problems.Count, result.Count());
-        //mockProblemRepo.Verify(x => x.GetAllProblemsForAdminAsync(), Times.Once);
+        mockProblemRepo.Verify(x => x.GetAllProblemsForAdminAsync(currentUser.SiteId), Times.Once);
     }
 
     [Fact]
@@ -43,15 +43,15 @@ public class ProblemServiceTests
     {
         // Arrange
         var problems = new List<Problem> { new Problem(), new Problem() };
-        //mockProblemRepo.Setup(x => x.GetAllProblemsAsync()).ReturnsAsync(problems);
-        var currentUser = new CurrentUser { Role = UserRolesEnum.Auxiliar };
+        var currentUser = new CurrentUser { Role = UserRolesEnum.Auxiliar, SiteId = 1 };
+        mockProblemRepo.Setup(x => x.GetAllProblemsAsync(currentUser.SiteId)).ReturnsAsync(problems);
 
         // Act
         var result = await service.GetAllProblemsAsync(currentUser);
 
         // Assert
         Assert.Equal(problems.Count, result.Count());
-        //mockProblemRepo.Verify(x => x.GetAllProblemsAsync(), Times.Once);
+        mockProblemRepo.Verify(x => x.GetAllProblemsAsync(currentUser.SiteId), Times.Once);
     }
 
     [Fact]

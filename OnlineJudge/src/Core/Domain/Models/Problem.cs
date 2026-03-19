@@ -22,6 +22,8 @@ public partial class Problem
 
     public string? Source { get; set; }
 
+    public string? OriginSource { get; set; }
+
     public DateTime? InDate { get; set; }
 
     public int? TimeLimit { get; set; }

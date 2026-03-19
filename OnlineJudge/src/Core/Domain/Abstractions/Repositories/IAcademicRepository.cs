@@ -1,0 +1,50 @@
+using OnlineJudgeAdmin.Core.Domain.Models;
+
+namespace OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
+
+public interface IAcademicRepository
+{
+    Task<IEnumerable<AcademicInstitution>> GetInstitutionsAsync(int siteId);
+
+    Task<IEnumerable<AcademicInstitutionRankingItem>> GetInstitutionsRankingAsync(int siteId, int limit);
+
+    Task<IEnumerable<AcademicCourseSummary>> GetMyCoursesAsync(int siteId, string userId);
+
+    Task<IEnumerable<AcademicCourseSummary>> GetManageableCoursesAsync(int siteId, string userId, bool includeAllCourses);
+
+    Task<AcademicCourseDetail> CreateCourseAsync(int siteId, string userId, AcademicCourseCreationRequest request);
+
+    Task<AcademicCourseDetail> JoinCourseAsync(int siteId, string userId, AcademicJoinCourseRequest request);
+
+    Task<AcademicCourseDetail> GetCourseAsync(int siteId, long courseId, string userId, bool allowAdminAccess);
+
+    Task<IEnumerable<AcademicCourseMember>> GetCourseMembersAsync(int siteId, long courseId);
+
+    Task<AcademicCourseMember> AddCourseMemberAsync(int siteId, long courseId, AcademicCourseMemberCreationRequest request);
+
+    Task RemoveCourseMemberAsync(int siteId, long courseId, string userId);
+
+    Task<AcademicCourseAssignment> CreateCourseAssignmentAsync(int siteId, long courseId, string userId, AcademicCourseAssignmentCreationRequest request);
+
+    Task<AcademicCourseAssignment> UpdateCourseAssignmentAsync(int siteId, long courseId, long assignmentId, string userId, AcademicCourseAssignmentCreationRequest request);
+
+    Task<AcademicCourseAssignmentDetailResponse> GetCourseAssignmentAsync(int siteId, long courseId, long assignmentId, string currentUserId);
+
+    Task<PublicSubmissionsResponse> GetCourseAssignmentSubmissionsAsync(int siteId, long courseId, long assignmentId, int page, int pageSize);
+
+    Task<IEnumerable<AcademicCourseRankingItem>> GetCourseRankingAsync(int siteId, long courseId);
+
+    Task<AcademicCourseReportResponse> GetCourseReportAsync(int siteId, long courseId);
+
+    Task<AcademicStudentProgress> GetStudentProgressAsync(int siteId, long courseId, string userId);
+
+    Task<IEnumerable<LearningPathTrackSummary>> GetLearningPathsAsync(int siteId);
+
+    Task<LearningPathResponse> GetLearningPathAsync(int siteId, string learningPathKey);
+
+    Task<LearningPathProgressResponse> GetLearningPathProgressAsync(int siteId, string learningPathKey, string userId);
+
+    Task<LearningPathProgressResponse> SaveLearningPathProgressAsync(int siteId, string learningPathKey, string userId, LearningPathProgressUpdateRequest request);
+
+    Task<AcademicSubmissionResponse> SubmitAsync(int siteId, string userId, AcademicSubmissionRequest request);
+}
