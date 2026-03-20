@@ -41,9 +41,9 @@ public class ProblemService : IProblemService
         }
     }
 
-    public async Task<Problem> GetProblemByIdAsync(int problemId)
+    public async Task<Problem> GetProblemByIdAsync(int problemId, int? siteId = null)
     {
-        return await _problemRepository.GetProblemByIdAsync(problemId);
+        return await _problemRepository.GetProblemByIdAsync(problemId, siteId);
     }
 
     public async Task<IEnumerable<Problem>> SearchProblemAsync(CurrentUser currentUser, string searchTerm)
@@ -52,11 +52,11 @@ public class ProblemService : IProblemService
             || currentUser.Role == UserRolesEnum.Docente
             || currentUser.Role == UserRolesEnum.Auxiliar)
         {
-            return await _problemRepository.SearchProblemForAdminAsync(searchTerm);
+            return await _problemRepository.SearchProblemForAdminAsync(searchTerm, currentUser.SiteId);
         }
         else
         {
-            return await _problemRepository.SearchProblemAsync(searchTerm);
+            return await _problemRepository.SearchProblemAsync(searchTerm, currentUser.SiteId);
         }
     }
 
