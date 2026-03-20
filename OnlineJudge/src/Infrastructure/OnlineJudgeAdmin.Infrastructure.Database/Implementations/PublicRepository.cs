@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Net;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
@@ -24,7 +23,7 @@ public class PublicRepository : IPublicRepository
 
     public async Task<PublicDashboardResponse> GetDashboardAsync(int siteId)
     {
-        var generatedAtUtc = DateTime.UtcNow;
+        var generatedAtUtc = DateTime.Now;
         var contestNow = GetContestClockNow();
         var fromDate = generatedAtUtc.AddDays(-30);
 
@@ -506,7 +505,7 @@ public class PublicRepository : IPublicRepository
         return new PublicRankingResponse
         {
             SiteId = siteId,
-            UpdatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.Now,
             Items = items
         };
     }
@@ -562,7 +561,7 @@ public class PublicRepository : IPublicRepository
         return new PublicTopicsResponse
         {
             SiteId = siteId,
-            UpdatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.Now,
             Topics = publicTopics,
             LearningPath = learningPath,
             TransversalSkills = new[]
@@ -577,7 +576,7 @@ public class PublicRepository : IPublicRepository
 
     public async Task<PublicContestsResponse> GetContestsAsync(int siteId, string? status, string? level, string? sortBy, int page, int pageSize, string? searchTerm)
     {
-        var updatedAtUtc = DateTime.UtcNow;
+        var updatedAtUtc = DateTime.Now;
         var contestNow = GetContestClockNow();
         var normalizedStatus = (status?.Trim().ToLowerInvariant() ?? "all") switch
         {
@@ -700,7 +699,7 @@ public class PublicRepository : IPublicRepository
     public async Task<ContestReportResponse> GetContestReportAsync(int siteId, int contestId, CurrentUser? currentUser = null)
     {
         var contest = await EnsureContestExistsAsync(siteId, contestId);
-        var generatedAtUtc = DateTime.UtcNow;
+        var generatedAtUtc = DateTime.Now;
         var contestNow = GetContestClockNow();
 
         var problemCount = await _context.ContestProblems
@@ -871,7 +870,7 @@ public class PublicRepository : IPublicRepository
                 Total = total,
                 Page = page,
                 PageSize = pageSize,
-                UpdatedAtUtc = DateTime.UtcNow,
+                UpdatedAtUtc = DateTime.Now,
                 Items = Array.Empty<PublicSubmissionListItem>()
             };
         }
@@ -936,7 +935,7 @@ public class PublicRepository : IPublicRepository
             Total = total,
             Page = page,
             PageSize = pageSize,
-            UpdatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.Now,
             Items = items
         };
     }
@@ -962,7 +961,7 @@ public class PublicRepository : IPublicRepository
                 Total = total,
                 Page = page,
                 PageSize = pageSize,
-                UpdatedAtUtc = DateTime.UtcNow,
+                UpdatedAtUtc = DateTime.Now,
                 Items = Array.Empty<PublicSubmissionListItem>()
             };
         }
@@ -1025,7 +1024,7 @@ public class PublicRepository : IPublicRepository
             Total = total,
             Page = page,
             PageSize = pageSize,
-            UpdatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.Now,
             Items = items
         };
     }
@@ -1139,7 +1138,7 @@ public class PublicRepository : IPublicRepository
                 .FirstOrDefaultAsync() ?? -1;
         }
 
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
 
         await using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -1213,9 +1212,10 @@ public class PublicRepository : IPublicRepository
             throw new UnauthorizedAccessException("Usuario o contraseña incorrectos.");
         }
 
-        var dbUser = await _context.Users.FirstAsync(item => item.UserId == user.UserId && item.SiteId == siteId);
-        dbUser.Accesstime = DateTime.UtcNow;
-        await _context.SaveChangesAsync();
+        await _context.Users
+            .Where(item => item.UserId == user.UserId && item.SiteId == siteId)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(item => item.Accesstime, DateTime.Now));
 
         return new PublicAuthenticatedUser
         {
@@ -1248,7 +1248,7 @@ public class PublicRepository : IPublicRepository
             throw new InvalidOperationException("El correo electrónico ya está registrado.");
         }
 
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
         var role = nameof(UserRolesEnum.Invitado);
 
         await using var transaction = await _context.Database.BeginTransactionAsync();
@@ -1397,11 +1397,13 @@ public class PublicRepository : IPublicRepository
             return false;
         }
 
-        user.Password = passwordHash;
-        user.ResetPasswordToken = null;
-        user.ResetPasswordExpires = null;
-        user.Accesstime = nowUtc;
-        await _context.SaveChangesAsync();
+        await _context.Users
+            .Where(item => item.UserId == user.UserId && item.SiteId == siteId)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(item => item.Password, passwordHash)
+                .SetProperty(item => item.ResetPasswordToken, (string?)null)
+                .SetProperty(item => item.ResetPasswordExpires, (DateTime?)null)
+                .SetProperty(item => item.Accesstime, nowUtc));
         return true;
     }
 
@@ -1517,10 +1519,7 @@ public class PublicRepository : IPublicRepository
 
             if (string.IsNullOrWhiteSpace(metadata[item.ProblemId].OriginSource))
             {
-                var cleanedTitle = CollapseWhitespace(Regex.Replace(WebUtility.HtmlDecode(item.Title ?? string.Empty), "<.*?>", " "));
-                metadata[item.ProblemId].OriginSource = !string.IsNullOrWhiteSpace(cleanedTitle)
-                    ? cleanedTitle
-                    : "General";
+                metadata[item.ProblemId].OriginSource = "General";
                 metadata[item.ProblemId].Sources.Add(metadata[item.ProblemId].OriginSource);
             }
 
@@ -1838,7 +1837,7 @@ public class PublicRepository : IPublicRepository
 
     private static DateTime GetContestClockNow()
     {
-        return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, ContestTimeZone);
+        return TimeZoneInfo.ConvertTime(DateTime.Now, ContestTimeZone);
     }
 
     private static TimeZoneInfo ResolveContestTimeZone()
