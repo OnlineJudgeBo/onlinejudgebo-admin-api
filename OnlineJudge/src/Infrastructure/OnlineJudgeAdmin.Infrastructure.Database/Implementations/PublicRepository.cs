@@ -433,16 +433,13 @@ public class PublicRepository : IPublicRepository
             .ToList();
 
         var contestSources = metadata.Values
-            .Select(item => item.OriginSource)
+            .Select(item => NormalizeContestSourceForFilters(item.OriginSource))
             .Where(item => !string.IsNullOrWhiteSpace(item))
             .GroupBy(item => item, StringComparer.OrdinalIgnoreCase)
             .OrderByDescending(group => group.Count())
             .ThenBy(group => group.Key)
             .Select(group => group.First())
-            .Where(source =>
-                !string.Equals(source, "General", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(source, "OBI", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(source, "ICPC Bolivia", StringComparison.OrdinalIgnoreCase))
+            .Where(source => !IsBuiltInProblemMenuSource(source))
             .Take(8)
             .ToList();
 
@@ -1521,14 +1518,9 @@ public class PublicRepository : IPublicRepository
             if (string.IsNullOrWhiteSpace(metadata[item.ProblemId].OriginSource))
             {
                 var cleanedTitle = CollapseWhitespace(Regex.Replace(WebUtility.HtmlDecode(item.Title ?? string.Empty), "<.*?>", " "));
-                var originYear = item.StartTime != DateTime.MinValue && item.StartTime.Year > 0
-                    ? item.StartTime.Year
-                    : (int?)null;
                 metadata[item.ProblemId].OriginSource = !string.IsNullOrWhiteSpace(cleanedTitle)
                     ? cleanedTitle
-                    : originYear.HasValue
-                        ? $"General {originYear.Value}"
-                        : "General";
+                    : "General";
                 metadata[item.ProblemId].Sources.Add(metadata[item.ProblemId].OriginSource);
             }
 
@@ -1551,11 +1543,7 @@ public class PublicRepository : IPublicRepository
 
             if (string.IsNullOrWhiteSpace(metadata[problemId].OriginSource))
             {
-                metadata[problemId].OriginSource = problem.InDate.HasValue
-                    && problem.InDate.Value != DateTime.MinValue
-                    && problem.InDate.Value.Year > 0
-                    ? $"General {problem.InDate.Value.Year}"
-                    : "General";
+                metadata[problemId].OriginSource = "General";
                 metadata[problemId].Sources.Add(metadata[problemId].OriginSource);
             }
 
@@ -1911,20 +1899,20 @@ public class PublicRepository : IPublicRepository
 
         foreach (var source in contestSources)
         {
-            if (string.IsNullOrWhiteSpace(source)
-                || string.Equals(source, "General", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(source, "OBI", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(source, "ICPC Bolivia", StringComparison.OrdinalIgnoreCase))
+            var normalizedSource = NormalizeContestSourceForFilters(source);
+
+            if (string.IsNullOrWhiteSpace(normalizedSource)
+                || IsBuiltInProblemMenuSource(normalizedSource))
             {
                 continue;
             }
 
             items.Add(new PublicProblemMenuItem
             {
-                Key = $"source:{source.Trim()}",
-                Label = source.Trim(),
+                Key = $"source:{normalizedSource.Trim()}",
+                Label = normalizedSource.Trim(),
                 ContestTrack = "all",
-                Source = source.Trim()
+                Source = normalizedSource.Trim()
             });
         }
 
@@ -1954,6 +1942,26 @@ public class PublicRepository : IPublicRepository
         }
 
         return Regex.Replace(originSource.Trim(), @"\s+", " ");
+    }
+
+    private static string NormalizeContestSourceForFilters(string? source)
+    {
+        var normalizedSource = CollapseWhitespace(source);
+        if (string.IsNullOrWhiteSpace(normalizedSource))
+        {
+            return string.Empty;
+        }
+
+        return Regex.IsMatch(normalizedSource, @"^General\s+\d{4}$", RegexOptions.IgnoreCase)
+            ? "General"
+            : normalizedSource;
+    }
+
+    private static bool IsBuiltInProblemMenuSource(string source)
+    {
+        return string.Equals(source, "General", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(source, "OBI", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(source, "ICPC Bolivia", StringComparison.OrdinalIgnoreCase);
     }
 
     private sealed class ProblemMetadata
