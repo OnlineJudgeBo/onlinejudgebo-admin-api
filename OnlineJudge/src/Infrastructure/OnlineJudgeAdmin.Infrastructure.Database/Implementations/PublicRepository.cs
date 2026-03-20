@@ -1459,7 +1459,7 @@ public class PublicRepository : IPublicRepository
         }
 
         var taggedProblems = await _context.Problems
-            .Where(problem => problem.ProblemId.HasValue && problemIds.Contains(problem.ProblemId.Value))
+            .Where(problem => problem.ProblemId.HasValue && problemIdList.Contains(problem.ProblemId.Value))
             .Include(problem => problem.Classifications)
             .ToListAsync();
 
@@ -1489,7 +1489,9 @@ public class PublicRepository : IPublicRepository
         var contests = await (
             from contestProblem in _context.ContestProblems
             join contest in _context.Contests on contestProblem.ContestId equals contest.ContestId
+            join contestSite in _context.ContestSites on contest.ContestId equals contestSite.ContestId
             where contestProblem.ProblemId.HasValue
+                && contestSite.SiteId == siteId
                 && problemIdList.Contains(contestProblem.ProblemId.Value)
                 && contest.Defunct == "N"
             select new
