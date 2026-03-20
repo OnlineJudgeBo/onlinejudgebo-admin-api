@@ -44,7 +44,8 @@ public class ProblemsController : ControllerBase
     [HttpGet("{problem_id}")]
     public async Task<IActionResult> GetProblemByIdAsync(int problem_id)
     {
-        return Ok(await _problemService.GetProblemByIdAsync(problem_id));
+        var currentUser = _userClaimsHelper.GetUserContextRole();
+        return Ok(await _problemService.GetProblemByIdAsync(problem_id, currentUser.SiteId));
     }
 
     [HttpPut("{problemId:int}")]
