@@ -32,6 +32,8 @@ public interface IAcademicRepository
 
     Task<PublicSubmissionsResponse> GetCourseAssignmentSubmissionsAsync(int siteId, long courseId, long assignmentId, int page, int pageSize);
 
+    Task<bool> CanViewCourseSubmissionSourceAsync(int siteId, int solutionId, string userId, bool includeAdminAccess);
+
     Task<IEnumerable<AcademicCourseRankingItem>> GetCourseRankingAsync(int siteId, long courseId);
 
     Task<AcademicCourseReportResponse> GetCourseReportAsync(int siteId, long courseId);

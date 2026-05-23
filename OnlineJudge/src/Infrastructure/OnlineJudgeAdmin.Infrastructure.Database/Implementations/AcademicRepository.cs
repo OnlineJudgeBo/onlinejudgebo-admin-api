@@ -732,6 +732,50 @@ public class AcademicRepository : IAcademicRepository
         };
     }
 
+    public async Task<bool> CanViewCourseSubmissionSourceAsync(int siteId, int solutionId, string userId, bool includeAdminAccess)
+    {
+        var solutionBelongsToSite = await _context.Solutions
+            .AnyAsync(solution => solution.SiteId == siteId && solution.SolutionId == solutionId);
+
+        if (!solutionBelongsToSite)
+        {
+            return false;
+        }
+
+        var submissionContext = await _academicContext.CourseSubmissionContexts
+            .Where(item => item.SolutionId == solutionId)
+            .Select(item => new
+            {
+                item.CourseId
+            })
+            .FirstOrDefaultAsync();
+
+        if (submissionContext == null)
+        {
+            return false;
+        }
+
+        if (includeAdminAccess)
+        {
+            return true;
+        }
+
+        var courseOwnerUserId = await _academicContext.Courses
+            .Where(course => course.CourseId == submissionContext.CourseId)
+            .Select(course => course.CreatedByUserId)
+            .FirstOrDefaultAsync();
+
+        if (string.Equals(courseOwnerUserId, userId, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return await _academicContext.CourseUsers
+            .AnyAsync(member => member.CourseId == submissionContext.CourseId
+                && member.UserId == userId
+                && (member.Role == "admin" || member.Role == "teacher" || member.Role == "assistant"));
+    }
+
     public async Task<IEnumerable<AcademicCourseRankingItem>> GetCourseRankingAsync(int siteId, long courseId)
     {
         var report = await BuildCourseReportAsync(siteId, courseId, includeOwner: false);
