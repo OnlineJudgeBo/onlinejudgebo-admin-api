@@ -187,7 +187,7 @@ public class AcademicService : IAcademicService
 
         var assignment = await _academicRepository.GetCourseAssignmentAsync(siteId, courseId, assignmentId, currentUser.UserId);
         assignment.MemberRole = course.MemberRole;
-        assignment.CanManage = IsAcademicManager(currentUser);
+        assignment.CanManage = course.CanManage || IsAcademicManager(currentUser);
         return assignment;
     }
 

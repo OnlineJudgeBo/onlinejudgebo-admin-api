@@ -11,6 +11,7 @@ namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
 public class PublicService : IPublicService
 {
     private readonly IPublicRepository _publicRepository;
+    private readonly IAcademicRepository _academicRepository;
     private readonly IAcademicService _academicService;
     private readonly ISolutionService _solutionService;
     private readonly IPasswordRecoveryEmailService _passwordRecoveryEmailService;
@@ -19,6 +20,7 @@ public class PublicService : IPublicService
 
     public PublicService(
         IPublicRepository publicRepository,
+        IAcademicRepository academicRepository,
         IAcademicService academicService,
         ISolutionService solutionService,
         IPasswordRecoveryEmailService passwordRecoveryEmailService,
@@ -26,6 +28,7 @@ public class PublicService : IPublicService
         IConfiguration configuration)
     {
         _publicRepository = publicRepository ?? throw new ArgumentNullException(nameof(publicRepository));
+        _academicRepository = academicRepository ?? throw new ArgumentNullException(nameof(academicRepository));
         _academicService = academicService ?? throw new ArgumentNullException(nameof(academicService));
         _solutionService = solutionService ?? throw new ArgumentNullException(nameof(solutionService));
         _passwordRecoveryEmailService = passwordRecoveryEmailService ?? throw new ArgumentNullException(nameof(passwordRecoveryEmailService));
@@ -197,14 +200,32 @@ public class PublicService : IPublicService
         ValidatePositiveId(solutionId, "SolutionId");
 
         var solution = await _solutionService.GetSolutionByIdAsync(solutionId);
-        if (solution == null
-            || !string.Equals(solution.UserId, currentUser.UserId, StringComparison.OrdinalIgnoreCase)
-            || solution.SiteId != currentUser.SiteId)
+        if (solution == null || solution.SiteId != currentUser.SiteId)
+        {
+            throw new KeyNotFoundException("No se encontró el envío solicitado.");
+        }
+
+        var isOwner = string.Equals(solution.UserId, currentUser.UserId, StringComparison.OrdinalIgnoreCase);
+        var canViewCourseSubmissionSource = !isOwner
+            && await _academicRepository.CanViewCourseSubmissionSourceAsync(
+                currentUser.SiteId,
+                solutionId,
+                currentUser.UserId,
+                IsAcademicManager(currentUser));
+
+        if (!isOwner && !canViewCourseSubmissionSource)
         {
             throw new KeyNotFoundException("No se encontró el envío solicitado.");
         }
 
         return PublicSubmissionStatusMapper.Map(solution);
+    }
+
+    private static bool IsAcademicManager(CurrentUser currentUser)
+    {
+        return currentUser.Role == UserRolesEnum.Administrador
+            || currentUser.Role == UserRolesEnum.Docente
+            || currentUser.Role == UserRolesEnum.Auxiliar;
     }
 
     public Task<PublicAuthenticatedUser> LoginAsync(string userOrEmail, string password, int siteId)
