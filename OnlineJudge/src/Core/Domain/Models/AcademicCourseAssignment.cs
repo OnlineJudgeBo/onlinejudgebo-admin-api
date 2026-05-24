@@ -46,4 +46,6 @@ public class AcademicCourseAssignmentProblem
     public bool IsSolvedByCurrentUser { get; set; }
 
     public int AttemptsByCurrentUser { get; set; }
+
+    public int TotalSubmissions { get; set; }
 }

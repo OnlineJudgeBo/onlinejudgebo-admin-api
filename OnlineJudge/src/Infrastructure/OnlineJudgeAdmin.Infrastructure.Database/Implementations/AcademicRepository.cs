@@ -1344,6 +1344,21 @@ public class AcademicRepository : IAcademicRepository
                 })
                 .ToDictionaryAsync(problem => problem.ProblemId, problem => problem.Title);
 
+        var studentUserIds = await _academicContext.CourseUsers
+            .Where(member => member.CourseId == courseId && member.Role == "student")
+            .Select(member => member.UserId)
+            .Distinct()
+            .ToListAsync();
+        var allStudentSolutions = studentUserIds.Count == 0
+            ? new List<CourseScopedSolutionRow>()
+            : await BuildScopedCourseSolutionsAsync(siteId, courseId, assignmentIdSet, userIds: studentUserIds);
+        var totalSubmissionsByAssignmentProblem = allStudentSolutions
+            .GroupBy(solution => new
+            {
+                solution.AssignmentId,
+                solution.ProblemId
+            })
+            .ToDictionary(group => (group.Key.AssignmentId, group.Key.ProblemId), group => group.Count());
         var currentUserSolutions = string.IsNullOrWhiteSpace(currentUserId)
             ? new List<CourseScopedSolutionRow>()
             : await BuildScopedCourseSolutionsAsync(siteId, courseId, assignmentIdSet, singleUserId: currentUserId);
@@ -1411,6 +1426,9 @@ public class AcademicRepository : IAcademicRepository
                             IsSolvedByCurrentUser = solvedProblemsByAssignment.Contains((assignment.AssignmentId, problem.ProblemId)),
                             AttemptsByCurrentUser = attemptsByAssignmentProblem.TryGetValue((assignment.AssignmentId, problem.ProblemId), out var attempts)
                                 ? attempts
+                                : 0,
+                            TotalSubmissions = totalSubmissionsByAssignmentProblem.TryGetValue((assignment.AssignmentId, problem.ProblemId), out var totalSubmissions)
+                                ? totalSubmissions
                                 : 0
                         })
                         .ToList()
