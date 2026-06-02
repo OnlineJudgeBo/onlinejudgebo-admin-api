@@ -28,6 +28,7 @@ public class ProblemRepository : IProblemRepository
                 ProblemId = p.ProblemId,
                 Title = p.Title,
                 Source = p.Source,
+                OriginSource = p.OriginSource,
                 InDate = p.InDate,
                 Submit = p.Submit,
                 Accepted = p.Accepted,
@@ -62,6 +63,7 @@ public class ProblemRepository : IProblemRepository
                 ProblemId = p.ProblemId,
                 Title = p.Title,
                 Source = p.Source,
+                OriginSource = p.OriginSource,
                 InDate = p.InDate,
                 Submit = p.Submit,
                 Accepted = p.Accepted,
@@ -87,9 +89,10 @@ public class ProblemRepository : IProblemRepository
         return _mapper.Map<IEnumerable<Problem>>(problems);
     }
 
-    public async Task<IEnumerable<Problem>> SearchProblemForAdminAsync(string searchTerm)
+    public async Task<IEnumerable<Problem>> SearchProblemForAdminAsync(string searchTerm, int siteId)
     {
         IQueryable<DbProblem> query = _context.Problems
+            .Where(p => p.ProblemSites.Any(site => site.SiteId == siteId))
             .OrderBy(p => p.ProblemId);
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
@@ -104,6 +107,7 @@ public class ProblemRepository : IProblemRepository
             {
                 ProblemId = po.ProblemId,
                 Title = po.Title,
+                OriginSource = po.OriginSource,
                 Classifications = po.Classifications.Select(t => new DbClassification
                 {
                     Name = t.Name,
@@ -119,9 +123,10 @@ public class ProblemRepository : IProblemRepository
         return _mapper.Map<IEnumerable<Problem>>(users);
     }
 
-    public async Task<IEnumerable<Problem>> SearchProblemAsync(string searchTerm)
+    public async Task<IEnumerable<Problem>> SearchProblemAsync(string searchTerm, int siteId)
     {
         IQueryable<DbProblem> query = _context.Problems
+            .Where(p => p.ProblemSites.Any(site => site.SiteId == siteId))
             .Where(p => p.Defunct == "N" || p.Defunct == "Y")
             .OrderBy(p => p.ProblemId);
 
@@ -137,6 +142,7 @@ public class ProblemRepository : IProblemRepository
             {
                 ProblemId = po.ProblemId,
                 Title = po.Title,
+                OriginSource = po.OriginSource,
                 Classifications = po.Classifications.Select(t => new DbClassification
                 {
                     Name = t.Name,
@@ -152,10 +158,17 @@ public class ProblemRepository : IProblemRepository
         return _mapper.Map<IEnumerable<Problem>>(users);
     }
 
-    public async Task<Problem> GetProblemByIdAsync(int problemId)
+    public async Task<Problem> GetProblemByIdAsync(int problemId, int? siteId = null)
     {
-        DbProblem? problem = await _context.Problems
-            .Where(p => p.ProblemId == problemId)
+        IQueryable<DbProblem> query = _context.Problems
+            .Where(p => p.ProblemId == problemId);
+
+        if (siteId.HasValue)
+        {
+            query = query.Where(p => p.ProblemSites.Any(site => site.SiteId == siteId.Value));
+        }
+
+        DbProblem? problem = await query
             .Select(p => new DbProblem
             {
                 ProblemId = p.ProblemId,
@@ -168,6 +181,7 @@ public class ProblemRepository : IProblemRepository
                 TimeLimit = p.TimeLimit,
                 MemoryLimit = p.MemoryLimit,
                 Source = p.Source,
+                OriginSource = p.OriginSource,
                 InDate = p.InDate,
                 Submit = p.Submit,
                 Accepted = p.Accepted,

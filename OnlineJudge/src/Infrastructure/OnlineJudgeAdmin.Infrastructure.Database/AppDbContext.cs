@@ -128,6 +128,10 @@ public partial class AppDbContext : DbContext
                 .HasComment("bits for LANG to mask")
                 .HasColumnType("int(11)")
                 .HasColumnName("langmask");
+            entity.Property(e => e.Level)
+                .HasMaxLength(32)
+                .HasDefaultValueSql("'PRACTICE'")
+                .HasColumnName("level");
             entity.Property(e => e.Obi).HasColumnName("obi");
             entity.Property(e => e.Private)
                 .HasColumnType("tinyint(4)")
@@ -135,6 +139,10 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.StartTime)
                 .HasColumnType("datetime")
                 .HasColumnName("start_time");
+            entity.Property(e => e.Track)
+                .HasMaxLength(32)
+                .HasDefaultValueSql("'GENERAL'")
+                .HasColumnName("track");
             //.HasConversion(DateTimeConverter.ValueConverter);
             entity.Property(e => e.Title)
                 .HasMaxLength(255)
@@ -193,8 +201,7 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.SiteId)
                 .HasColumnType("int(11)")
-                .HasColumnName("site_id")
-                .HasDefaultValue(0);
+                .HasColumnName("site_id");
 
             entity.Property(e => e.Name)
                 .HasColumnType("varchar(100)")
@@ -433,6 +440,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Source)
                 .HasMaxLength(100)
                 .HasColumnName("source");
+            entity.Property(e => e.OriginSource)
+                .HasMaxLength(255)
+                .HasColumnName("origin_source");
             entity.Property(e => e.Spj)
                 .HasMaxLength(1)
                 .HasDefaultValueSql("'0'")
@@ -570,6 +580,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.ProblemId)
                 .HasColumnType("int(11)")
                 .HasColumnName("problem_id");
+            entity.Property(e => e.RemoteId)
+                .HasColumnType("int(11)")
+                .HasColumnName("remote_id");
             entity.Property(e => e.Result)
                 .HasColumnType("smallint(6)")
                 .HasColumnName("result");
@@ -943,6 +956,8 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("is_available")
                 .IsRequired();
         });
+
+        OnModelCreatingPartial(modelBuilder);
     }
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 }
@@ -955,4 +970,3 @@ public class DateTimeConverter
             v => v.HasValue && v.Value.Year < 2 ? null : v // Conversión al leer de la base de datos: maneja explícitamente los valores nulos.
         );
 }
-

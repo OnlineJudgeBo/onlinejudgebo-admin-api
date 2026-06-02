@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using MySql.Data.MySqlClient;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 using OnlineJudgeAdmin.Infrastructure.Database.Implementations;
 using OnlineJudgeAdmin.Infrastructure.Database.Models;
@@ -24,6 +25,8 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.DependencyInjection
             services.AddScoped<IJudgeRepository, JudgeRepository>();
             services.AddScoped<ISolutionRepository, SolutionRepository>();
             services.AddScoped<ISolutionClientRepository, SolutionClientRepository>();
+            services.AddScoped<IAcademicRepository, AcademicRepository>();
+            services.AddScoped<IPublicRepository, PublicRepository>();
 
             services.AddMysqlClient(configuration);
             return services;
@@ -31,15 +34,46 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.DependencyInjection
 
         private static IServiceCollection AddMysqlClient(this IServiceCollection services, IConfiguration configuration)
         {
-            var connectionString = configuration.GetConnectionString("DefaultConnection");
-            var mysqlMajor = configuration.GetConnectionString("MysqlMajor");
-            var mysqlMinor = configuration.GetConnectionString("MysqlMinor");
-            var mysqlBuild = configuration.GetConnectionString("MysqlBuild");
+            var connectionString = GetRequiredConnectionSetting(configuration, "DefaultConnection");
+            var academicConnectionString = ResolveAcademicConnectionString(configuration, connectionString);
+            var mysqlMajor = GetRequiredConnectionSetting(configuration, "MysqlMajor");
+            var mysqlMinor = GetRequiredConnectionSetting(configuration, "MysqlMinor");
+            var mysqlBuild = GetRequiredConnectionSetting(configuration, "MysqlBuild");
+
+            var mysqlVersion = new MySqlServerVersion(new Version(
+                int.Parse(mysqlMajor),
+                int.Parse(mysqlMinor),
+                int.Parse(mysqlBuild)));
 
             services.AddDbContext<AppDbContext>(options =>
-                options.UseMySql(connectionString, new MySqlServerVersion(new Version(int.Parse(mysqlMajor), int.Parse(mysqlMinor), int.Parse(mysqlBuild)))));
+                options.UseMySql(connectionString, mysqlVersion));
+
+            services.AddDbContext<AcademicCatalogDbContext>(options =>
+                options.UseMySql(academicConnectionString, mysqlVersion));
 
             return services;
+        }
+
+        private static string GetRequiredConnectionSetting(IConfiguration configuration, string key)
+        {
+            return configuration.GetConnectionString(key)
+                ?? throw new InvalidOperationException($"{key} is not configured.");
+        }
+
+        private static string ResolveAcademicConnectionString(IConfiguration configuration, string defaultConnectionString)
+        {
+            var configuredAcademicConnection = configuration.GetConnectionString("AcademicConnection");
+            if (!string.IsNullOrWhiteSpace(configuredAcademicConnection))
+            {
+                return configuredAcademicConnection;
+            }
+
+            var builder = new MySqlConnectionStringBuilder(defaultConnectionString)
+            {
+                Database = "academic"
+            };
+
+            return builder.ConnectionString;
         }
     }
 }
