@@ -29,6 +29,8 @@ public class DbProblemProfile : Profile
         .ForMember(dest => dest.Langmask, opt => opt.MapFrom(src => src.Langmask))
         .ForMember(dest => dest.ProgrammingLanguages, opt => opt.MapFrom(src => src.ProgrammingLanguages))
         .ForMember(dest => dest.Obi, opt => opt.MapFrom(src => src.Obi))
+        .ForMember(dest => dest.Track, opt => opt.MapFrom(src => src.Track))
+        .ForMember(dest => dest.Level, opt => opt.MapFrom(src => src.Level))
         .ForMember(dest => dest.ContestProblems, opt => opt.MapFrom(src => src.ContestProblems))
         .ForMember(dest => dest.ContestUsers, opt => opt.MapFrom(src => src.ContestUsers));
 
@@ -94,6 +96,7 @@ public class DbProblemProfile : Profile
             .ForMember(dest => dest.Num, opt => opt.MapFrom(src => src.Num))
             .ForMember(dest => dest.CodeLength, opt => opt.MapFrom(src => src.CodeLength))
             .ForMember(dest => dest.IsRemoteOj, opt => opt.MapFrom(src => src.IsRemoteOj))
-            .ForMember(dest => dest.RemoteId, opt => opt.MapFrom(src => src.RemoteId));
+            .ForMember(dest => dest.RemoteId, opt => opt.MapFrom(src => src.RemoteId))
+            .ForMember(dest => dest.SiteId, opt => opt.MapFrom(src => src.SiteId));
     }
 }

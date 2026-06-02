@@ -12,7 +12,7 @@ public class FileManagerController : ControllerBase
 {
     private readonly IFileManagerService _fileManagerService;
     private readonly IMapper _mapper;
-    private readonly string baseDirectory = @"/tmp/zas/";
+    private readonly string baseDirectory = @"/tmp/zas";
     public FileManagerController(IFileManagerService fileManagerService, IMapper mapper)
     {
         _fileManagerService = fileManagerService ?? throw new ArgumentNullException(nameof(fileManagerService));
@@ -40,20 +40,31 @@ public class FileManagerController : ControllerBase
     [HttpGet("local-storage")]
     public IActionResult GetFiles(int problemId)
     {
-        var result = GetDirectoryContents(baseDirectory + problemId + "");
+        var result = GetDirectoryContents(GetProblemDirectory(problemId));
         return Ok(result);
     }
 
     [HttpGet("local-storage/ac")]
     public IActionResult GetFilesAc(int problemId)
     {
-        var result = GetDirectoryContents(baseDirectory + problemId + "/ac");
+        var result = GetDirectoryContents(Path.Combine(GetProblemDirectory(problemId), "ac"));
         return Ok(result);
     }
 
-    private static object GetDirectoryContents(string path, string rootPath = null)
+    private string GetProblemDirectory(int problemId)
+    {
+        return Path.Combine(baseDirectory, problemId.ToString());
+    }
+
+    private static object GetDirectoryContents(string path, string? rootPath = null)
     {
         Console.WriteLine($"Getting directory contents for path: {path}.");
+        if (!Directory.Exists(path))
+        {
+            Console.WriteLine($"Directory does not exist for path: {path}.");
+            return Array.Empty<object>();
+        }
+
         DirectoryInfo directoryInfo = new DirectoryInfo(path);
         rootPath ??= path;
 
@@ -76,7 +87,7 @@ public class FileManagerController : ControllerBase
     [HttpGet("local-storage/content")]
     public IActionResult GetFileContent(int problemId, string fileName)
     {
-        var filePath = Path.Combine(baseDirectory, problemId.ToString(), fileName);
+        var filePath = Path.Combine(GetProblemDirectory(problemId), fileName);
         if (!System.IO.File.Exists(filePath))
         {
             return NotFound();
@@ -94,7 +105,17 @@ public class FileManagerController : ControllerBase
             return BadRequest("Upload a file.");
         }
 
-        var filePath = Path.Combine(baseDirectory, problemId.ToString(), fileName);
+        var directoryPath = GetProblemDirectory(problemId);
+        Directory.CreateDirectory(directoryPath);
+
+        var filePath = Path.Combine(directoryPath, fileName);
+        var targetDirectory = Path.GetDirectoryName(filePath);
+
+        if (!string.IsNullOrWhiteSpace(targetDirectory))
+        {
+            Directory.CreateDirectory(targetDirectory);
+        }
+
         using (var stream = new FileStream(filePath, FileMode.Create))
         {
             await file.CopyToAsync(stream);
@@ -105,7 +126,7 @@ public class FileManagerController : ControllerBase
     [HttpDelete("local-storage")]
     public IActionResult DeleteFile(int problemId, string fileName)
     {
-        var filePath = Path.Combine(baseDirectory, problemId.ToString(), fileName);
+        var filePath = Path.Combine(GetProblemDirectory(problemId), fileName);
         if (!System.IO.File.Exists(filePath))
         {
             return NotFound();

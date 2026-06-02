@@ -103,11 +103,23 @@ app.UseHttpsRedirection();
 
 app.UseRouting();
 
-app.UseCors(builder =>
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+
+app.UseCors(corsBuilder =>
 {
-    builder.AllowAnyOrigin()
+    if (allowedOrigins.Length > 0)
+    {
+        corsBuilder.WithOrigins(allowedOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+        return;
+    }
+
+    corsBuilder.SetIsOriginAllowed(_ => true)
         .AllowAnyHeader()
-        .AllowAnyMethod();
+        .AllowAnyMethod()
+        .AllowCredentials();
 });
 
 app.UseMiddleware<ExceptionHandler>();

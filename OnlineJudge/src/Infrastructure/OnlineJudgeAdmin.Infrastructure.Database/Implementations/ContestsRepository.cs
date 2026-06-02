@@ -33,7 +33,9 @@ public class ContestsRepository : IContestsRepository
                     Private = c.Private,
                     StartTime = c.StartTime,
                     EndTime = c.EndTime,
-                    Defunct = c.Defunct
+                    Defunct = c.Defunct,
+                    Track = c.Track,
+                    Level = c.Level
                 });
         }
         else
@@ -54,7 +56,9 @@ public class ContestsRepository : IContestsRepository
                     Private = c.Private,
                     StartTime = c.StartTime,
                     EndTime = c.EndTime,
-                    Defunct = c.Defunct
+                    Defunct = c.Defunct,
+                    Track = c.Track,
+                    Level = c.Level
                 });
         }
 
@@ -76,7 +80,9 @@ public class ContestsRepository : IContestsRepository
                 Private = c.Private,
                 StartTime = c.StartTime,
                 EndTime = c.EndTime,
-                Defunct = c.Defunct
+                Defunct = c.Defunct,
+                Track = c.Track,
+                Level = c.Level
             })
             .Take(100);
         var contests = await query.ToListAsync();
@@ -97,6 +103,8 @@ public class ContestsRepository : IContestsRepository
             EndTime = c.EndTime,
             Defunct = c.Defunct,
             Langmask = c.Langmask,
+            Track = c.Track,
+            Level = c.Level,
             ProgrammingLanguages = c.ProgrammingLanguages.Select(c => new DbProgrammingLanguage
             {
                 LanguageId = c.LanguageId,

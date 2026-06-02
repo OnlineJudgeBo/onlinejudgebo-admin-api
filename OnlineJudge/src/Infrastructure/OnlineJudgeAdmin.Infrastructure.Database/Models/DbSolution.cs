@@ -53,7 +53,10 @@ public partial class DbSolution
     public bool IsRemoteOj { get; set; }
 
     [Column("remote_id")]
-    public int RemoteId { get; set; }
+    public int? RemoteId { get; set; }
+
+    [Column("site_id")]
+    public int SiteId { get; set; }
 
     public virtual DbCompileinfo? Compileinfo { get; set; }
 
