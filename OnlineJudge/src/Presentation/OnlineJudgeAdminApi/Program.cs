@@ -12,6 +12,7 @@ using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using OnlineJudgeAdminApi.ExceptionHandler;
 using OnlineJudgeAdminApi.Helpers;
+using OnlineJudgeAdminApi.Services.IdeIntegration;
 using OnlineJudgeAdmin.Infrastructure.Database.Models;
 using ScheduleManager.Infrastructure.Database.DependencyInjection;
 using ScheduleManager.Infrastructure.Database;
@@ -85,6 +86,9 @@ builder.Services.AddApplicationScheduleServices(builder.Configuration);
 builder.Services.AddFileSystemLocalManagerInfrastructureManager(builder.Configuration);
 builder.Services.AddAwsS3FileManager(builder.Configuration);
 builder.Services.AddScoped<UserClaimsHelper>();
+builder.Services.AddScoped<IIdeLaunchTokenValidator, IdeLaunchTokenValidator>();
+builder.Services.AddScoped<IIdeLanguageDefinitionService, IdeLanguageDefinitionService>();
+builder.Services.AddScoped<IIdeContextService, IdeContextService>();
 
 var app = builder.Build();
 
