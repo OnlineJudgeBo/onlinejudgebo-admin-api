@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OnlineJudgeAdminApi.Helpers;
 using OnlineJudgeAdminApi.Services.IdeIntegration;
 
 namespace OnlineJudgeAdminApi.Controllers;
@@ -32,7 +33,7 @@ public sealed class IdeContextController : ControllerBase
         IdeLaunchClaims claims;
         try
         {
-            claims = _tokenValidator.Validate(token ?? BearerToken());
+            claims = _tokenValidator.Validate(token ?? Request.GetBearerToken());
         }
         catch (Exception error) when (error is ArgumentException or InvalidOperationException)
         {
@@ -62,11 +63,4 @@ public sealed class IdeContextController : ControllerBase
         };
     }
 
-    private string BearerToken()
-    {
-        var header = Request.Headers.Authorization.ToString();
-        return header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
-            ? header["Bearer ".Length..].Trim()
-            : string.Empty;
-    }
 }

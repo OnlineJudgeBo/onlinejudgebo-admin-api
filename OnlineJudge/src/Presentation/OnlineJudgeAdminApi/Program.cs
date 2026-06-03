@@ -37,6 +37,16 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
         options.Events = new JwtBearerEvents
         {
+            OnMessageReceived = context =>
+            {
+                if (context.HttpContext.Request.Path.StartsWithSegments("/api/vibe")
+                    || context.HttpContext.Request.Path.StartsWithSegments("/api/ide"))
+                {
+                    context.NoResult();
+                }
+
+                return Task.CompletedTask;
+            },
             OnAuthenticationFailed = context =>
             {
                 Console.WriteLine("Authentication failed: " + context.Exception.Message);
@@ -89,6 +99,7 @@ builder.Services.AddScoped<UserClaimsHelper>();
 builder.Services.AddScoped<IIdeLaunchTokenValidator, IdeLaunchTokenValidator>();
 builder.Services.AddScoped<IIdeLanguageDefinitionService, IdeLanguageDefinitionService>();
 builder.Services.AddScoped<IIdeContextService, IdeContextService>();
+builder.Services.AddScoped<IIdeSubmissionService, IdeSubmissionService>();
 
 var app = builder.Build();
 
