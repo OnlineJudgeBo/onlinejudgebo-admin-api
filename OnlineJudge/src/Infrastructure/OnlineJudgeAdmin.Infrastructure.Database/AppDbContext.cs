@@ -572,8 +572,9 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("memory");
             entity.Property(e => e.Num)
                 .HasDefaultValueSql("-1")
-                .HasColumnType("tinyint(4)")
-                .HasColumnName("num");
+                .HasColumnType("int(11)")
+                .HasColumnName("num")
+                .ValueGeneratedNever();
             entity.Property(e => e.PassRate)
                 .HasColumnType("decimal(2,2) unsigned")
                 .HasColumnName("pass_rate");

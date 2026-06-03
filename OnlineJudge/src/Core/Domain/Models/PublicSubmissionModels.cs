@@ -12,6 +12,8 @@ public class PublicSubmissionRequest
 
     public int? ContestId { get; set; }
 
+    public int? Num { get; set; }
+
     public long? CourseId { get; set; }
 
     public long? AssignmentId { get; set; }
