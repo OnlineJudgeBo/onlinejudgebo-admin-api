@@ -19,8 +19,8 @@ public sealed class IdeSubmissionService : IIdeSubmissionService
 
     public async Task<VibeSubmissionResponse> SubmitAsync(string launchToken, VibeSubmissionForCreation submission)
     {
-        var response = await SubmitToJudgeAsync(launchToken, submission);
-        var id = response.SolutionId.ToString();
+        PublicSubmissionResponse response = await SubmitToJudgeAsync(launchToken, submission);
+        string id = response.SolutionId.ToString();
 
         return new VibeSubmissionResponse
         {
@@ -32,8 +32,8 @@ public sealed class IdeSubmissionService : IIdeSubmissionService
 
     public async Task<VibeRunResponse> RunAsync(string launchToken, VibeSubmissionForCreation submission)
     {
-        var response = await SubmitToJudgeAsync(launchToken, submission);
-        var id = response.SolutionId.ToString();
+        PublicSubmissionResponse response = await SubmitToJudgeAsync(launchToken, submission);
+        string id = response.SolutionId.ToString();
 
         return new VibeRunResponse
         {
@@ -45,9 +45,9 @@ public sealed class IdeSubmissionService : IIdeSubmissionService
 
     public async Task<VibeSubmissionStatusResponse> GetStatusAsync(string launchToken, int solutionId)
     {
-        var claims = ValidateLaunchToken(launchToken);
-        var status = await _publicService.GetSubmissionStatusAsync(ToCurrentUser(claims), solutionId);
-        var id = status.SolutionId.ToString();
+        IdeLaunchClaims claims = ValidateLaunchToken(launchToken);
+        PublicSubmissionStatusResponse status = await _publicService.GetSubmissionStatusAsync(ToCurrentUser(claims), solutionId);
+        string id = status.SolutionId.ToString();
 
         return new VibeSubmissionStatusResponse
         {
@@ -71,16 +71,15 @@ public sealed class IdeSubmissionService : IIdeSubmissionService
 
     private async Task<PublicSubmissionResponse> SubmitToJudgeAsync(string launchToken, VibeSubmissionForCreation submission)
     {
-        var claims = ValidateLaunchToken(launchToken);
-        var contestId = ResolveContestId(claims, submission);
-
-        var contestProblemId = ResolveContestProblemId(claims, submission, contestId);
+        IdeLaunchClaims claims = ValidateLaunchToken(launchToken);
+        int? contestId = ResolveContestId(claims, submission);
 
         return await _publicService.SubmitAsync(ToCurrentUser(claims), new PublicSubmissionRequest
         {
             ProblemId = ResolveProblemId(claims, submission),
             ContestId = contestId,
-            ContestProblemId = contestProblemId,
+            Num = claims.Num ?? submission.Num,
+            ContestProblemId = ResolveContestProblemId(claims, submission, contestId),
             SourceCode = submission.SourceCode,
             LanguageId = ResolveLanguageId(claims, submission)
         });
@@ -149,8 +148,8 @@ public sealed class IdeSubmissionService : IIdeSubmissionService
 
     private static int ResolveProblemId(IdeLaunchClaims claims, VibeSubmissionForCreation submission)
     {
-        var requestProblemId = submission.ProblemIdAsInt();
-        var problemId = requestProblemId > 0 ? requestProblemId : claims.ProblemId;
+        int requestProblemId = submission.ProblemIdAsInt();
+        int problemId = requestProblemId > 0 ? requestProblemId : claims.ProblemId;
 
         if (problemId <= 0)
         {
@@ -172,7 +171,7 @@ public sealed class IdeSubmissionService : IIdeSubmissionService
             throw new ArgumentException("LanguageId es requerido.");
         }
 
-        var languageId = submission.LanguageId.Value;
+        int languageId = submission.LanguageId.Value;
         if (claims.AllowedLanguages.Length > 0 && !claims.AllowedLanguages.Contains(languageId))
         {
             throw new UnauthorizedAccessException("El token de IDE no permite usar este lenguaje.");

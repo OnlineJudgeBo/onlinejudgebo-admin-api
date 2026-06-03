@@ -38,7 +38,7 @@ public partial class DbSolution
     public int? ContestId { get; set; }
 
     [Column("num")]
-    public sbyte Num { get; set; }
+    public int Num { get; set; }
 
     [Column("code_length")]
     public int CodeLength { get; set; }

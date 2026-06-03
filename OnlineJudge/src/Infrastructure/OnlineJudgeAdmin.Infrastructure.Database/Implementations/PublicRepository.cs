@@ -1082,7 +1082,7 @@ public class PublicRepository : IPublicRepository
 
     public async Task<PublicSubmissionResponse> SubmitAsync(CurrentUser currentUser, PublicSubmissionRequest request, int languageId)
     {
-        var userExists = await _context.Users
+        bool userExists = await _context.Users
             .AnyAsync(user => user.UserId == currentUser.UserId
                 && user.SiteId == currentUser.SiteId
                 && !user.IsDeleted
@@ -1093,30 +1093,28 @@ public class PublicRepository : IPublicRepository
             throw new ArgumentException("Usuario inválido para este sitio.");
         }
 
-        var resolvedProblemId = request.ProblemId;
-        var contestNum = -1;
+        int? contestId = request.ContestId.HasValue && request.ContestId.Value > 0
+            ? request.ContestId.Value
+            : null;
+        ContestProblemReference? contestProblem = contestId.HasValue
+            ? await ResolveContestProblemAsync(currentUser.SiteId, contestId.Value, request)
+            : null;
+        int resolvedProblemId = contestProblem?.ProblemId ?? request.ProblemId ?? 0;
 
-        if (request.ContestId.HasValue && !string.IsNullOrWhiteSpace(request.ContestProblemId))
-        {
-            var contestProblem = await ResolveContestProblemReferenceAsync(currentUser.SiteId, request.ContestId.Value, request.ContestProblemId);
-            resolvedProblemId = contestProblem.ProblemId;
-            contestNum = contestProblem.Num;
-        }
-
-        if (!resolvedProblemId.HasValue || resolvedProblemId.Value <= 0)
+        if (resolvedProblemId <= 0)
         {
             throw new ArgumentException("Problema inválido o no disponible.");
         }
 
-        var problemExists = await _context.ProblemSites
-            .AnyAsync(problemSite => problemSite.problemId == resolvedProblemId.Value && problemSite.SiteId == currentUser.SiteId);
+        bool problemExists = await _context.ProblemSites
+            .AnyAsync(problemSite => problemSite.problemId == resolvedProblemId && problemSite.SiteId == currentUser.SiteId);
 
         if (!problemExists)
         {
             throw new ArgumentException("Problema inválido o no disponible.");
         }
 
-        var languageExists = await _context.ProgrammingLanguages
+        bool languageExists = await _context.ProgrammingLanguages
             .AnyAsync(language => language.LanguageId == languageId);
 
         if (!languageExists)
@@ -1124,27 +1122,28 @@ public class PublicRepository : IPublicRepository
             throw new ArgumentException("LanguageId no soportado.");
         }
 
-        if (request.ContestId.HasValue && request.ContestId.Value > 0)
+        if (contestId.HasValue)
         {
-            var contest = await EnsureContestExistsAsync(currentUser.SiteId, request.ContestId.Value);
+            DbContest contest = await EnsureContestExistsAsync(currentUser.SiteId, contestId.Value);
             EnsureContestAcceptsSubmissions(contest);
         }
 
-        if (contestNum < 0 && request.ContestId.HasValue && request.ContestId.Value > 0)
+        bool requiresContestProblem = contestId.HasValue
+            && (!string.IsNullOrWhiteSpace(request.ContestProblemId)
+                || request.Num.HasValue && request.Num.Value >= 0);
+
+        if (requiresContestProblem && contestProblem == null)
         {
-            contestNum = await _context.ContestProblems
-                .Where(item => item.ContestId == request.ContestId.Value && item.ProblemId == resolvedProblemId.Value)
-                .Select(item => (int?)item.Num)
-                .FirstOrDefaultAsync() ?? -1;
+            throw new ArgumentException("Problema del concurso inválido o no disponible.");
         }
 
-        var now = DateTime.Now;
+        DateTime now = DateTime.Now;
 
-        await using var transaction = await _context.Database.BeginTransactionAsync();
+        await using Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction = await _context.Database.BeginTransactionAsync();
 
-        var solution = new DbSolution
+        DbSolution solution = new DbSolution
         {
-            ProblemId = resolvedProblemId.Value,
+            ProblemId = resolvedProblemId,
             UserId = currentUser.UserId,
             Time = 0,
             Memory = 0,
@@ -1153,7 +1152,7 @@ public class PublicRepository : IPublicRepository
             Language = (uint)languageId,
             Ip = "0.0.0.0",
             ContestId = request.ContestId,
-            Num = (sbyte)Math.Clamp(contestNum, sbyte.MinValue, sbyte.MaxValue),
+            Num = contestProblem?.Num ?? -1,
             CodeLength = request.SourceCode.Length,
             PassRate = 0,
             IsRemoteOj = false,
@@ -1180,6 +1179,42 @@ public class PublicRepository : IPublicRepository
             AutoDetected = false,
             CreatedAtUtc = now
         };
+    }
+
+    private async Task<ContestProblemReference?> ResolveContestProblemAsync(int siteId, int contestId, PublicSubmissionRequest request)
+    {
+        if (!string.IsNullOrWhiteSpace(request.ContestProblemId))
+        {
+            return await ResolveContestProblemReferenceAsync(siteId, contestId, request.ContestProblemId);
+        }
+
+        IQueryable<DbContestProblem> query = _context.ContestProblems
+            .Where(problem => problem.ContestId == contestId
+                && problem.Num.HasValue
+                && problem.ProblemId.HasValue);
+
+        if (request.Num.HasValue && request.Num.Value >= 0)
+        {
+            query = query.Where(problem => problem.Num == request.Num.Value);
+        }
+        else if (request.ProblemId.HasValue && request.ProblemId.Value > 0)
+        {
+            query = query.Where(problem => problem.ProblemId == request.ProblemId.Value);
+        }
+        else
+        {
+            return null;
+        }
+
+        return await query
+            .Select(problem => new ContestProblemReference
+            {
+                ContestId = contestId,
+                ProblemId = problem.ProblemId!.Value,
+                Num = problem.Num!.Value,
+                ContestProblemId = ContestProblemCode.FromNumber(problem.Num!.Value)
+            })
+            .FirstOrDefaultAsync();
     }
 
     public async Task<PublicAuthenticatedUser> LoginAsync(string userOrEmail, string password, int siteId)
