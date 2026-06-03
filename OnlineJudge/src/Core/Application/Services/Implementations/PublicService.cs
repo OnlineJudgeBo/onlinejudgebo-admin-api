@@ -140,13 +140,14 @@ public class PublicService : IPublicService
     public async Task<PublicSubmissionResponse> SubmitAsync(CurrentUser currentUser, PublicSubmissionRequest request)
     {
         ValidateCurrentUser(currentUser);
+        bool hasProblemId = request.ProblemId.HasValue && request.ProblemId.Value > 0;
+        bool hasContestProblem = request.ContestId.HasValue
+            && (!string.IsNullOrWhiteSpace(request.ContestProblemId)
+                || request.Num.HasValue && request.Num.Value >= 0);
 
-        var hasProblemId = request.ProblemId.HasValue && request.ProblemId.Value > 0;
-        var hasContestAlias = request.ContestId.HasValue && !string.IsNullOrWhiteSpace(request.ContestProblemId);
-
-        if (!hasProblemId && !hasContestAlias)
+        if (!hasProblemId && !hasContestProblem)
         {
-            throw new ArgumentException("ProblemId o ContestProblemId es requerido.");
+            throw new ArgumentException("ProblemId, ContestProblemId o Num es requerido.");
         }
 
         if (string.IsNullOrWhiteSpace(request.SourceCode) || request.SourceCode.Trim().Length < 5)
@@ -171,7 +172,7 @@ public class PublicService : IPublicService
                 throw new ArgumentException("ProblemId es requerido para envíos académicos.");
             }
 
-            var academicResponse = await _academicService.SubmitAsync(currentUser, new AcademicSubmissionRequest
+            AcademicSubmissionResponse academicResponse = await _academicService.SubmitAsync(currentUser, new AcademicSubmissionRequest
             {
                 ProblemId = request.ProblemId!.Value,
                 SourceCode = request.SourceCode,

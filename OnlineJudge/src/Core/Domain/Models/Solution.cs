@@ -28,7 +28,7 @@ public partial class Solution
 
     public sbyte Valid { get; set; }
 
-    public sbyte Num { get; set; }
+    public int Num { get; set; }
 
     public int CodeLength { get; set; }
 

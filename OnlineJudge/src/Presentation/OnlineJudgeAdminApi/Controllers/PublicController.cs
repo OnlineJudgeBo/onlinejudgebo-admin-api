@@ -179,6 +179,7 @@ public class PublicController : ControllerBase
             SourceCode = submissionForCreation.SourceCode,
             LanguageId = submissionForCreation.LanguageId,
             ContestId = submissionForCreation.ContestId,
+            Num = submissionForCreation.Num,
             CourseId = submissionForCreation.CourseId,
             AssignmentId = submissionForCreation.AssignmentId,
             FileName = submissionForCreation.FileName
