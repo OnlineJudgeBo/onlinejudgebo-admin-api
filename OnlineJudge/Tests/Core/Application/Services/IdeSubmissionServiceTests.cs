@@ -53,6 +53,7 @@ public class IdeSubmissionServiceTests
         Assert.NotNull(capturedRequest);
         Assert.Equal(1000, capturedRequest!.ProblemId);
         Assert.Equal(3040, capturedRequest.ContestId);
+        Assert.Equal(0, capturedRequest.Num);
         Assert.Equal("A", capturedRequest.ContestProblemId);
         Assert.Equal(2, capturedRequest.LanguageId);
     }
@@ -97,6 +98,7 @@ public class IdeSubmissionServiceTests
         Assert.Equal("456", response.SubmissionId);
         Assert.NotNull(capturedRequest);
         Assert.Equal(3040, capturedRequest!.ContestId);
+        Assert.Equal(0, capturedRequest.Num);
         Assert.Equal("A", capturedRequest.ContestProblemId);
     }
 
