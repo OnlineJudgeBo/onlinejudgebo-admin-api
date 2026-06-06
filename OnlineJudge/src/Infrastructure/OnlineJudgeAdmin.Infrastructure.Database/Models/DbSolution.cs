@@ -60,6 +60,8 @@ public partial class DbSolution
 
     public virtual DbCompileinfo? Compileinfo { get; set; }
 
+    public virtual DbCustomInput? CustomInput { get; set; }
+
     public virtual DbProblem Problem { get; set; } = null!;
 
     public virtual DbRuntimeinfo? Runtimeinfo { get; set; }

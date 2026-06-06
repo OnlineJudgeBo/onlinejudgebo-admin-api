@@ -21,6 +21,11 @@ public class PublicRepository : IPublicRepository
         _academicContext = academicContext ?? throw new ArgumentNullException(nameof(academicContext));
     }
 
+    private IQueryable<DbSolution> OfficialSolutions()
+    {
+        return _context.Solutions.Where(solution => !_context.CustomInputs.Any(customInput => customInput.SolutionId == solution.SolutionId));
+    }
+
     public async Task<PublicDashboardResponse> GetDashboardAsync(int siteId)
     {
         var generatedAtUtc = DateTime.Now;
@@ -29,13 +34,13 @@ public class PublicRepository : IPublicRepository
 
         var problemCount = await _context.ProblemSites.CountAsync(problemSite => problemSite.SiteId == siteId);
 
-        var activeUsers = await _context.Solutions
+        var activeUsers = await OfficialSolutions()
             .Where(solution => solution.SiteId == siteId && solution.InDate >= fromDate)
             .Select(solution => solution.UserId)
             .Distinct()
             .CountAsync();
 
-        var submissionsLast30Days = await _context.Solutions
+        var submissionsLast30Days = await OfficialSolutions()
             .Where(solution => solution.SiteId == siteId && solution.InDate >= fromDate)
             .CountAsync();
 
@@ -158,7 +163,7 @@ public class PublicRepository : IPublicRepository
         if (contestId.HasValue && problems.Count > 0)
         {
             var contestProblemIds = problems.Select(problem => problem.ProblemId).Distinct().ToList();
-            var contestProblemStats = await _context.Solutions
+            var contestProblemStats = await OfficialSolutions()
                 .Where(solution =>
                     solution.SiteId == siteId
                     && solution.ContestId == contestId.Value
@@ -455,7 +460,7 @@ public class PublicRepository : IPublicRepository
 
     public async Task<PublicRankingResponse> GetRankingAsync(int siteId, int limit)
     {
-        var rankingRows = await _context.Solutions
+        var rankingRows = await OfficialSolutions()
             .Where(solution => solution.SiteId == siteId)
             .GroupBy(solution => solution.UserId)
             .Select(group => new
@@ -712,7 +717,7 @@ public class PublicRepository : IPublicRepository
             .Distinct()
             .ToListAsync();
 
-        var submissionStats = await _context.Solutions
+        var submissionStats = await OfficialSolutions()
             .Where(solution => solution.SiteId == siteId && solution.ContestId == contestId)
             .GroupBy(solution => solution.UserId)
             .Select(group => new
@@ -845,7 +850,7 @@ public class PublicRepository : IPublicRepository
 
     public async Task<PublicSubmissionsResponse> GetSubmissionsAsync(int siteId, int page, int pageSize, int? contestId)
     {
-        var baseQuery = _context.Solutions
+        var baseQuery = OfficialSolutions()
             .Where(solution => solution.SiteId == siteId);
 
         if (contestId.HasValue)
@@ -942,7 +947,7 @@ public class PublicRepository : IPublicRepository
 
     public async Task<PublicSubmissionsResponse> GetOwnSubmissionsAsync(CurrentUser currentUser, int page, int pageSize)
     {
-        var baseQuery = _context.Solutions
+        var baseQuery = OfficialSolutions()
             .Where(solution => solution.SiteId == currentUser.SiteId && solution.UserId == currentUser.UserId);
 
         var total = await baseQuery.CountAsync();
@@ -1031,7 +1036,7 @@ public class PublicRepository : IPublicRepository
 
     public async Task<IReadOnlyCollection<PublicSubmissionSourceCodeItem>> GetOwnSubmissionSourceCodesAsync(CurrentUser currentUser)
     {
-        var solutions = await _context.Solutions
+        var solutions = await OfficialSolutions()
             .AsNoTracking()
             .Where(solution => solution.SiteId == currentUser.SiteId && solution.UserId == currentUser.UserId)
             .Include(solution => solution.SourceCode)
@@ -1656,7 +1661,7 @@ public class PublicRepository : IPublicRepository
             return new HashSet<int>();
         }
 
-        var solvedProblemIds = await _context.Solutions
+        var solvedProblemIds = await OfficialSolutions()
             .Where(solution =>
                 solution.SiteId == siteId
                 && solution.Result == AcceptedResultCode
@@ -1681,7 +1686,7 @@ public class PublicRepository : IPublicRepository
             return new HashSet<int>();
         }
 
-        var attemptedProblemIds = await _context.Solutions
+        var attemptedProblemIds = await OfficialSolutions()
             .Where(solution =>
                 solution.SiteId == siteId
                 && solution.UserId == currentUser.UserId

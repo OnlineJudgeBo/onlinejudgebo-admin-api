@@ -8,5 +8,7 @@ public interface IIdeSubmissionService
 
     Task<VibeRunResponse> RunAsync(string launchToken, VibeSubmissionForCreation submission);
 
+    Task<VibeRunResponse> CustomInputAsync(string launchToken, VibeSubmissionForCreation submission);
+
     Task<VibeSubmissionStatusResponse> GetStatusAsync(string launchToken, int solutionId);
 }
