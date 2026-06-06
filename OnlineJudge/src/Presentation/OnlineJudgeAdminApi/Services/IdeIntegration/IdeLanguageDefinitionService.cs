@@ -24,24 +24,33 @@ public sealed class IdeLanguageDefinitionService : IIdeLanguageDefinitionService
                 language.LanguageId!.Value,
                 language.Name ?? string.Empty,
                 ToIdeLanguage(language)))
-            .Where(language => language.IdeLanguage is not null)
             .ToArray();
     }
 
-    private static string? ToIdeLanguage(ProgrammingLanguage language)
+    private static string ToIdeLanguage(ProgrammingLanguage language)
     {
         var name = NormalizeLanguageName(language.Name);
-        if (name.Contains("c++") || name.Contains("cpp")) return "cpp";
+        if (name is "c" || name.Contains("c++") || name.Contains("cpp")) return "cpp";
         if (name.Contains("python")) return "python";
         if (name.Contains("java") && !name.Contains("script")) return "java";
-        if (name.Contains("go") || name.Contains("golang")) return "go";
+        if (name is "go" || name.Contains("golang")) return "go";
         if (name.Contains("javascript") || name.Contains("node")) return "javascript";
         if (name.Contains("rust")) return "rust";
-        return null;
+        return ToIdeLanguageId(name);
     }
 
     private static string NormalizeLanguageName(string? name)
     {
         return (name ?? string.Empty).Trim().ToLowerInvariant();
+    }
+
+    private static string ToIdeLanguageId(string normalizedName)
+    {
+        var id = new string(normalizedName
+            .Select(character => char.IsLetterOrDigit(character) ? character : '-')
+            .ToArray())
+            .Trim('-');
+
+        return string.IsNullOrWhiteSpace(id) ? "text" : id;
     }
 }
