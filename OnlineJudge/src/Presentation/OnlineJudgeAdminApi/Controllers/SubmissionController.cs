@@ -64,7 +64,14 @@ public class SubmissionController : ControllerBase
     [HttpPost("/api/vibe/runs")]
     public async Task<IActionResult> RunFromIdeAsync([FromBody] VibeSubmissionForCreation submission)
     {
-        return Ok(await _ideSubmissionService.RunAsync(Request.GetBearerToken(), submission));
+        return Ok(await _ideSubmissionService.CustomInputAsync(Request.GetBearerToken(), submission));
+    }
+
+    [AllowAnonymous]
+    [HttpPost("/api/vibe/custom-input")]
+    public async Task<IActionResult> CustomInputFromIdeAsync([FromBody] VibeSubmissionForCreation submission)
+    {
+        return Ok(await _ideSubmissionService.CustomInputAsync(Request.GetBearerToken(), submission));
     }
 
     [AllowAnonymous]
