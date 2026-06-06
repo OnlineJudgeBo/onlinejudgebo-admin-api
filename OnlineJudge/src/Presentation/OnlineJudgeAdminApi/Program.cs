@@ -103,6 +103,33 @@ builder.Services.AddScoped<IIdeSubmissionService, IdeSubmissionService>();
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    dbContext.Database.ExecuteSqlRaw("""
+        CREATE TABLE IF NOT EXISTS custom_input (
+          solution_id INT NOT NULL,
+          problem_id INT NOT NULL,
+          user_id VARCHAR(48) NOT NULL,
+          site_id INT NOT NULL,
+          created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (solution_id),
+          KEY custom_input_problem_id (problem_id),
+          KEY custom_input_user_id (user_id),
+          KEY custom_input_site_id (site_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        """);
+    dbContext.Database.ExecuteSqlRaw("""
+        CREATE TABLE IF NOT EXISTS custom_input_case (
+          solution_id INT NOT NULL,
+          case_number INT NOT NULL,
+          input_text MEDIUMTEXT NOT NULL,
+          expected_output MEDIUMTEXT NULL,
+          PRIMARY KEY (solution_id, case_number)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        """);
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

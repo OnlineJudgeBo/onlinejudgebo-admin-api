@@ -16,6 +16,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<DbContest> Contests { get; set; }
     public virtual DbSet<DbContestProblem> ContestProblems { get; set; }
     public virtual DbSet<DbContestUser> ContestUsers { get; set; }
+    public virtual DbSet<DbCustomInput> CustomInputs { get; set; }
+    public virtual DbSet<DbCustomInputCase> CustomInputCases { get; set; }
     public virtual DbSet<DbNews> News { get; set; }
     public virtual DbSet<DbPrivilege> Privilege { get; set; }
     public virtual DbSet<DbProblem> Problems { get; set; }
@@ -304,6 +306,68 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(48)
                 .HasDefaultValueSql("''")
                 .HasColumnName("user_id");
+        });
+
+
+        modelBuilder.Entity<DbCustomInput>(entity =>
+        {
+            entity.HasKey(e => e.SolutionId).HasName("PRIMARY");
+
+            entity
+                .ToTable("custom_input")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_general_ci");
+
+            entity.Property(e => e.SolutionId)
+                .ValueGeneratedNever()
+                .HasColumnType("int(11)")
+                .HasColumnName("solution_id");
+            entity.Property(e => e.ProblemId)
+                .HasColumnType("int(11)")
+                .HasColumnName("problem_id");
+            entity.Property(e => e.UserId)
+                .HasMaxLength(48)
+                .HasColumnName("user_id");
+            entity.Property(e => e.SiteId)
+                .HasColumnType("int(11)")
+                .HasColumnName("site_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("created_at");
+
+            entity.HasOne(d => d.Solution).WithOne(p => p.CustomInput)
+                .HasForeignKey<DbCustomInput>(d => d.SolutionId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("custom_input_ibfk_1");
+        });
+
+        modelBuilder.Entity<DbCustomInputCase>(entity =>
+        {
+            entity.HasKey(e => new { e.SolutionId, e.CaseNumber }).HasName("PRIMARY");
+
+            entity
+                .ToTable("custom_input_case")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_general_ci");
+
+            entity.Property(e => e.SolutionId)
+                .HasColumnType("int(11)")
+                .HasColumnName("solution_id");
+            entity.Property(e => e.CaseNumber)
+                .HasColumnType("int(11)")
+                .HasColumnName("case_number");
+            entity.Property(e => e.InputText)
+                .HasColumnType("mediumtext")
+                .HasColumnName("input_text");
+            entity.Property(e => e.ExpectedOutput)
+                .HasColumnType("mediumtext")
+                .HasColumnName("expected_output");
+
+            entity.HasOne(d => d.CustomInput).WithMany(p => p.Cases)
+                .HasForeignKey(d => d.SolutionId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("custom_input_case_ibfk_1");
         });
 
         modelBuilder.Entity<DbNews>(entity =>
