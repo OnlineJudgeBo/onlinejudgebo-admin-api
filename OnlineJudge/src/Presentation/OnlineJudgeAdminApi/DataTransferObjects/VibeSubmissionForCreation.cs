@@ -12,6 +12,10 @@ public class VibeSubmissionForCreation
 
     public int? Num { get; set; }
 
+    public string? Stdin { get; set; }
+
+    public IReadOnlyCollection<VibeTestcaseForCreation> Testcases { get; set; } = Array.Empty<VibeTestcaseForCreation>();
+
     public int ProblemIdAsInt()
     {
         return int.TryParse(ProblemId, out var value) ? value : 0;
