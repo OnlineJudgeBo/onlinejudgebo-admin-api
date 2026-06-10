@@ -11,10 +11,12 @@ public class DbProblemSite
     [Column("site_id")]
     public int SiteId { get; set; }
 
+    [Column("is_active")]
+    public bool IsActive { get; set; } = true;
+
     [ForeignKey("problemId")]
     public virtual DbProblem Problem { get; set; } = null!;
 
     [ForeignKey("SiteId")]
     public virtual DbSite Site { get; set; } = null!;
 }
-

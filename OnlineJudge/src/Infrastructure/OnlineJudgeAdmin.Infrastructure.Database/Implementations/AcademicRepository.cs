@@ -377,7 +377,7 @@ public class AcademicRepository : IAcademicRepository
             .ToList();
 
         var availableProblemIds = await _context.ProblemSites
-            .Where(problemSite => problemSite.SiteId == siteId
+            .Where(problemSite => problemSite.SiteId == siteId && problemSite.IsActive
                 && problemIds.Contains(problemSite.problemId))
             .Select(problemSite => problemSite.problemId)
             .Distinct()
@@ -452,7 +452,7 @@ public class AcademicRepository : IAcademicRepository
             .ToList();
 
         var availableProblemIds = await _context.ProblemSites
-            .Where(problemSite => problemSite.SiteId == siteId
+            .Where(problemSite => problemSite.SiteId == siteId && problemSite.IsActive
                 && problemIds.Contains(problemSite.problemId))
             .Select(problemSite => problemSite.problemId)
             .Distinct()
@@ -913,7 +913,7 @@ public class AcademicRepository : IAcademicRepository
                 .ToListAsync();
 
         var availableProblemIds = await _context.ProblemSites
-            .Where(problemSite => problemSite.SiteId == siteId)
+            .Where(problemSite => problemSite.SiteId == siteId && problemSite.IsActive)
             .Select(problemSite => problemSite.problemId)
             .ToListAsync();
 
@@ -991,7 +991,7 @@ public class AcademicRepository : IAcademicRepository
         var subtopicIds = subtopics.Select(subtopic => subtopic.SubtopicId).ToList();
 
         var availableProblemIds = await _context.ProblemSites
-            .Where(problemSite => problemSite.SiteId == siteId)
+            .Where(problemSite => problemSite.SiteId == siteId && problemSite.IsActive)
             .Select(problemSite => problemSite.problemId)
             .ToListAsync();
 
@@ -1201,7 +1201,7 @@ public class AcademicRepository : IAcademicRepository
     public async Task<AcademicSubmissionResponse> SubmitAsync(int siteId, string userId, AcademicSubmissionRequest request)
     {
         var problemExistsInSite = await _context.ProblemSites
-            .AnyAsync(problemSite => problemSite.SiteId == siteId
+            .AnyAsync(problemSite => problemSite.SiteId == siteId && problemSite.IsActive
                 && problemSite.problemId == request.ProblemId);
 
         if (!problemExistsInSite)
