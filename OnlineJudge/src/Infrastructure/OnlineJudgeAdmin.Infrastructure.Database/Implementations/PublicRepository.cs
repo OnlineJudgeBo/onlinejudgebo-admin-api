@@ -32,7 +32,7 @@ public class PublicRepository : IPublicRepository
         var contestNow = GetContestClockNow();
         var fromDate = generatedAtUtc.AddDays(-30);
 
-        var problemCount = await _context.ProblemSites.CountAsync(problemSite => problemSite.SiteId == siteId);
+        var problemCount = await _context.ProblemSites.CountAsync(problemSite => problemSite.SiteId == siteId && problemSite.IsActive);
 
         var activeUsers = await OfficialSolutions()
             .Where(solution => solution.SiteId == siteId && solution.InDate >= fromDate)
@@ -76,7 +76,7 @@ public class PublicRepository : IPublicRepository
             .Select(classification => new
             {
                 classification.Name,
-                Total = classification.Problems!.Count(problem => problem.ProblemSites!.Any(problemSite => problemSite.SiteId == siteId))
+                Total = classification.Problems!.Count(problem => problem.ProblemSites!.Any(problemSite => problemSite.SiteId == siteId && problemSite.IsActive))
             })
             .Where(item => item.Total > 0)
             .OrderByDescending(item => item.Total)
@@ -144,7 +144,7 @@ public class PublicRepository : IPublicRepository
 
         var problems = await _context.Problems
             .Where(problem => problem.ProblemId.HasValue
-                && problem.ProblemSites!.Any(problemSite => problemSite.SiteId == siteId)
+                && problem.ProblemSites!.Any(problemSite => problemSite.SiteId == siteId && problemSite.IsActive)
                 && (!contestId.HasValue || _context.ContestProblems.Any(contestProblem =>
                     contestProblem.ContestId == contestId.Value && contestProblem.ProblemId == problem.ProblemId))
                 && (problem.Defunct == "N" || problem.Defunct == "Y"))
@@ -328,7 +328,7 @@ public class PublicRepository : IPublicRepository
     {
         var problem = await _context.Problems
             .FirstOrDefaultAsync(item => item.ProblemId == problemId
-                && item.ProblemSites!.Any(problemSite => problemSite.SiteId == siteId)
+                && item.ProblemSites!.Any(problemSite => problemSite.SiteId == siteId && problemSite.IsActive)
                 && (item.Defunct == "N" || item.Defunct == "Y"));
 
         if (problem == null)
@@ -344,7 +344,7 @@ public class PublicRepository : IPublicRepository
         var contestProblem = await ResolveContestProblemReferenceAsync(siteId, contestId, contestProblemId);
         var problem = await _context.Problems
             .FirstOrDefaultAsync(item => item.ProblemId == contestProblem.ProblemId
-                && item.ProblemSites!.Any(problemSite => problemSite.SiteId == siteId)
+                && item.ProblemSites!.Any(problemSite => problemSite.SiteId == siteId && problemSite.IsActive)
                 && (item.Defunct == "N" || item.Defunct == "Y"));
 
         if (problem == null)
@@ -411,7 +411,7 @@ public class PublicRepository : IPublicRepository
     public async Task<PublicProblemFiltersResponse> GetProblemFiltersAsync(int siteId)
     {
         var siteProblems = await _context.Problems
-            .Where(problem => problem.ProblemId.HasValue && problem.ProblemSites!.Any(problemSite => problemSite.SiteId == siteId))
+            .Where(problem => problem.ProblemId.HasValue && problem.ProblemSites!.Any(problemSite => problemSite.SiteId == siteId && problemSite.IsActive))
             .Select(problem => new { ProblemId = problem.ProblemId!.Value, problem.InDate })
             .ToListAsync();
 
@@ -523,7 +523,7 @@ public class PublicRepository : IPublicRepository
                 classification.ClassificationId,
                 classification.TopicId,
                 classification.Name,
-                ProblemCount = classification.Problems!.Count(problem => problem.ProblemSites!.Any(problemSite => problemSite.SiteId == siteId))
+                ProblemCount = classification.Problems!.Count(problem => problem.ProblemSites!.Any(problemSite => problemSite.SiteId == siteId && problemSite.IsActive))
             })
             .Where(item => item.ProblemCount > 0)
             .ToListAsync();
@@ -1631,7 +1631,7 @@ public class PublicRepository : IPublicRepository
                 && item.ProblemId.HasValue
                 && item.Num.HasValue
                 && item.Num.Value == contestProblemNum
-                && problem.ProblemSites!.Any(problemSite => problemSite.SiteId == siteId)
+                && problem.ProblemSites!.Any(problemSite => problemSite.SiteId == siteId && problemSite.IsActive)
                 && (problem.Defunct == "N" || problem.Defunct == "Y")
             select new ContestProblemReference
             {

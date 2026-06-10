@@ -46,10 +46,12 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.DependencyInjection
                 int.Parse(mysqlBuild)));
 
             services.AddDbContext<AppDbContext>(options =>
-                options.UseMySql(connectionString, mysqlVersion));
+                options.UseMySql(connectionString, mysqlVersion, mySqlOptions =>
+                    mySqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
 
             services.AddDbContext<AcademicCatalogDbContext>(options =>
-                options.UseMySql(academicConnectionString, mysqlVersion));
+                options.UseMySql(academicConnectionString, mysqlVersion, mySqlOptions =>
+                    mySqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
 
             return services;
         }
