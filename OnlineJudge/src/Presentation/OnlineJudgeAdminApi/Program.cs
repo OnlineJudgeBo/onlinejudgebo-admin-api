@@ -77,12 +77,14 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(builder.Configuration.GetConnectionString("DefaultConnection"),
-    Microsoft.EntityFrameworkCore.ServerVersion.Parse("11.2.2-mariadb"))
+    Microsoft.EntityFrameworkCore.ServerVersion.Parse("11.2.2-mariadb"),
+    mySqlOptions => mySqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
     .LogTo(Console.WriteLine, LogLevel.Information));
 
 builder.Services.AddDbContext<ScheduleDbContext>(options =>
     options.UseMySql(builder.Configuration.GetConnectionString("ScheduleConnection"),
-    Microsoft.EntityFrameworkCore.ServerVersion.Parse("11.2.2-mariadb"))
+    Microsoft.EntityFrameworkCore.ServerVersion.Parse("11.2.2-mariadb"),
+    mySqlOptions => mySqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
     .LogTo(Console.WriteLine, LogLevel.Information));
 
 //builder.Services.AddHttpContextAccessor();
@@ -106,6 +108,10 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    dbContext.Database.ExecuteSqlRaw("""
+        ALTER TABLE problems_site
+          ADD COLUMN IF NOT EXISTS is_active TINYINT(1) NOT NULL DEFAULT 1;
+        """);
     dbContext.Database.ExecuteSqlRaw("""
         CREATE TABLE IF NOT EXISTS custom_input (
           solution_id INT NOT NULL,

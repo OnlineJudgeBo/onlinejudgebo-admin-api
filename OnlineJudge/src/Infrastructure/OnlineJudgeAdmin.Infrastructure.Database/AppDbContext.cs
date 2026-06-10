@@ -268,6 +268,10 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("site_id")
                 .IsRequired(true);
 
+            entity.Property(e => e.IsActive)
+                .HasDefaultValue(true)
+                .HasColumnName("is_active");
+
             entity.HasOne(d => d.Problem)
                 .WithMany(p => p.ProblemSites)
                 .HasForeignKey(d => d.problemId)

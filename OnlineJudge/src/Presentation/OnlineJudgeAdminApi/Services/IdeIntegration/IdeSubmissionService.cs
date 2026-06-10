@@ -199,7 +199,7 @@ public sealed class IdeSubmissionService : IIdeSubmissionService
             throw new ArgumentException("Usuario inválido para este sitio.");
         }
 
-        bool problemExists = await dbContext.ProblemSites.AnyAsync(problemSite => problemSite.problemId == problemId && problemSite.SiteId == claims.SiteId);
+        bool problemExists = await dbContext.ProblemSites.AnyAsync(problemSite => problemSite.problemId == problemId && problemSite.SiteId == claims.SiteId && problemSite.IsActive);
         if (!problemExists)
         {
             throw new ArgumentException("Problema inválido o no disponible.");
