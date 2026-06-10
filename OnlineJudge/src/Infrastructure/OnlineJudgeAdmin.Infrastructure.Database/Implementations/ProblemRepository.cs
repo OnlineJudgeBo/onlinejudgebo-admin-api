@@ -20,7 +20,7 @@ public class ProblemRepository : IProblemRepository
     public async Task<IEnumerable<Problem>> GetAllProblemsAsync(int siteId)
     {
         IEnumerable<DbProblem> problems = await _context.Problems
-            .Where(c => c.ProblemSites.Any(site => site.SiteId == siteId))
+            .Where(c => c.ProblemSites.Any(site => site.SiteId == siteId && site.IsActive))
             .Where(p => p.Defunct == "N" || p.Defunct == "Y")
             .OrderByDescending(p => p.ProblemId)
             .Select(p => new DbProblem
@@ -32,6 +32,7 @@ public class ProblemRepository : IProblemRepository
                 InDate = p.InDate,
                 Submit = p.Submit,
                 Accepted = p.Accepted,
+                Defunct = p.Defunct,
                 Classifications = p.Classifications.Select(t => new DbClassification
                 {
                     Name = t.Name,
@@ -56,7 +57,7 @@ public class ProblemRepository : IProblemRepository
     public async Task<IEnumerable<Problem>> GetAllProblemsForAdminAsync(int siteId)
     {
         IEnumerable<DbProblem> problems = await _context.Problems
-            .Where(c => c.ProblemSites.Any(site => site.SiteId == siteId))
+            .Where(c => c.ProblemSites.Any(site => site.SiteId == siteId && site.IsActive))
             .OrderByDescending(p => p.ProblemId)
             .Select(p => new DbProblem
             {
@@ -92,7 +93,7 @@ public class ProblemRepository : IProblemRepository
     public async Task<IEnumerable<Problem>> SearchProblemForAdminAsync(string searchTerm, int siteId)
     {
         IQueryable<DbProblem> query = _context.Problems
-            .Where(p => p.ProblemSites.Any(site => site.SiteId == siteId))
+            .Where(p => p.ProblemSites.Any(site => site.SiteId == siteId && site.IsActive))
             .OrderBy(p => p.ProblemId);
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
@@ -108,6 +109,7 @@ public class ProblemRepository : IProblemRepository
                 ProblemId = po.ProblemId,
                 Title = po.Title,
                 OriginSource = po.OriginSource,
+                Defunct = po.Defunct,
                 Classifications = po.Classifications.Select(t => new DbClassification
                 {
                     Name = t.Name,
@@ -126,7 +128,7 @@ public class ProblemRepository : IProblemRepository
     public async Task<IEnumerable<Problem>> SearchProblemAsync(string searchTerm, int siteId)
     {
         IQueryable<DbProblem> query = _context.Problems
-            .Where(p => p.ProblemSites.Any(site => site.SiteId == siteId))
+            .Where(p => p.ProblemSites.Any(site => site.SiteId == siteId && site.IsActive))
             .Where(p => p.Defunct == "N" || p.Defunct == "Y")
             .OrderBy(p => p.ProblemId);
 
@@ -143,6 +145,7 @@ public class ProblemRepository : IProblemRepository
                 ProblemId = po.ProblemId,
                 Title = po.Title,
                 OriginSource = po.OriginSource,
+                Defunct = po.Defunct,
                 Classifications = po.Classifications.Select(t => new DbClassification
                 {
                     Name = t.Name,
@@ -165,7 +168,7 @@ public class ProblemRepository : IProblemRepository
 
         if (siteId.HasValue)
         {
-            query = query.Where(p => p.ProblemSites.Any(site => site.SiteId == siteId.Value));
+            query = query.Where(p => p.ProblemSites.Any(site => site.SiteId == siteId.Value && site.IsActive));
         }
 
         DbProblem? problem = await query
@@ -182,6 +185,8 @@ public class ProblemRepository : IProblemRepository
                 MemoryLimit = p.MemoryLimit,
                 Source = p.Source,
                 OriginSource = p.OriginSource,
+                Defunct = p.Defunct,
+                Spj = p.Spj,
                 InDate = p.InDate,
                 Submit = p.Submit,
                 Accepted = p.Accepted,
@@ -220,7 +225,8 @@ public class ProblemRepository : IProblemRepository
         _context.ProblemSites.Add(new DbProblemSite
         {
             problemId = lastProblem.ProblemId.Value,
-            SiteId = siteId
+            SiteId = siteId,
+            IsActive = true
         });
         _context.SaveChanges();
         return _mapper.Map<Problem>(lastProblem);
@@ -239,10 +245,15 @@ public class ProblemRepository : IProblemRepository
 
     public async Task<Problem> UpdateProblemAsync(string userId, int problemId, Problem problemToUpdate)
     {
-        DbUpdateProblem dbProblem = _mapper.Map<DbUpdateProblem>(problemToUpdate);
         var existingProblem = _context.Problems.FirstOrDefault(p => p.ProblemId == problemId);
         if (existingProblem != null)
         {
+            if (string.IsNullOrWhiteSpace(problemToUpdate.Defunct))
+            {
+                problemToUpdate.Defunct = existingProblem.Defunct;
+            }
+
+            DbUpdateProblem dbProblem = _mapper.Map<DbUpdateProblem>(problemToUpdate);
             _context.Entry(existingProblem).CurrentValues.SetValues(dbProblem);
             _context.SaveChanges();
             return await GetProblemByIdAsync(problemId);
@@ -291,10 +302,15 @@ public class ProblemRepository : IProblemRepository
 
     public async Task DeleteProblemAsync(int problemId, int siteId)
     {
-        await _context.Database.ExecuteSqlRawAsync(
-            "DELETE FROM problem_site WHERE problem_id = @problemId AND site_id = @siteId",
-            new MySqlConnector.MySqlParameter("@problemId", problemId),
-            new MySqlConnector.MySqlParameter("@siteId", siteId)
-        );
+        var problemSite = await _context.ProblemSites
+            .FirstOrDefaultAsync(item => item.problemId == problemId && item.SiteId == siteId);
+
+        if (problemSite == null)
+        {
+            return;
+        }
+
+        problemSite.IsActive = false;
+        await _context.SaveChangesAsync();
     }
 }
