@@ -58,7 +58,8 @@ public sealed class IdeSubmissionService : IIdeSubmissionService
             claims.Num ?? submission.Num ?? -1,
             submission.SourceCode,
             submission.Testcases,
-            submission.Stdin));
+            submission.Stdin,
+            submission.ClientIp));
 
         string id = solutionId.ToString();
         return new IdeRunResponse
@@ -121,7 +122,8 @@ public sealed class IdeSubmissionService : IIdeSubmissionService
             Num = claims.Num ?? submission.Num,
             ContestProblemId = ResolveContestProblemId(claims, submission, contestId),
             SourceCode = submission.SourceCode,
-            LanguageId = ResolveLanguageId(claims, submission)
+            LanguageId = ResolveLanguageId(claims, submission),
+            ClientIp = submission.ClientIp
         });
     }
 

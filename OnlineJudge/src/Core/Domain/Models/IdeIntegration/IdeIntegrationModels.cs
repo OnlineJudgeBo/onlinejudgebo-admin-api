@@ -16,6 +16,8 @@ public sealed class IdeSubmissionRequest
 
     public IReadOnlyCollection<IdeTestcaseRequest> Testcases { get; set; } = Array.Empty<IdeTestcaseRequest>();
 
+    public string ClientIp { get; set; } = "0.0.0.0";
+
     public int ProblemIdAsInt()
     {
         return int.TryParse(ProblemId, out var value) ? value : 0;
@@ -114,4 +116,5 @@ public sealed record IdeCustomInputRunCreation(
     int Num,
     string SourceCode,
     IReadOnlyCollection<IdeTestcaseRequest> Testcases,
-    string? Stdin);
+    string? Stdin,
+    string ClientIp);
