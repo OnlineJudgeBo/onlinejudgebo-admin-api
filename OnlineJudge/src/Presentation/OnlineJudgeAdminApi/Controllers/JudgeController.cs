@@ -32,15 +32,39 @@ public class JudgeController : ControllerBase
     [HttpGet("rejudge/solution/{id:int}")]
     public async Task<IActionResult> RejudgeSolutionByIdAsync(int id)
     {
-        await _judgeService.RejudgeSolutionByIdAsync(id);
-        return Ok();
+        return Ok(await _judgeService.RejudgeSolutionByIdAsync(_currentUser.SiteId, id));
     }
 
     [HttpGet("rejudge/problem/{problemId:int}")]
     public async Task<IActionResult> RejudgeSolutionByProblemIdAsync(int problemId)
     {
-        await _judgeService.RejudgeSolutionByProblemIdAsync(problemId);
-        return Ok();
+        return Ok(await _judgeService.RejudgeSolutionByProblemIdAsync(_currentUser.SiteId, problemId));
+    }
+
+    [HttpGet("rejudge/contest/{contestId:int}")]
+    public async Task<IActionResult> RejudgeSolutionByContestIdAsync(int contestId)
+    {
+        return Ok(await _judgeService.RejudgeSolutionByContestIdAsync(_currentUser.SiteId, contestId));
+    }
+
+    [HttpGet("rejudge/range")]
+    public async Task<IActionResult> RejudgeSolutionsByRangeAsync(
+        [FromQuery] int fromSolutionId,
+        [FromQuery] int toSolutionId)
+    {
+        return Ok(await _judgeService.RejudgeSolutionsByRangeAsync(_currentUser.SiteId, fromSolutionId, toSolutionId));
+    }
+
+    [HttpGet("rejudge/language/{languageId:int}")]
+    public async Task<IActionResult> RejudgeSolutionsByLanguageAsync(int languageId)
+    {
+        return Ok(await _judgeService.RejudgeSolutionsByLanguageAsync(_currentUser.SiteId, languageId));
+    }
+
+    [HttpGet("rejudge/history")]
+    public async Task<IActionResult> GetRejudgeHistoryAsync([FromQuery] int limit = 50)
+    {
+        return Ok(await _judgeService.GetRejudgeHistoryAsync(_currentUser.SiteId, limit));
     }
 
     [HttpPost("remoteExecutionAsync")]
