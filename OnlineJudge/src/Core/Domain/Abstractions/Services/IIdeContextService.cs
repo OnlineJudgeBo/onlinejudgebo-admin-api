@@ -1,4 +1,6 @@
-namespace OnlineJudgeAdminApi.Services.IdeIntegration;
+using OnlineJudgeAdmin.Core.Domain.Models.IdeIntegration;
+
+namespace OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 
 public interface IIdeContextService
 {
