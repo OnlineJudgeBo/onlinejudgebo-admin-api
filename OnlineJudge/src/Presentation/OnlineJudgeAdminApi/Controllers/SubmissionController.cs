@@ -48,40 +48,40 @@ public class SubmissionController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("/api/patito-ide/submissions")]
-    public async Task<IActionResult> SubmitFromIdeAsync([FromBody] VibeSubmissionForCreation submission)
+    public async Task<IActionResult> SubmitFromIdeAsync([FromBody] PatitoIdeSubmissionForCreation submission)
     {
-        return Ok(ToVibeSubmissionResponse(await _ideSubmissionService.SubmitAsync(Request.GetBearerToken(), ToIdeSubmissionRequest(submission))));
+        return Ok(ToPatitoIdeSubmissionResponse(await _ideSubmissionService.SubmitAsync(Request.GetBearerToken(), ToIdeSubmissionRequest(submission))));
     }
 
     [AllowAnonymous]
     [HttpGet("/api/patito-ide/submissions/{submissionId:int}")]
     public async Task<IActionResult> GetIdeSubmissionStatusAsync(int submissionId)
     {
-        return Ok(ToVibeSubmissionStatusResponse(await _ideSubmissionService.GetStatusAsync(Request.GetBearerToken(), submissionId)));
+        return Ok(ToPatitoIdeSubmissionStatusResponse(await _ideSubmissionService.GetStatusAsync(Request.GetBearerToken(), submissionId)));
     }
 
     [AllowAnonymous]
     [HttpPost("/api/patito-ide/runs")]
-    public async Task<IActionResult> RunFromIdeAsync([FromBody] VibeSubmissionForCreation submission)
+    public async Task<IActionResult> RunFromIdeAsync([FromBody] PatitoIdeSubmissionForCreation submission)
     {
-        return Ok(ToVibeRunResponse(await _ideSubmissionService.CustomInputAsync(Request.GetBearerToken(), ToIdeSubmissionRequest(submission))));
+        return Ok(ToPatitoIdeRunResponse(await _ideSubmissionService.CustomInputAsync(Request.GetBearerToken(), ToIdeSubmissionRequest(submission))));
     }
 
     [AllowAnonymous]
     [HttpPost("/api/patito-ide/custom-input")]
-    public async Task<IActionResult> CustomInputFromIdeAsync([FromBody] VibeSubmissionForCreation submission)
+    public async Task<IActionResult> CustomInputFromIdeAsync([FromBody] PatitoIdeSubmissionForCreation submission)
     {
-        return Ok(ToVibeRunResponse(await _ideSubmissionService.CustomInputAsync(Request.GetBearerToken(), ToIdeSubmissionRequest(submission))));
+        return Ok(ToPatitoIdeRunResponse(await _ideSubmissionService.CustomInputAsync(Request.GetBearerToken(), ToIdeSubmissionRequest(submission))));
     }
 
     [AllowAnonymous]
     [HttpGet("/api/patito-ide/runs/{runId:int}")]
     public async Task<IActionResult> GetIdeRunStatusAsync(int runId)
     {
-        return Ok(ToVibeSubmissionStatusResponse(await _ideSubmissionService.GetStatusAsync(Request.GetBearerToken(), runId)));
+        return Ok(ToPatitoIdeSubmissionStatusResponse(await _ideSubmissionService.GetStatusAsync(Request.GetBearerToken(), runId)));
     }
 
-    private static IdeSubmissionRequest ToIdeSubmissionRequest(VibeSubmissionForCreation submission)
+    private static IdeSubmissionRequest ToIdeSubmissionRequest(PatitoIdeSubmissionForCreation submission)
     {
         return new IdeSubmissionRequest
         {
@@ -101,9 +101,9 @@ public class SubmissionController : ControllerBase
         };
     }
 
-    private static VibeSubmissionResponse ToVibeSubmissionResponse(IdeSubmissionResponse response)
+    private static PatitoIdeSubmissionResponse ToPatitoIdeSubmissionResponse(IdeSubmissionResponse response)
     {
-        return new VibeSubmissionResponse
+        return new PatitoIdeSubmissionResponse
         {
             SubmissionId = response.SubmissionId,
             Id = response.Id,
@@ -111,9 +111,9 @@ public class SubmissionController : ControllerBase
         };
     }
 
-    private static VibeRunResponse ToVibeRunResponse(IdeRunResponse response)
+    private static PatitoIdeRunResponse ToPatitoIdeRunResponse(IdeRunResponse response)
     {
-        return new VibeRunResponse
+        return new PatitoIdeRunResponse
         {
             RunId = response.RunId,
             Id = response.Id,
@@ -121,9 +121,9 @@ public class SubmissionController : ControllerBase
         };
     }
 
-    private static VibeSubmissionStatusResponse ToVibeSubmissionStatusResponse(IdeSubmissionStatusResponse response)
+    private static PatitoIdeSubmissionStatusResponse ToPatitoIdeSubmissionStatusResponse(IdeSubmissionStatusResponse response)
     {
-        return new VibeSubmissionStatusResponse
+        return new PatitoIdeSubmissionStatusResponse
         {
             SubmissionId = response.SubmissionId,
             Id = response.Id,
