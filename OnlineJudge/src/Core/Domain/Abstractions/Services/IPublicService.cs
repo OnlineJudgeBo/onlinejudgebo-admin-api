@@ -12,6 +12,8 @@ public interface IPublicService
 
     Task<PublicProblemDetailResponse> GetContestProblemDetailAsync(int siteId, int contestId, string contestProblemId);
 
+    Task<PublicProblemStatisticsResponse> GetProblemStatisticsAsync(int siteId, int problemId);
+
     Task<PublicProblemFiltersResponse> GetProblemFiltersAsync(int siteId);
 
     Task<PublicRankingResponse> GetRankingAsync(int siteId, int limit, string? scope);
@@ -29,6 +31,10 @@ public interface IPublicService
     Task<PublicSubmissionsResponse> GetSubmissionsAsync(int siteId, int page, int pageSize, int? contestId, int? problemId, string? userId, int? languageId, string? statusKey);
 
     Task<PublicSubmissionsResponse> GetOwnSubmissionsAsync(CurrentUser currentUser, int page, int pageSize);
+
+    Task<PublicSubmissionsResponse> GetRecentSubmissionsAsync(int siteId, int page, int pageSize, int? contestId, long? courseId);
+
+    Task<PublicOnlineUsersResponse> GetOnlineUsersAsync(int siteId, int windowMinutes);
 
     Task<IReadOnlyCollection<PublicSubmissionSourceCodeItem>> GetOwnSubmissionSourceCodesAsync(CurrentUser currentUser);
 

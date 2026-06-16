@@ -62,6 +62,13 @@ public class PublicController : ControllerBase
     }
 
     [AllowAnonymous]
+    [HttpGet("problems/{problemId:int}/statistics")]
+    public async Task<IActionResult> GetProblemStatisticsAsync(int problemId, [FromQuery] int siteId = 1)
+    {
+        return Ok(await _publicService.GetProblemStatisticsAsync(siteId, problemId));
+    }
+
+    [AllowAnonymous]
     [HttpGet("contests/{contestId:int}/problems/{contestProblemId}")]
     public async Task<IActionResult> GetContestProblemDetailAsync(int contestId, string contestProblemId, [FromQuery] int siteId = 1)
     {
@@ -152,6 +159,51 @@ public class PublicController : ControllerBase
     {
         var currentUser = _userClaimsHelper.GetUserContextRole();
         return Ok(await _publicService.GetOwnSubmissionsAsync(currentUser, page, pageSize));
+    }
+
+    [Authorize]
+    [HttpGet("activity/online-users")]
+    public async Task<IActionResult> GetOnlineUsersAsync(
+        [FromQuery] int siteId = 1,
+        [FromQuery] int windowMinutes = 10)
+    {
+        var currentUser = _userClaimsHelper.GetUserContextRole();
+        var effectiveSiteId = currentUser.SiteId > 0 ? currentUser.SiteId : siteId;
+        return Ok(await _publicService.GetOnlineUsersAsync(effectiveSiteId, windowMinutes));
+    }
+
+    [AllowAnonymous]
+    [HttpGet("activity/recent-submissions")]
+    public async Task<IActionResult> GetRecentSubmissionsAsync(
+        [FromQuery] int siteId = 1,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25)
+    {
+        return Ok(await _publicService.GetRecentSubmissionsAsync(siteId, page, pageSize, null, null));
+    }
+
+    [AllowAnonymous]
+    [HttpGet("activity/contest/{contestId:int}/recent-submissions")]
+    public async Task<IActionResult> GetContestRecentSubmissionsAsync(
+        int contestId,
+        [FromQuery] int siteId = 1,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25)
+    {
+        return Ok(await _publicService.GetRecentSubmissionsAsync(siteId, page, pageSize, contestId, null));
+    }
+
+    [Authorize]
+    [HttpGet("activity/course/{courseId:long}/recent-submissions")]
+    public async Task<IActionResult> GetCourseRecentSubmissionsAsync(
+        long courseId,
+        [FromQuery] int siteId = 1,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25)
+    {
+        var currentUser = _userClaimsHelper.GetUserContextRole();
+        var effectiveSiteId = currentUser.SiteId > 0 ? currentUser.SiteId : siteId;
+        return Ok(await _publicService.GetRecentSubmissionsAsync(effectiveSiteId, page, pageSize, null, courseId));
     }
 
     [Authorize]

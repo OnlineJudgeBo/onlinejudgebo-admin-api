@@ -19,6 +19,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<DbCustomInput> CustomInputs { get; set; }
     public virtual DbSet<DbCustomInputCase> CustomInputCases { get; set; }
     public virtual DbSet<DbNews> News { get; set; }
+    public virtual DbSet<DbOnline> Online { get; set; }
+    public virtual DbSet<DbLoginlog> Loginlogs { get; set; }
     public virtual DbSet<DbPrivilege> Privilege { get; set; }
     public virtual DbSet<DbProblem> Problems { get; set; }
     public virtual DbSet<DbProgrammingLanguage> ProgrammingLanguages { get; set; }

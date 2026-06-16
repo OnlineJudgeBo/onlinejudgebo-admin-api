@@ -4,7 +4,11 @@ namespace OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 
 public interface IJudgeService
 {
-    public Task RejudgeSolutionByIdAsync(int solutionId);
-    public Task RejudgeSolutionByProblemIdAsync(int problemId);
+    public Task<RejudgeOperationResponse> RejudgeSolutionByIdAsync(int siteId, int solutionId);
+    public Task<RejudgeOperationResponse> RejudgeSolutionByProblemIdAsync(int siteId, int problemId);
+    public Task<RejudgeOperationResponse> RejudgeSolutionByContestIdAsync(int siteId, int contestId);
+    public Task<RejudgeOperationResponse> RejudgeSolutionsByRangeAsync(int siteId, int fromSolutionId, int toSolutionId);
+    public Task<RejudgeOperationResponse> RejudgeSolutionsByLanguageAsync(int siteId, int languageId);
+    public Task<RejudgeHistoryResponse> GetRejudgeHistoryAsync(int siteId, int limit);
     public Task RemoteExecutionAsync(RemoteExecutionRequest request, string userId, int siteId);
 }
