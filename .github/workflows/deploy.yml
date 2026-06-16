@@ -1,4 +1,4 @@
-name: OnlineJudge - admin - front
+name: OnlineJudge - admin - back
 on:
   push:
     branches:
@@ -8,9 +8,63 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore OnlineJudgeAdmin.sln
+
+      - name: Run unit tests
+        run: |
+          mkdir -p TestResults
+          dotnet test OnlineJudgeAdmin.sln \
+            --no-restore \
+            --logger "trx;LogFileName=unittest-report.trx" \
+            --results-directory TestResults
+
+      - name: Generate unit test summary
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import pathlib
+          import xml.etree.ElementTree as ET
+
+          trx_files = sorted(pathlib.Path("TestResults").glob("*.trx"))
+          lines = ["## Unit test report", ""]
+
+          if not trx_files:
+              lines.append("No TRX report files were generated.")
+          else:
+              for trx_file in trx_files:
+                  root = ET.parse(trx_file).getroot()
+                  ns = {"trx": root.tag.split("}")[0].strip("{")} if root.tag.startswith("{") else {}
+                  counters = root.find(".//trx:Counters", ns) if ns else root.find(".//Counters")
+                  if counters is None:
+                      lines.append(f"- `{trx_file}`: counters not found")
+                      continue
+
+                  total = counters.attrib.get("total", "0")
+                  passed = counters.attrib.get("passed", "0")
+                  failed = counters.attrib.get("failed", "0")
+                  skipped = counters.attrib.get("notExecuted", "0")
+                  lines.append(f"- `{trx_file}`: total={total}, passed={passed}, failed={failed}, skipped={skipped}")
+
+          pathlib.Path(__import__("os").environ["GITHUB_STEP_SUMMARY"]).write_text("\n".join(lines) + "\n")
+          PY
+
+      - name: Upload unit test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unittest-report
+          path: TestResults/*.trx
+          if-no-files-found: error
 
   docker-package:
     needs: build
@@ -18,7 +72,7 @@ jobs:
     permissions: write-all
     if: ${{github.ref == 'refs/heads/develop'}}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Login to Registry
       uses: docker/login-action@v2
       with:
@@ -27,7 +81,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: Build Docker images
       run: |
-        docker build . --build-arg --rm -t ghcr.io/onlinejudgebo/onlinejudgebo-admin-api:development
+        docker build --rm -t ghcr.io/onlinejudgebo/onlinejudgebo-admin-api:development .
     - name: Push Docker image to registry
       run: |
         docker push ghcr.io/onlinejudgebo/onlinejudgebo-admin-api:development
