@@ -357,6 +357,104 @@ public class PublicRepository : IPublicRepository
         return await BuildProblemDetailResponseAsync(siteId, problem, contestProblem.ProblemId, contestId, contestProblem.ContestProblemId);
     }
 
+    public async Task<PublicProblemStatisticsResponse> GetProblemStatisticsAsync(int siteId, int problemId)
+    {
+        var problem = await _context.Problems
+            .Where(item => item.ProblemId == problemId
+                && item.ProblemSites!.Any(problemSite => problemSite.SiteId == siteId && problemSite.IsActive))
+            .Select(item => new
+            {
+                ProblemId = item.ProblemId!.Value,
+                Title = string.IsNullOrWhiteSpace(item.Title) ? $"Problema #{item.ProblemId}" : item.Title
+            })
+            .FirstOrDefaultAsync();
+
+        if (problem == null)
+        {
+            throw new ArgumentException("Problema inválido o no disponible.");
+        }
+
+        var solutions = await OfficialSolutions()
+            .Where(solution => solution.SiteId == siteId && solution.ProblemId == problemId)
+            .ToListAsync();
+
+        var acceptedSolutions = solutions
+            .Where(solution => solution.Result == AcceptedResultCode)
+            .OrderBy(solution => solution.InDate)
+            .ThenBy(solution => solution.SolutionId)
+            .ToList();
+
+        var languageIds = solutions.Select(solution => (int)solution.Language).Distinct().ToList();
+        var languageNameMap = await _context.ProgrammingLanguages
+            .Where(language => language.LanguageId.HasValue && languageIds.Contains(language.LanguageId.Value))
+            .ToDictionaryAsync(
+                language => language.LanguageId!.Value,
+                language => string.IsNullOrWhiteSpace(language.Name) ? $"Lenguaje #{language.LanguageId}" : language.Name!);
+
+        var userIds = acceptedSolutions
+            .Select(solution => solution.UserId)
+            .Distinct()
+            .ToList();
+        var nickMap = await _context.UserProfiles
+            .Where(profile => profile.SiteId == siteId && userIds.Contains(profile.UserId))
+            .ToDictionaryAsync(
+                profile => profile.UserId,
+                profile => string.IsNullOrWhiteSpace(profile.Nick) ? profile.UserId : profile.Nick);
+
+        var bestTime = acceptedSolutions
+            .Where(solution => solution.Time > 0)
+            .OrderBy(solution => solution.Time)
+            .ThenBy(solution => solution.Memory)
+            .ThenBy(solution => solution.InDate)
+            .FirstOrDefault();
+        var bestMemory = acceptedSolutions
+            .Where(solution => solution.Memory > 0)
+            .OrderBy(solution => solution.Memory)
+            .ThenBy(solution => solution.Time)
+            .ThenBy(solution => solution.InDate)
+            .FirstOrDefault();
+
+        return new PublicProblemStatisticsResponse
+        {
+            SiteId = siteId,
+            ProblemId = problem.ProblemId,
+            Title = problem.Title,
+            TotalSubmissions = solutions.Count,
+            Accepted = solutions.Count(solution => solution.Result == JudgeResultCodes.Accepted),
+            WrongAnswer = solutions.Count(solution => solution.Result == JudgeResultCodes.WrongAnswer),
+            TimeLimitExceeded = solutions.Count(solution => solution.Result == JudgeResultCodes.TimeLimitExceeded),
+            MemoryLimitExceeded = solutions.Count(solution => solution.Result == JudgeResultCodes.MemoryLimitExceeded),
+            CompileError = solutions.Count(solution => solution.Result == JudgeResultCodes.CompileError),
+            RuntimeError = solutions.Count(solution => solution.Result == JudgeResultCodes.RuntimeError),
+            OtherResults = solutions.Count(solution => solution.Result is not (
+                JudgeResultCodes.Accepted
+                or JudgeResultCodes.WrongAnswer
+                or JudgeResultCodes.TimeLimitExceeded
+                or JudgeResultCodes.MemoryLimitExceeded
+                or JudgeResultCodes.CompileError
+                or JudgeResultCodes.RuntimeError)),
+            AcceptanceRate = solutions.Count == 0 ? 0 : Math.Round((decimal)acceptedSolutions.Count * 100m / solutions.Count, 2),
+            Languages = solutions
+                .GroupBy(solution => (int)solution.Language)
+                .Select(group => new ProblemStatisticsLanguageItem
+                {
+                    LanguageId = group.Key,
+                    LanguageName = languageNameMap.GetValueOrDefault(group.Key, $"Lenguaje #{group.Key}"),
+                    Submissions = group.Count(),
+                    Accepted = group.Count(solution => solution.Result == AcceptedResultCode)
+                })
+                .OrderByDescending(item => item.Submissions)
+                .ThenBy(item => item.LanguageId)
+                .ToList(),
+            BestTime = bestTime == null ? null : ToProblemStatisticsBestRun(bestTime, languageNameMap, nickMap),
+            BestMemory = bestMemory == null ? null : ToProblemStatisticsBestRun(bestMemory, languageNameMap, nickMap),
+            FirstAccepted = acceptedSolutions
+                .Take(10)
+                .Select(solution => ToProblemStatisticsAcceptedItem(solution, languageNameMap, nickMap))
+                .ToList()
+        };
+    }
+
     private async Task<PublicProblemDetailResponse> BuildProblemDetailResponseAsync(
         int siteId,
         DbProblem problem,
@@ -1062,6 +1160,87 @@ public class PublicRepository : IPublicRepository
             Total = total,
             Page = page,
             PageSize = pageSize,
+            UpdatedAtUtc = DateTime.Now,
+            Items = items
+        };
+    }
+
+    public async Task<PublicSubmissionsResponse> GetRecentSubmissionsAsync(int siteId, int page, int pageSize, int? contestId, long? courseId)
+    {
+        if (courseId.HasValue)
+        {
+            var courseSolutionsQuery = _academicContext.CourseSubmissionContexts
+                .Where(item => item.CourseId == courseId.Value);
+
+            var total = await courseSolutionsQuery.CountAsync();
+            var solutionIds = await courseSolutionsQuery
+                .OrderByDescending(item => item.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(item => (int)item.SolutionId)
+                .ToListAsync();
+
+            var solutionOrder = solutionIds
+                .Select((solutionId, index) => new { solutionId, index })
+                .ToDictionary(item => item.solutionId, item => item.index);
+
+            var courseSolutions = await OfficialSolutions()
+                .Where(solution => solution.SiteId == siteId && solutionIds.Contains(solution.SolutionId))
+                .ToListAsync();
+
+            courseSolutions = courseSolutions
+                .OrderBy(solution => solutionOrder.GetValueOrDefault(solution.SolutionId, int.MaxValue))
+                .ToList();
+
+            return await BuildSubmissionsResponseAsync(siteId, total, page, pageSize, courseSolutions);
+        }
+
+        var baseQuery = OfficialSolutions()
+            .Where(solution => solution.SiteId == siteId);
+
+        if (contestId.HasValue)
+        {
+            await EnsureContestExistsAsync(siteId, contestId.Value);
+            baseQuery = baseQuery.Where(solution => solution.ContestId == contestId.Value);
+        }
+
+        var submissionsTotal = await baseQuery.CountAsync();
+        var solutions = await baseQuery
+            .OrderByDescending(solution => solution.SolutionId)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return await BuildSubmissionsResponseAsync(siteId, submissionsTotal, page, pageSize, solutions);
+    }
+
+    public async Task<PublicOnlineUsersResponse> GetOnlineUsersAsync(int siteId, int windowMinutes)
+    {
+        var now = DateTimeOffset.Now.ToUnixTimeSeconds();
+        var fromTimestamp = now - windowMinutes * 60L;
+
+        var onlineRows = await _context.Online
+            .Where(item => item.Lastmove >= fromTimestamp)
+            .OrderByDescending(item => item.Lastmove)
+            .Take(200)
+            .ToListAsync();
+
+        var items = onlineRows
+            .Select(item => new PublicOnlineUserItem
+            {
+                Hash = item.Hash,
+                UserAgent = item.Ua,
+                Referer = item.Refer,
+                Uri = item.Uri,
+                FirstSeenUtc = item.Firsttime.HasValue ? DateTimeOffset.FromUnixTimeSeconds(item.Firsttime.Value).LocalDateTime : null,
+                LastSeenUtc = DateTimeOffset.FromUnixTimeSeconds(item.Lastmove).LocalDateTime
+            })
+            .ToList();
+
+        return new PublicOnlineUsersResponse
+        {
+            SiteId = siteId,
+            WindowMinutes = windowMinutes,
             UpdatedAtUtc = DateTime.Now,
             Items = items
         };
@@ -1930,6 +2109,131 @@ public class PublicRepository : IPublicRepository
         }
 
         return TimeZoneInfo.Local;
+    }
+
+    private async Task<PublicSubmissionsResponse> BuildSubmissionsResponseAsync(
+        int siteId,
+        int total,
+        int page,
+        int pageSize,
+        IReadOnlyCollection<DbSolution> solutions)
+    {
+        if (solutions.Count == 0)
+        {
+            return new PublicSubmissionsResponse
+            {
+                SiteId = siteId,
+                Total = total,
+                Page = page,
+                PageSize = pageSize,
+                UpdatedAtUtc = DateTime.Now,
+                Items = Array.Empty<PublicSubmissionListItem>()
+            };
+        }
+
+        var userIds = solutions.Select(solution => solution.UserId).Distinct().ToList();
+        var problemIds = solutions.Select(solution => solution.ProblemId).Distinct().ToList();
+        var languageIds = solutions.Select(solution => (int)solution.Language).Distinct().ToList();
+
+        var nickMap = await _context.UserProfiles
+            .Where(profile => profile.SiteId == siteId && userIds.Contains(profile.UserId))
+            .ToDictionaryAsync(
+                profile => profile.UserId,
+                profile => string.IsNullOrWhiteSpace(profile.Nick) ? profile.UserId : profile.Nick);
+
+        var problemTitleMap = await _context.Problems
+            .Where(problem => problem.ProblemId.HasValue && problemIds.Contains(problem.ProblemId.Value))
+            .ToDictionaryAsync(
+                problem => problem.ProblemId!.Value,
+                problem => string.IsNullOrWhiteSpace(problem.Title) ? $"Problema #{problem.ProblemId}" : problem.Title);
+
+        var languageNameMap = await _context.ProgrammingLanguages
+            .Where(language => language.LanguageId.HasValue && languageIds.Contains(language.LanguageId.Value))
+            .ToDictionaryAsync(
+                language => language.LanguageId!.Value,
+                language => string.IsNullOrWhiteSpace(language.Name) ? $"Lenguaje #{language.LanguageId}" : language.Name!);
+
+        var items = solutions
+            .Select(solution =>
+            {
+                var verdict = JudgeVerdictCatalog.Map(solution.Result);
+                var languageId = (int)solution.Language;
+
+                return new PublicSubmissionListItem
+                {
+                    SolutionId = solution.SolutionId,
+                    ProblemId = solution.ProblemId,
+                    ContestId = solution.ContestId,
+                    ContestProblemId = solution.ContestId.HasValue && solution.Num >= 0 ? ContestProblemCode.FromNumber(solution.Num) : null,
+                    ProblemTitle = problemTitleMap.GetValueOrDefault(solution.ProblemId, $"Problema #{solution.ProblemId}"),
+                    UserId = solution.UserId,
+                    Nick = nickMap.GetValueOrDefault(solution.UserId, solution.UserId),
+                    LanguageId = languageId,
+                    LanguageName = languageNameMap.GetValueOrDefault(languageId, $"Lenguaje #{languageId}"),
+                    ResultCode = solution.Result,
+                    StatusKey = verdict.StatusKey,
+                    StatusLabel = verdict.StatusLabel,
+                    GeneralStatusKey = verdict.GeneralStatusKey,
+                    GeneralStatusLabel = verdict.GeneralStatusLabel,
+                    IsFinal = verdict.IsFinal,
+                    TimeMs = solution.Time,
+                    MemoryKb = solution.Memory,
+                    PassRate = solution.PassRate,
+                    CreatedAtUtc = solution.InDate,
+                    JudgeTimeUtc = solution.Judgetime
+                };
+            })
+            .ToList();
+
+        return new PublicSubmissionsResponse
+        {
+            SiteId = siteId,
+            Total = total,
+            Page = page,
+            PageSize = pageSize,
+            UpdatedAtUtc = DateTime.Now,
+            Items = items
+        };
+    }
+
+    private static ProblemStatisticsBestRun ToProblemStatisticsBestRun(
+        DbSolution solution,
+        IReadOnlyDictionary<int, string> languageNameMap,
+        IReadOnlyDictionary<string, string> nickMap)
+    {
+        var languageId = (int)solution.Language;
+
+        return new ProblemStatisticsBestRun
+        {
+            SolutionId = solution.SolutionId,
+            UserId = solution.UserId,
+            Nick = nickMap.GetValueOrDefault(solution.UserId, solution.UserId),
+            LanguageId = languageId,
+            LanguageName = languageNameMap.GetValueOrDefault(languageId, $"Lenguaje #{languageId}"),
+            TimeMs = solution.Time,
+            MemoryKb = solution.Memory,
+            CreatedAtUtc = solution.InDate
+        };
+    }
+
+    private static ProblemStatisticsAcceptedItem ToProblemStatisticsAcceptedItem(
+        DbSolution solution,
+        IReadOnlyDictionary<int, string> languageNameMap,
+        IReadOnlyDictionary<string, string> nickMap)
+    {
+        var languageId = (int)solution.Language;
+
+        return new ProblemStatisticsAcceptedItem
+        {
+            SolutionId = solution.SolutionId,
+            UserId = solution.UserId,
+            Nick = nickMap.GetValueOrDefault(solution.UserId, solution.UserId),
+            LanguageId = languageId,
+            LanguageName = languageNameMap.GetValueOrDefault(languageId, $"Lenguaje #{languageId}"),
+            TimeMs = solution.Time,
+            MemoryKb = solution.Memory,
+            CreatedAtUtc = solution.InDate
+        };
     }
 
     private static IReadOnlyCollection<short> ResolveSubmissionStatusCodes(string? statusKey)

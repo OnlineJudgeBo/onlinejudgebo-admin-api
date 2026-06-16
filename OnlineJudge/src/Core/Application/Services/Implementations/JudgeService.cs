@@ -29,14 +29,57 @@ public class JudgeService : IJudgeService
         _userValidation = ProblemValidation ?? throw new ArgumentNullException(nameof(ProblemValidation));
     }
 
-    public async Task RejudgeSolutionByIdAsync(int solutionId)
+    public async Task<RejudgeOperationResponse> RejudgeSolutionByIdAsync(int siteId, int solutionId)
     {
-        await _judgeRepository.RejudgeSolutionByIdAsync(solutionId);
+        ValidateSite(siteId);
+        ValidatePositiveId(solutionId, "SolutionId");
+        var matched = await _judgeRepository.RejudgeSolutionByIdAsync(siteId, solutionId);
+        return BuildRejudgeResponse(siteId, "solution", matched);
     }
 
-    public async Task RejudgeSolutionByProblemIdAsync(int problemId)
+    public async Task<RejudgeOperationResponse> RejudgeSolutionByProblemIdAsync(int siteId, int problemId)
     {
-        await _judgeRepository.RejudgeSolutionByProblemIdAsync(problemId);
+        ValidateSite(siteId);
+        ValidatePositiveId(problemId, "ProblemId");
+        var matched = await _judgeRepository.RejudgeSolutionByProblemIdAsync(siteId, problemId);
+        return BuildRejudgeResponse(siteId, "problem", matched);
+    }
+
+    public async Task<RejudgeOperationResponse> RejudgeSolutionByContestIdAsync(int siteId, int contestId)
+    {
+        ValidateSite(siteId);
+        ValidatePositiveId(contestId, "ContestId");
+        var matched = await _judgeRepository.RejudgeSolutionByContestIdAsync(siteId, contestId);
+        return BuildRejudgeResponse(siteId, "contest", matched);
+    }
+
+    public async Task<RejudgeOperationResponse> RejudgeSolutionsByRangeAsync(int siteId, int fromSolutionId, int toSolutionId)
+    {
+        ValidateSite(siteId);
+        ValidatePositiveId(fromSolutionId, "FromSolutionId");
+        ValidatePositiveId(toSolutionId, "ToSolutionId");
+
+        if (toSolutionId < fromSolutionId)
+        {
+            throw new ArgumentException("El rango de soluciones es inválido.");
+        }
+
+        var matched = await _judgeRepository.RejudgeSolutionsByRangeAsync(siteId, fromSolutionId, toSolutionId);
+        return BuildRejudgeResponse(siteId, "range", matched);
+    }
+
+    public async Task<RejudgeOperationResponse> RejudgeSolutionsByLanguageAsync(int siteId, int languageId)
+    {
+        ValidateSite(siteId);
+        ValidatePositiveId(languageId, "LanguageId");
+        var matched = await _judgeRepository.RejudgeSolutionsByLanguageAsync(siteId, languageId);
+        return BuildRejudgeResponse(siteId, "language", matched);
+    }
+
+    public Task<RejudgeHistoryResponse> GetRejudgeHistoryAsync(int siteId, int limit)
+    {
+        ValidateSite(siteId);
+        return _judgeRepository.GetRejudgeHistoryAsync(siteId, Math.Min(200, Math.Max(1, limit)));
     }
 
     public async Task RemoteExecutionAsync(RemoteExecutionRequest request, string userId, int siteId)
@@ -63,5 +106,32 @@ public class JudgeService : IJudgeService
 
         await _solutionClientRepository.SaveSourceCodeAsync(solution_id, request.ClientSource);
         await _solutionClientRepository.SaveRemoteSolutionAsync(solution_id, request.ClientId);
+    }
+
+    private static RejudgeOperationResponse BuildRejudgeResponse(int siteId, string scope, int matched)
+    {
+        return new RejudgeOperationResponse
+        {
+            SiteId = siteId,
+            Scope = scope,
+            Matched = matched,
+            RequestedAtUtc = DateTime.Now
+        };
+    }
+
+    private static void ValidateSite(int siteId)
+    {
+        if (siteId <= 0)
+        {
+            throw new ArgumentException("SiteId inválido.");
+        }
+    }
+
+    private static void ValidatePositiveId(int value, string name)
+    {
+        if (value <= 0)
+        {
+            throw new ArgumentException($"{name} inválido.");
+        }
     }
 }

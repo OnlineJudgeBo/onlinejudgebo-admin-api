@@ -71,6 +71,14 @@ public class PublicService : IPublicService
         return _publicRepository.GetContestProblemDetailAsync(siteId, contestId, contestProblemId);
     }
 
+    public Task<PublicProblemStatisticsResponse> GetProblemStatisticsAsync(int siteId, int problemId)
+    {
+        ValidateSite(siteId);
+        ValidatePositiveId(problemId, "ProblemId");
+
+        return _publicRepository.GetProblemStatisticsAsync(siteId, problemId);
+    }
+
     public Task<PublicProblemFiltersResponse> GetProblemFiltersAsync(int siteId)
     {
         ValidateSite(siteId);
@@ -138,6 +146,25 @@ public class PublicService : IPublicService
     {
         ValidateCurrentUser(currentUser);
         return _publicRepository.GetOwnSubmissionsAsync(currentUser, Math.Max(page, 1), Clamp(pageSize, 1, 500));
+    }
+
+    public Task<PublicSubmissionsResponse> GetRecentSubmissionsAsync(int siteId, int page, int pageSize, int? contestId, long? courseId)
+    {
+        ValidateSite(siteId);
+        ValidateOptionalPositiveId(contestId, "ContestId");
+
+        if (courseId.HasValue && courseId.Value <= 0)
+        {
+            throw new ArgumentException("CourseId inválido.");
+        }
+
+        return _publicRepository.GetRecentSubmissionsAsync(siteId, Math.Max(page, 1), Clamp(pageSize, 1, 100), contestId, courseId);
+    }
+
+    public Task<PublicOnlineUsersResponse> GetOnlineUsersAsync(int siteId, int windowMinutes)
+    {
+        ValidateSite(siteId);
+        return _publicRepository.GetOnlineUsersAsync(siteId, Clamp(windowMinutes, 1, 1440));
     }
 
     public Task<IReadOnlyCollection<PublicSubmissionSourceCodeItem>> GetOwnSubmissionSourceCodesAsync(CurrentUser currentUser)
