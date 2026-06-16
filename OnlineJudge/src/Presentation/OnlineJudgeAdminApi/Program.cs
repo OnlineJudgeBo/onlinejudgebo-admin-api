@@ -87,7 +87,7 @@ builder.Services.AddDbContext<ScheduleDbContext>(options =>
     .LogTo(Console.WriteLine, LogLevel.Information));
 
 //builder.Services.AddHttpContextAccessor();
-builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
+builder.Services.AddAutoMapper(_ => { }, Assembly.GetExecutingAssembly());
 builder.Services.AddDatabaseRepositories(builder.Configuration);
 builder.Services.AddScheduleDatabaseRepositories(builder.Configuration);
 builder.Services.AddApplicationValidators();
