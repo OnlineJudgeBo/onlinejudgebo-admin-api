@@ -11,7 +11,7 @@ namespace ScheduleManager.Infrastructure.Database.DependencyInjection
     {
         public static IServiceCollection AddScheduleDatabaseRepositories(this IServiceCollection services, IConfiguration configuration)
         {
-            services.AddAutoMapper(Assembly.GetExecutingAssembly());
+            services.AddAutoMapper(_ => { }, Assembly.GetExecutingAssembly());
             services.AddScoped<IScheduleManagerRepository, ScheduleManagerRepository>();
 
             services.AddMysqlClient(configuration);
