@@ -28,6 +28,8 @@ public class PublicProblemItem
 
     public IReadOnlyCollection<string> ContestTracks { get; set; } = Array.Empty<string>();
 
+    public string Source { get; set; } = string.Empty;
+
     public string OriginSource { get; set; } = string.Empty;
 }
 

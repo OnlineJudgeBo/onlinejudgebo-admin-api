@@ -153,6 +153,7 @@ public class PublicRepository : IPublicRepository
                 ProblemId = problem.ProblemId!.Value,
                 Title = problem.Title,
                 Description = problem.Description ?? string.Empty,
+                Source = problem.Source ?? string.Empty,
                 Accepted = problem.Accepted ?? 0,
                 Submit = problem.Submit ?? 0,
                 Solved = problem.Solved ?? 0,
@@ -309,6 +310,7 @@ public class PublicRepository : IPublicRepository
                     Tags = metadata.Tags.Take(3).ToList(),
                     Years = years,
                     ContestTracks = metadata.Tracks.ToList(),
+                    Source = problem.Source,
                     OriginSource = metadata.OriginSource
                 };
             })
@@ -458,10 +460,19 @@ public class PublicRepository : IPublicRepository
         };
     }
 
-    public async Task<PublicRankingResponse> GetRankingAsync(int siteId, int limit)
+    public async Task<PublicRankingResponse> GetRankingAsync(int siteId, int limit, string? scope)
     {
+        var today = DateTime.Now.Date;
+        var startDate = (scope ?? "all").Trim().ToLowerInvariant() switch
+        {
+            "d" => today,
+            "w" => today.AddDays(-6),
+            "m" => new DateTime(today.Year, today.Month, 1),
+            _ => DateTime.MinValue
+        };
+
         var rankingRows = await OfficialSolutions()
-            .Where(solution => solution.SiteId == siteId)
+            .Where(solution => solution.SiteId == siteId && solution.InDate >= startDate)
             .GroupBy(solution => solution.UserId)
             .Select(group => new
             {
@@ -848,7 +859,7 @@ public class PublicRepository : IPublicRepository
             .ToListAsync();
     }
 
-    public async Task<PublicSubmissionsResponse> GetSubmissionsAsync(int siteId, int page, int pageSize, int? contestId)
+    public async Task<PublicSubmissionsResponse> GetSubmissionsAsync(int siteId, int page, int pageSize, int? contestId, int? problemId, string? userId, int? languageId, string? statusKey)
     {
         var baseQuery = OfficialSolutions()
             .Where(solution => solution.SiteId == siteId);
@@ -857,6 +868,28 @@ public class PublicRepository : IPublicRepository
         {
             await EnsureContestExistsAsync(siteId, contestId.Value);
             baseQuery = baseQuery.Where(solution => solution.ContestId == contestId.Value);
+        }
+
+        if (problemId.HasValue)
+        {
+            baseQuery = baseQuery.Where(solution => solution.ProblemId == problemId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(userId))
+        {
+            var normalizedUserId = userId.Trim();
+            baseQuery = baseQuery.Where(solution => solution.UserId == normalizedUserId);
+        }
+
+        if (languageId.HasValue)
+        {
+            baseQuery = baseQuery.Where(solution => solution.Language == languageId.Value);
+        }
+
+        var resultCodes = ResolveSubmissionStatusCodes(statusKey);
+        if (resultCodes.Count > 0)
+        {
+            baseQuery = baseQuery.Where(solution => resultCodes.Contains(solution.Result));
         }
 
         var total = await baseQuery.CountAsync();
@@ -1899,6 +1932,41 @@ public class PublicRepository : IPublicRepository
         return TimeZoneInfo.Local;
     }
 
+    private static IReadOnlyCollection<short> ResolveSubmissionStatusCodes(string? statusKey)
+    {
+        return (statusKey ?? string.Empty).Trim().ToLowerInvariant() switch
+        {
+            "queued" => new[] { JudgeResultCodes.Pending, JudgeResultCodes.WaitRejudge },
+            "evaluating" => new[] { JudgeResultCodes.Compiling, JudgeResultCodes.RunningAndJudging, JudgeResultCodes.CompileOk, JudgeResultCodes.TestRunDone },
+            "finished" => new[]
+            {
+                JudgeResultCodes.Accepted,
+                JudgeResultCodes.PresentationError,
+                JudgeResultCodes.WrongAnswer,
+                JudgeResultCodes.TimeLimitExceeded,
+                JudgeResultCodes.MemoryLimitExceeded,
+                JudgeResultCodes.OutputLimitExceeded,
+                JudgeResultCodes.RuntimeError,
+                JudgeResultCodes.CompileError
+            },
+            "pending" => new[] { JudgeResultCodes.Pending },
+            "pending_rejudge" => new[] { JudgeResultCodes.WaitRejudge },
+            "compiling" => new[] { JudgeResultCodes.Compiling },
+            "running" => new[] { JudgeResultCodes.RunningAndJudging },
+            "accepted" => new[] { JudgeResultCodes.Accepted },
+            "presentation_error" => new[] { JudgeResultCodes.PresentationError },
+            "wrong_answer" => new[] { JudgeResultCodes.WrongAnswer },
+            "time_limit_exceeded" => new[] { JudgeResultCodes.TimeLimitExceeded },
+            "memory_limit_exceeded" => new[] { JudgeResultCodes.MemoryLimitExceeded },
+            "output_limit_exceeded" => new[] { JudgeResultCodes.OutputLimitExceeded },
+            "runtime_error" => new[] { JudgeResultCodes.RuntimeError },
+            "compile_error" => new[] { JudgeResultCodes.CompileError },
+            "compiled" => new[] { JudgeResultCodes.CompileOk },
+            "test_run" => new[] { JudgeResultCodes.TestRunDone },
+            _ => Array.Empty<short>()
+        };
+    }
+
     private static IReadOnlyCollection<PublicProblemMenuItem> BuildProblemMenuItems(
         IEnumerable<string> contestTracks,
         IEnumerable<string> contestSources)
@@ -2025,6 +2093,8 @@ public class PublicRepository : IPublicRepository
         public string Title { get; set; } = string.Empty;
 
         public string Description { get; set; } = string.Empty;
+
+        public string Source { get; set; } = string.Empty;
 
         public int Accepted { get; set; }
 
