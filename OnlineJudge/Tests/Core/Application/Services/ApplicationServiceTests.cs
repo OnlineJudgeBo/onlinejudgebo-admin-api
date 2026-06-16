@@ -135,7 +135,7 @@ public class ApplicationServiceTests
         Assert.Equal(("contest", 3), (byContest.Scope, byContest.Matched));
         Assert.Equal(("range", 4), (byRange.Scope, byRange.Matched));
         Assert.Equal(("language", 5), (byLanguage.Scope, byLanguage.Matched));
-        Assert.Equal(DateTimeKind.Utc, bySolution.RequestedAtUtc.Kind);
+        Assert.Equal(DateTimeKind.Local, bySolution.RequestedAtUtc.Kind);
         judgeRepository.Verify(item => item.RejudgeSolutionByIdAsync(1, 123), Times.Once);
         judgeRepository.Verify(item => item.RejudgeSolutionByProblemIdAsync(1, 1000), Times.Once);
         judgeRepository.Verify(item => item.RejudgeSolutionByContestIdAsync(1, 7), Times.Once);
