@@ -13,7 +13,7 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.DependencyInjection
     {
         public static IServiceCollection AddDatabaseRepositories(this IServiceCollection services, IConfiguration configuration)
         {
-            services.AddAutoMapper(Assembly.GetExecutingAssembly());
+            services.AddAutoMapper(_ => { }, Assembly.GetExecutingAssembly());
             services.AddScoped<IProblemRepository, ProblemRepository>();
             services.AddScoped<ITopicRepository, TopicRepository>();
             services.AddScoped<IUserRepository, UserRepository>();
