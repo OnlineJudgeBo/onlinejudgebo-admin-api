@@ -40,7 +40,8 @@ public class SubmissionController : ControllerBase
             ContestId = submission.ContestId,
             CourseId = submission.CourseId,
             AssignmentId = submission.AssignmentId,
-            FileName = submission.FileName
+            FileName = submission.FileName,
+            ClientIp = ClientIpHelper.GetClientIp(HttpContext)
         };
 
         return Ok(await _academicService.SubmitAsync(currentUser, request));
@@ -81,7 +82,7 @@ public class SubmissionController : ControllerBase
         return Ok(ToPatitoIdeSubmissionStatusResponse(await _ideSubmissionService.GetStatusAsync(Request.GetBearerToken(), runId)));
     }
 
-    private static IdeSubmissionRequest ToIdeSubmissionRequest(PatitoIdeSubmissionForCreation submission)
+    private IdeSubmissionRequest ToIdeSubmissionRequest(PatitoIdeSubmissionForCreation submission)
     {
         return new IdeSubmissionRequest
         {
@@ -91,6 +92,7 @@ public class SubmissionController : ControllerBase
             ContestId = submission.ContestId,
             Num = submission.Num,
             Stdin = submission.Stdin,
+            ClientIp = ClientIpHelper.GetClientIp(HttpContext),
             Testcases = submission.Testcases
                 .Select(item => new IdeTestcaseRequest
                 {

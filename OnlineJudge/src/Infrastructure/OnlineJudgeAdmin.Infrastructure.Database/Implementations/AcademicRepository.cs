@@ -1264,7 +1264,7 @@ public class AcademicRepository : IAcademicRepository
             InDate = now,
             Result = 0,
             Language = (uint)Math.Max(request.LanguageId, 0),
-            Ip = "0.0.0.0",
+            Ip = request.ClientIp,
             ContestId = request.ContestId,
             Num = 0,
             CodeLength = request.SourceCode.Length,
