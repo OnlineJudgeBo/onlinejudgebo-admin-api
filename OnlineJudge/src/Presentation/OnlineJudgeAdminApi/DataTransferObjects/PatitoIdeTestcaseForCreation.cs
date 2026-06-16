@@ -1,6 +1,6 @@
 namespace OnlineJudgeAdminApi.DataTransferObjects;
 
-public class VibeTestcaseForCreation
+public class PatitoIdeTestcaseForCreation
 {
     public string Input { get; set; } = string.Empty;
 

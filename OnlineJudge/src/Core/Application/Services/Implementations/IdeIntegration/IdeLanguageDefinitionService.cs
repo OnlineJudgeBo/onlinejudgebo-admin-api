@@ -1,8 +1,8 @@
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
-using OnlineJudgeAdminApi.DataTransferObjects;
+using OnlineJudgeAdmin.Core.Domain.Models.IdeIntegration;
 
-namespace OnlineJudgeAdminApi.Services.IdeIntegration;
+namespace OnlineJudgeAdmin.Core.Application.Services.Implementations.IdeIntegration;
 
 public sealed class IdeLanguageDefinitionService : IIdeLanguageDefinitionService
 {
@@ -13,14 +13,14 @@ public sealed class IdeLanguageDefinitionService : IIdeLanguageDefinitionService
         _programmingLanguageService = programmingLanguageService ?? throw new ArgumentNullException(nameof(programmingLanguageService));
     }
 
-    public async Task<IdeLanguageDefinitionDto[]> GetAllowedLanguageDefinitionsAsync(int[] allowedLanguageIds)
+    public async Task<IdeLanguageDefinition[]> GetAllowedLanguageDefinitionsAsync(int[] allowedLanguageIds)
     {
         var allowed = allowedLanguageIds.ToHashSet();
         var allLanguages = await _programmingLanguageService.GetAllProgrammingLanguageAsync();
         return allLanguages
             .Where(language => language.LanguageId.HasValue)
             .Where(language => allowed.Count == 0 || allowed.Contains(language.LanguageId!.Value))
-            .Select(language => new IdeLanguageDefinitionDto(
+            .Select(language => new IdeLanguageDefinition(
                 language.LanguageId!.Value,
                 language.Name ?? string.Empty,
                 ToIdeLanguage(language)))

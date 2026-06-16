@@ -1,8 +1,3 @@
-using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
-using OnlineJudgeAdmin.Core.Domain.Models;
-using OnlineJudgeAdmin.Core.Application.Services.Implementations;
-using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
-
 public class ProblemServiceTests
 {
     [Fact]

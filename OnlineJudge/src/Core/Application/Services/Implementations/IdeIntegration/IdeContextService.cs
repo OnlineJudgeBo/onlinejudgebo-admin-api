@@ -1,9 +1,9 @@
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
-using OnlineJudgeAdminApi.DataTransferObjects;
+using OnlineJudgeAdmin.Core.Domain.Models.IdeIntegration;
 
-namespace OnlineJudgeAdminApi.Services.IdeIntegration;
+namespace OnlineJudgeAdmin.Core.Application.Services.Implementations.IdeIntegration;
 
 public sealed class IdeContextService : IIdeContextService
 {
@@ -42,7 +42,7 @@ public sealed class IdeContextService : IIdeContextService
             ToProblemContext(problem, claims.ProblemId),
             allowedLanguages,
             languages,
-            new IdeContextIdentifiersDto(
+            new IdeContextIdentifiers(
                 claims.ProblemId,
                 claims.ContestId,
                 claims.Num,
@@ -65,9 +65,9 @@ public sealed class IdeContextService : IIdeContextService
             : Array.Empty<int>();
     }
 
-    private static IdeProblemContextDto ToProblemContext(Problem problem, int fallbackProblemId)
+    private static IdeProblemContext ToProblemContext(Problem problem, int fallbackProblemId)
     {
-        return new IdeProblemContextDto(
+        return new IdeProblemContext(
             problem.ProblemId!.Value.ToString(),
             problem.Title ?? $"Problema {fallbackProblemId}",
             problem.Description ?? string.Empty,
@@ -75,7 +75,7 @@ public sealed class IdeContextService : IIdeContextService
             problem.Output ?? string.Empty,
             string.Empty,
             problem.Hint ?? string.Empty,
-            new IdeProblemExampleDto(problem.SampleInput ?? string.Empty, problem.SampleOutput ?? string.Empty),
+            new IdeProblemExample(problem.SampleInput ?? string.Empty, problem.SampleOutput ?? string.Empty),
             problem.TimeLimit.HasValue ? $"{problem.TimeLimit}s" : null,
             problem.MemoryLimit.HasValue ? $"{problem.MemoryLimit} MB" : null);
     }

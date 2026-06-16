@@ -1,6 +1,6 @@
 namespace OnlineJudgeAdminApi.DataTransferObjects;
 
-public class VibeSubmissionForCreation
+public class PatitoIdeSubmissionForCreation
 {
     public string SourceCode { get; set; } = string.Empty;
 
@@ -14,7 +14,7 @@ public class VibeSubmissionForCreation
 
     public string? Stdin { get; set; }
 
-    public IReadOnlyCollection<VibeTestcaseForCreation> Testcases { get; set; } = Array.Empty<VibeTestcaseForCreation>();
+    public IReadOnlyCollection<PatitoIdeTestcaseForCreation> Testcases { get; set; } = Array.Empty<PatitoIdeTestcaseForCreation>();
 
     public int ProblemIdAsInt()
     {
