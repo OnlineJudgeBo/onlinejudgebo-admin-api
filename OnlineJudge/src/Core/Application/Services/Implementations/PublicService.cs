@@ -77,10 +77,10 @@ public class PublicService : IPublicService
         return _publicRepository.GetProblemFiltersAsync(siteId);
     }
 
-    public Task<PublicRankingResponse> GetRankingAsync(int siteId, int limit)
+    public Task<PublicRankingResponse> GetRankingAsync(int siteId, int limit, string? scope)
     {
         ValidateSite(siteId);
-        return _publicRepository.GetRankingAsync(siteId, Clamp(limit, 1, 200));
+        return _publicRepository.GetRankingAsync(siteId, Clamp(limit, 1, 200), scope);
     }
 
     public Task<PublicTopicsResponse> GetTopicsAsync(int siteId)
@@ -117,12 +117,21 @@ public class PublicService : IPublicService
         return _publicRepository.GetLanguagesAsync();
     }
 
-    public Task<PublicSubmissionsResponse> GetSubmissionsAsync(int siteId, int page, int pageSize, int? contestId)
+    public Task<PublicSubmissionsResponse> GetSubmissionsAsync(int siteId, int page, int pageSize, int? contestId, int? problemId, string? userId, int? languageId, string? statusKey)
     {
         ValidateSite(siteId);
         ValidateOptionalPositiveId(contestId, "ContestId");
+        ValidateOptionalPositiveId(problemId, "ProblemId");
 
-        return _publicRepository.GetSubmissionsAsync(siteId, Math.Max(page, 1), Clamp(pageSize, 1, 100), contestId);
+        return _publicRepository.GetSubmissionsAsync(
+            siteId,
+            Math.Max(page, 1),
+            Clamp(pageSize, 1, 100),
+            contestId,
+            problemId,
+            string.IsNullOrWhiteSpace(userId) ? null : userId.Trim(),
+            languageId,
+            statusKey);
     }
 
     public Task<PublicSubmissionsResponse> GetOwnSubmissionsAsync(CurrentUser currentUser, int page, int pageSize)
