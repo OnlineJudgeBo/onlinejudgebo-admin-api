@@ -117,13 +117,58 @@ public class ApplicationServiceTests
     public async Task JudgeService_RejudgeMethods_DelegateToRepository()
     {
         var judgeRepository = new Mock<IJudgeRepository>();
+        judgeRepository.Setup(item => item.RejudgeSolutionByIdAsync(1, 123)).ReturnsAsync(1);
+        judgeRepository.Setup(item => item.RejudgeSolutionByProblemIdAsync(1, 1000)).ReturnsAsync(2);
+        judgeRepository.Setup(item => item.RejudgeSolutionByContestIdAsync(1, 7)).ReturnsAsync(3);
+        judgeRepository.Setup(item => item.RejudgeSolutionsByRangeAsync(1, 10, 20)).ReturnsAsync(4);
+        judgeRepository.Setup(item => item.RejudgeSolutionsByLanguageAsync(1, 5)).ReturnsAsync(5);
         var service = CreateJudgeService(judgeRepository: judgeRepository.Object);
 
-        await service.RejudgeSolutionByIdAsync(123);
-        await service.RejudgeSolutionByProblemIdAsync(1000);
+        var bySolution = await service.RejudgeSolutionByIdAsync(1, 123);
+        var byProblem = await service.RejudgeSolutionByProblemIdAsync(1, 1000);
+        var byContest = await service.RejudgeSolutionByContestIdAsync(1, 7);
+        var byRange = await service.RejudgeSolutionsByRangeAsync(1, 10, 20);
+        var byLanguage = await service.RejudgeSolutionsByLanguageAsync(1, 5);
 
-        judgeRepository.Verify(item => item.RejudgeSolutionByIdAsync(123), Times.Once);
-        judgeRepository.Verify(item => item.RejudgeSolutionByProblemIdAsync(1000), Times.Once);
+        Assert.Equal(("solution", 1), (bySolution.Scope, bySolution.Matched));
+        Assert.Equal(("problem", 2), (byProblem.Scope, byProblem.Matched));
+        Assert.Equal(("contest", 3), (byContest.Scope, byContest.Matched));
+        Assert.Equal(("range", 4), (byRange.Scope, byRange.Matched));
+        Assert.Equal(("language", 5), (byLanguage.Scope, byLanguage.Matched));
+        Assert.Equal(DateTimeKind.Utc, bySolution.RequestedAtUtc.Kind);
+        judgeRepository.Verify(item => item.RejudgeSolutionByIdAsync(1, 123), Times.Once);
+        judgeRepository.Verify(item => item.RejudgeSolutionByProblemIdAsync(1, 1000), Times.Once);
+        judgeRepository.Verify(item => item.RejudgeSolutionByContestIdAsync(1, 7), Times.Once);
+        judgeRepository.Verify(item => item.RejudgeSolutionsByRangeAsync(1, 10, 20), Times.Once);
+        judgeRepository.Verify(item => item.RejudgeSolutionsByLanguageAsync(1, 5), Times.Once);
+    }
+
+    [Fact]
+    public async Task JudgeService_RejudgeRange_RejectsInvertedRange()
+    {
+        var judgeRepository = new Mock<IJudgeRepository>();
+        var service = CreateJudgeService(judgeRepository: judgeRepository.Object);
+
+        var error = await Assert.ThrowsAsync<ArgumentException>(() => service.RejudgeSolutionsByRangeAsync(1, 20, 10));
+
+        Assert.Equal("El rango de soluciones es inválido.", error.Message);
+        judgeRepository.Verify(item => item.RejudgeSolutionsByRangeAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(201)]
+    public async Task JudgeService_GetRejudgeHistoryAsync_ClampsLimit(int requestedLimit)
+    {
+        var judgeRepository = new Mock<IJudgeRepository>();
+        judgeRepository
+            .Setup(item => item.GetRejudgeHistoryAsync(1, requestedLimit <= 0 ? 1 : 200))
+            .ReturnsAsync(new RejudgeHistoryResponse { SiteId = 1 });
+        var service = CreateJudgeService(judgeRepository: judgeRepository.Object);
+
+        await service.GetRejudgeHistoryAsync(1, requestedLimit);
+
+        judgeRepository.Verify(item => item.GetRejudgeHistoryAsync(1, requestedLimit <= 0 ? 1 : 200), Times.Once);
     }
 
     [Fact]
