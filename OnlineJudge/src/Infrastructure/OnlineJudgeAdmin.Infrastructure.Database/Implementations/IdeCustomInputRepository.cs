@@ -30,7 +30,7 @@ public sealed class IdeCustomInputRepository : IIdeCustomInputRepository
             InDate = now,
             Result = 0,
             Language = (uint)run.LanguageId,
-            Ip = "0.0.0.0",
+            Ip = run.ClientIp,
             ContestId = run.ContestId,
             Num = run.Num,
             CodeLength = run.SourceCode.Length,

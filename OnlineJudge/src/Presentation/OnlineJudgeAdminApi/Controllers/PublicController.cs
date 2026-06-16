@@ -186,7 +186,8 @@ public class PublicController : ControllerBase
             Num = submissionForCreation.Num,
             CourseId = submissionForCreation.CourseId,
             AssignmentId = submissionForCreation.AssignmentId,
-            FileName = submissionForCreation.FileName
+            FileName = submissionForCreation.FileName,
+            ClientIp = ClientIpHelper.GetClientIp(HttpContext)
         };
 
         return Ok(await _publicService.SubmitAsync(currentUser, request));

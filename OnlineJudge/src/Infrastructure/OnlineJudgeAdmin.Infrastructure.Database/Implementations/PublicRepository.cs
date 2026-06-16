@@ -1188,7 +1188,7 @@ public class PublicRepository : IPublicRepository
             InDate = now,
             Result = 0,
             Language = (uint)languageId,
-            Ip = "0.0.0.0",
+            Ip = request.ClientIp,
             ContestId = request.ContestId,
             Num = contestProblem?.Num ?? -1,
             CodeLength = request.SourceCode.Length,
