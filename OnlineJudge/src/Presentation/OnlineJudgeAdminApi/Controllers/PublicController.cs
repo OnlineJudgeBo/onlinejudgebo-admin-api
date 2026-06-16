@@ -70,9 +70,9 @@ public class PublicController : ControllerBase
 
     [AllowAnonymous]
     [HttpGet("ranking")]
-    public async Task<IActionResult> GetRankingAsync([FromQuery] int siteId = 1, [FromQuery] int limit = 50)
+    public async Task<IActionResult> GetRankingAsync([FromQuery] int siteId = 1, [FromQuery] int limit = 50, [FromQuery] string? scope = null)
     {
-        return Ok(await _publicService.GetRankingAsync(siteId, limit));
+        return Ok(await _publicService.GetRankingAsync(siteId, limit, scope));
     }
 
     [AllowAnonymous]
@@ -135,9 +135,13 @@ public class PublicController : ControllerBase
         [FromQuery] int siteId = 1,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 25,
-        [FromQuery] int? contestId = null)
+        [FromQuery] int? contestId = null,
+        [FromQuery] int? problemId = null,
+        [FromQuery] string? userId = null,
+        [FromQuery] int? languageId = null,
+        [FromQuery] string? statusKey = null)
     {
-        return Ok(await _publicService.GetSubmissionsAsync(siteId, page, pageSize, contestId));
+        return Ok(await _publicService.GetSubmissionsAsync(siteId, page, pageSize, contestId, problemId, userId, languageId, statusKey));
     }
 
     [Authorize]

@@ -14,7 +14,7 @@ public interface IPublicRepository
 
     Task<PublicProblemFiltersResponse> GetProblemFiltersAsync(int siteId);
 
-    Task<PublicRankingResponse> GetRankingAsync(int siteId, int limit);
+    Task<PublicRankingResponse> GetRankingAsync(int siteId, int limit, string? scope);
 
     Task<PublicTopicsResponse> GetTopicsAsync(int siteId);
 
@@ -26,7 +26,7 @@ public interface IPublicRepository
 
     Task<IReadOnlyCollection<PublicLanguageItem>> GetLanguagesAsync();
 
-    Task<PublicSubmissionsResponse> GetSubmissionsAsync(int siteId, int page, int pageSize, int? contestId);
+    Task<PublicSubmissionsResponse> GetSubmissionsAsync(int siteId, int page, int pageSize, int? contestId, int? problemId, string? userId, int? languageId, string? statusKey);
 
     Task<PublicSubmissionsResponse> GetOwnSubmissionsAsync(CurrentUser currentUser, int page, int pageSize);
 
