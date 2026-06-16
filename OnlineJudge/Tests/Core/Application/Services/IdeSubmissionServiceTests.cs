@@ -1,8 +1,9 @@
-using Moq;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
-using OnlineJudgeAdminApi.DataTransferObjects;
-using OnlineJudgeAdminApi.Services.IdeIntegration;
+using OnlineJudgeAdmin.Core.Application.Services.Implementations.IdeIntegration;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
+using OnlineJudgeAdmin.Core.Domain.Models.IdeIntegration;
 
 public class IdeSubmissionServiceTests
 {
@@ -37,9 +38,9 @@ public class IdeSubmissionServiceTests
                 CreatedAtUtc = DateTime.UtcNow
             });
 
-        var service = new IdeSubmissionService(validator.Object, publicService.Object);
+        var service = new IdeSubmissionService(validator.Object, publicService.Object, Mock.Of<IIdeCustomInputRepository>());
 
-        var response = await service.SubmitAsync("launch-token", new VibeSubmissionForCreation
+        var response = await service.SubmitAsync("launch-token", new IdeSubmissionRequest
         {
             ProblemId = "1000",
             SourceCode = "print(42)",
@@ -84,9 +85,9 @@ public class IdeSubmissionServiceTests
                 CreatedAtUtc = DateTime.UtcNow
             });
 
-        var service = new IdeSubmissionService(validator.Object, publicService.Object);
+        var service = new IdeSubmissionService(validator.Object, publicService.Object, Mock.Of<IIdeCustomInputRepository>());
 
-        var response = await service.SubmitAsync("launch-token", new VibeSubmissionForCreation
+        var response = await service.SubmitAsync("launch-token", new IdeSubmissionRequest
         {
             ProblemId = "1000",
             ContestId = 3040,
@@ -117,9 +118,9 @@ public class IdeSubmissionServiceTests
                 AllowedLanguages: new[] { 2 }));
 
         var publicService = new Mock<IPublicService>(MockBehavior.Strict);
-        var service = new IdeSubmissionService(validator.Object, publicService.Object);
+        var service = new IdeSubmissionService(validator.Object, publicService.Object, Mock.Of<IIdeCustomInputRepository>());
 
-        var error = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.SubmitAsync("launch-token", new VibeSubmissionForCreation
+        var error = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.SubmitAsync("launch-token", new IdeSubmissionRequest
         {
             ProblemId = "1000",
             ContestId = 9999,

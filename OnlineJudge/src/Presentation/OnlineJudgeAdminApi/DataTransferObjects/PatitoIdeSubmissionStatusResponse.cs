@@ -1,6 +1,6 @@
 namespace OnlineJudgeAdminApi.DataTransferObjects;
 
-public class VibeSubmissionStatusResponse
+public class PatitoIdeSubmissionStatusResponse
 {
     public string SubmissionId { get; set; } = string.Empty;
 

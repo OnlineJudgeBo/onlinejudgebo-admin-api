@@ -27,7 +27,6 @@
     <ProjectReference Include="..\..\..\..\src\Core\Application\Services\OnlineJudgeAdmin.Core.Application.Services.csproj" />
     <ProjectReference Include="..\..\..\..\src\Core\Domain\Abstractions\OnlineJudgeAdmin.Core.Domain.Abstractions.csproj" />
     <ProjectReference Include="..\..\..\..\src\Core\Application\Validators\OnlineJudgeAdmin.Core.Application.Validators.csproj" />
-    <ProjectReference Include="..\..\..\..\src\Presentation\OnlineJudgeAdminApi\OnlineJudgeAdminApi.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,55 +1,47 @@
-using Microsoft.EntityFrameworkCore;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
-using OnlineJudgeAdminApi.DataTransferObjects;
-using OnlineJudgeAdmin.Infrastructure.Database.Models;
+using OnlineJudgeAdmin.Core.Domain.Models.IdeIntegration;
 
-namespace OnlineJudgeAdminApi.Services.IdeIntegration;
+namespace OnlineJudgeAdmin.Core.Application.Services.Implementations.IdeIntegration;
 
 public sealed class IdeSubmissionService : IIdeSubmissionService
 {
     private readonly IIdeLaunchTokenValidator _tokenValidator;
     private readonly IPublicService _publicService;
-    private readonly AppDbContext? _dbContext;
-
-    public IdeSubmissionService(
-        IIdeLaunchTokenValidator tokenValidator,
-        IPublicService publicService)
-        : this(tokenValidator, publicService, null)
-    {
-    }
+    private readonly IIdeCustomInputRepository _customInputRepository;
 
     public IdeSubmissionService(
         IIdeLaunchTokenValidator tokenValidator,
         IPublicService publicService,
-        AppDbContext? dbContext)
+        IIdeCustomInputRepository customInputRepository)
     {
         _tokenValidator = tokenValidator ?? throw new ArgumentNullException(nameof(tokenValidator));
         _publicService = publicService ?? throw new ArgumentNullException(nameof(publicService));
-        _dbContext = dbContext;
+        _customInputRepository = customInputRepository ?? throw new ArgumentNullException(nameof(customInputRepository));
     }
 
-    public async Task<VibeSubmissionResponse> SubmitAsync(string launchToken, VibeSubmissionForCreation submission)
+    public async Task<IdeSubmissionResponse> SubmitAsync(string launchToken, IdeSubmissionRequest submission)
     {
         PublicSubmissionResponse response = await SubmitToJudgeAsync(launchToken, submission);
         string id = response.SolutionId.ToString();
 
-        return new VibeSubmissionResponse
+        return new IdeSubmissionResponse
         {
             SubmissionId = id,
             Id = id,
-            StatusUrl = $"/api/vibe/submissions/{id}"
+            StatusUrl = $"/api/patito-ide/submissions/{id}"
         };
     }
 
-    public Task<VibeRunResponse> RunAsync(string launchToken, VibeSubmissionForCreation submission)
+    public Task<IdeRunResponse> RunAsync(string launchToken, IdeSubmissionRequest submission)
     {
         return CustomInputAsync(launchToken, submission);
     }
 
-    public async Task<VibeRunResponse> CustomInputAsync(string launchToken, VibeSubmissionForCreation submission)
+    public async Task<IdeRunResponse> CustomInputAsync(string launchToken, IdeSubmissionRequest submission)
     {
-        AppDbContext dbContext = _dbContext ?? throw new InvalidOperationException("AppDbContext es requerido para custom_input.");
         IdeLaunchClaims claims = ValidateLaunchToken(launchToken);
         ValidateSourceCode(submission.SourceCode);
         int? contestId = ResolveContestId(claims, submission);
@@ -57,73 +49,34 @@ public sealed class IdeSubmissionService : IIdeSubmissionService
         int problemId = ResolveProblemId(claims, submission);
         int languageId = ResolveLanguageId(claims, submission);
 
-        await ValidateCustomInputTargetAsync(dbContext, claims, problemId, languageId);
+        int solutionId = await _customInputRepository.CreateCustomInputRunAsync(new IdeCustomInputRunCreation(
+            claims.UserId,
+            claims.SiteId,
+            problemId,
+            languageId,
+            contestId,
+            claims.Num ?? submission.Num ?? -1,
+            submission.SourceCode,
+            submission.Testcases,
+            submission.Stdin));
 
-        DateTime now = DateTime.Now;
-        await using Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction = await dbContext.Database.BeginTransactionAsync();
-
-        DbSolution solution = new DbSolution
-        {
-            ProblemId = problemId,
-            UserId = claims.UserId,
-            Time = 0,
-            Memory = 0,
-            InDate = now,
-            Result = 0,
-            Language = (uint)languageId,
-            Ip = "0.0.0.0",
-            ContestId = contestId,
-            Num = claims.Num ?? submission.Num ?? -1,
-            CodeLength = submission.SourceCode.Length,
-            PassRate = 0,
-            IsRemoteOj = false,
-            RemoteId = 0,
-            SiteId = claims.SiteId
-        };
-
-        await dbContext.Solutions.AddAsync(solution);
-        await dbContext.SaveChangesAsync();
-
-        await dbContext.SourceCodes.AddAsync(new DbSourceCode
-        {
-            SolutionId = solution.SolutionId,
-            Source = submission.SourceCode
-        });
-
-        await dbContext.CustomInputs.AddAsync(new DbCustomInput
-        {
-            SolutionId = solution.SolutionId,
-            ProblemId = problemId,
-            UserId = claims.UserId,
-            SiteId = claims.SiteId,
-            CreatedAt = now
-        });
-
-        foreach (DbCustomInputCase customCase in BuildCustomInputCases(solution.SolutionId, submission))
-        {
-            await dbContext.CustomInputCases.AddAsync(customCase);
-        }
-
-        await dbContext.SaveChangesAsync();
-        await transaction.CommitAsync();
-
-        string id = solution.SolutionId.ToString();
-        return new VibeRunResponse
+        string id = solutionId.ToString();
+        return new IdeRunResponse
         {
             RunId = id,
             Id = id,
-            StatusUrl = $"/api/vibe/runs/{id}"
+            StatusUrl = $"/api/patito-ide/runs/{id}"
         };
     }
 
-    public async Task<VibeSubmissionStatusResponse> GetStatusAsync(string launchToken, int solutionId)
+    public async Task<IdeSubmissionStatusResponse> GetStatusAsync(string launchToken, int solutionId)
     {
         IdeLaunchClaims claims = ValidateLaunchToken(launchToken);
         PublicSubmissionStatusResponse status = await _publicService.GetSubmissionStatusAsync(ToCurrentUser(claims), solutionId);
-        bool isCustomInput = await IsCustomInputAsync(solutionId);
+        bool isCustomInput = await _customInputRepository.IsCustomInputAsync(solutionId);
         string id = status.SolutionId.ToString();
 
-        return new VibeSubmissionStatusResponse
+        return new IdeSubmissionStatusResponse
         {
             SubmissionId = id,
             Id = id,
@@ -143,41 +96,6 @@ public sealed class IdeSubmissionService : IIdeSubmissionService
         };
     }
 
-    private async Task<bool> IsCustomInputAsync(int solutionId)
-    {
-        return _dbContext != null && await _dbContext.CustomInputs.AnyAsync(item => item.SolutionId == solutionId);
-    }
-
-    private static IReadOnlyCollection<DbCustomInputCase> BuildCustomInputCases(int solutionId, VibeSubmissionForCreation submission)
-    {
-        var cases = submission.Testcases
-            .Where(item => !string.IsNullOrEmpty(item.Input) || !string.IsNullOrEmpty(item.ExpectedOutput))
-            .Select((item, index) => new DbCustomInputCase
-            {
-                SolutionId = solutionId,
-                CaseNumber = index + 1,
-                InputText = item.Input ?? string.Empty,
-                ExpectedOutput = item.ExpectedOutput
-            })
-            .ToList();
-
-        if (cases.Count > 0)
-        {
-            return cases;
-        }
-
-        return new[]
-        {
-            new DbCustomInputCase
-            {
-                SolutionId = solutionId,
-                CaseNumber = 1,
-                InputText = submission.Stdin ?? string.Empty,
-                ExpectedOutput = null
-            }
-        };
-    }
-
     private static void ValidateSourceCode(string sourceCode)
     {
         if (string.IsNullOrWhiteSpace(sourceCode) || sourceCode.Trim().Length < 5)
@@ -191,28 +109,7 @@ public sealed class IdeSubmissionService : IIdeSubmissionService
         }
     }
 
-    private static async Task ValidateCustomInputTargetAsync(AppDbContext dbContext, IdeLaunchClaims claims, int problemId, int languageId)
-    {
-        bool userExists = await dbContext.Users.AnyAsync(user => user.UserId == claims.UserId && user.SiteId == claims.SiteId && !user.IsDeleted && user.IsActive);
-        if (!userExists)
-        {
-            throw new ArgumentException("Usuario inválido para este sitio.");
-        }
-
-        bool problemExists = await dbContext.ProblemSites.AnyAsync(problemSite => problemSite.problemId == problemId && problemSite.SiteId == claims.SiteId && problemSite.IsActive);
-        if (!problemExists)
-        {
-            throw new ArgumentException("Problema inválido o no disponible.");
-        }
-
-        bool languageExists = await dbContext.ProgrammingLanguages.AnyAsync(language => language.LanguageId == languageId);
-        if (!languageExists)
-        {
-            throw new ArgumentException("LanguageId no soportado.");
-        }
-    }
-
-    private async Task<PublicSubmissionResponse> SubmitToJudgeAsync(string launchToken, VibeSubmissionForCreation submission)
+    private async Task<PublicSubmissionResponse> SubmitToJudgeAsync(string launchToken, IdeSubmissionRequest submission)
     {
         IdeLaunchClaims claims = ValidateLaunchToken(launchToken);
         int? contestId = ResolveContestId(claims, submission);
@@ -228,7 +125,7 @@ public sealed class IdeSubmissionService : IIdeSubmissionService
         });
     }
 
-    private static int? ResolveContestId(IdeLaunchClaims claims, VibeSubmissionForCreation submission)
+    private static int? ResolveContestId(IdeLaunchClaims claims, IdeSubmissionRequest submission)
     {
         if (claims.ContestId.HasValue)
         {
@@ -245,7 +142,7 @@ public sealed class IdeSubmissionService : IIdeSubmissionService
             : null;
     }
 
-    private static string? ResolveContestProblemId(IdeLaunchClaims claims, VibeSubmissionForCreation submission, int? contestId)
+    private static string? ResolveContestProblemId(IdeLaunchClaims claims, IdeSubmissionRequest submission, int? contestId)
     {
         if (!contestId.HasValue || contestId.Value <= 0)
         {
@@ -289,7 +186,7 @@ public sealed class IdeSubmissionService : IIdeSubmissionService
         };
     }
 
-    private static int ResolveProblemId(IdeLaunchClaims claims, VibeSubmissionForCreation submission)
+    private static int ResolveProblemId(IdeLaunchClaims claims, IdeSubmissionRequest submission)
     {
         int requestProblemId = submission.ProblemIdAsInt();
         int problemId = requestProblemId > 0 ? requestProblemId : claims.ProblemId;
@@ -307,7 +204,7 @@ public sealed class IdeSubmissionService : IIdeSubmissionService
         return problemId;
     }
 
-    private static int ResolveLanguageId(IdeLaunchClaims claims, VibeSubmissionForCreation submission)
+    private static int ResolveLanguageId(IdeLaunchClaims claims, IdeSubmissionRequest submission)
     {
         if (!submission.LanguageId.HasValue || submission.LanguageId.Value <= 0)
         {

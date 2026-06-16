@@ -1,13 +1,16 @@
+using Microsoft.Extensions.Configuration;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
+using OnlineJudgeAdmin.Core.Domain.Models.IdeIntegration;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
-namespace OnlineJudgeAdminApi.Services.IdeIntegration;
+namespace OnlineJudgeAdmin.Infrastructure.IdeIntegration.Implementations;
 
 public sealed class IdeLaunchTokenValidator : IIdeLaunchTokenValidator
 {
     private const string DefaultIssuer = "patito-online-judge";
-    private const string DefaultAudience = "vibe-ide";
+    private const string DefaultAudience = "patito-ide";
 
     private readonly IConfiguration _configuration;
 
@@ -70,26 +73,26 @@ public sealed class IdeLaunchTokenValidator : IIdeLaunchTokenValidator
 
     private string TokenSecret()
     {
-        var secret = Environment.GetEnvironmentVariable("VIBE_IDE_TOKEN_SECRET")
-            ?? _configuration["VibeIde:TokenSecret"];
+        var secret = Environment.GetEnvironmentVariable("PATITO_IDE_TOKEN_SECRET")
+            ?? _configuration["PatitoIde:TokenSecret"];
         if (string.IsNullOrWhiteSpace(secret) || secret.Length < 32)
         {
-            throw new InvalidOperationException("VIBE_IDE_TOKEN_SECRET must be configured with at least 32 characters.");
+            throw new InvalidOperationException("PATITO_IDE_TOKEN_SECRET must be configured with at least 32 characters.");
         }
         return secret;
     }
 
     private string TokenIssuer()
     {
-        return Environment.GetEnvironmentVariable("VIBE_IDE_TOKEN_ISS")
-            ?? _configuration["VibeIde:TokenIssuer"]
+        return Environment.GetEnvironmentVariable("PATITO_IDE_TOKEN_ISS")
+            ?? _configuration["PatitoIde:TokenIssuer"]
             ?? DefaultIssuer;
     }
 
     private string TokenAudience()
     {
-        return Environment.GetEnvironmentVariable("VIBE_IDE_TOKEN_AUD")
-            ?? _configuration["VibeIde:TokenAudience"]
+        return Environment.GetEnvironmentVariable("PATITO_IDE_TOKEN_AUD")
+            ?? _configuration["PatitoIde:TokenAudience"]
             ?? DefaultAudience;
     }
 
