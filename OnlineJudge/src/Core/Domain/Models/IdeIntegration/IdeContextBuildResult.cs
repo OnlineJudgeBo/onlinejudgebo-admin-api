@@ -1,6 +1,4 @@
-using OnlineJudgeAdminApi.DataTransferObjects;
-
-namespace OnlineJudgeAdminApi.Services.IdeIntegration;
+namespace OnlineJudgeAdmin.Core.Domain.Models.IdeIntegration;
 
 public enum IdeContextBuildStatus
 {

@@ -1,8 +1,11 @@
+using Microsoft.Extensions.Configuration;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
+using OnlineJudgeAdmin.Core.Domain.Models.IdeIntegration;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
-namespace OnlineJudgeAdminApi.Services.IdeIntegration;
+namespace OnlineJudgeAdmin.Infrastructure.IdeIntegration.Implementations;
 
 public sealed class IdeLaunchTokenValidator : IIdeLaunchTokenValidator
 {

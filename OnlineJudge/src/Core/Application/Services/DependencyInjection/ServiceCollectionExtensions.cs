@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OnlineJudgeAdmin.Core.Application.Services.Implementations;
+using OnlineJudgeAdmin.Core.Application.Services.Implementations.IdeIntegration;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 
 namespace OnlineJudgeAdmin.Core.Application.Services.DependencyInjection;
@@ -23,6 +24,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPasswordRecoveryEmailService, PasswordRecoveryEmailService>();
         services.AddScoped<IWelcomeEmailService, WelcomeEmailService>();
         services.AddScoped<IPublicService, PublicService>();
+        services.AddScoped<IIdeLanguageDefinitionService, IdeLanguageDefinitionService>();
+        services.AddScoped<IIdeContextService, IdeContextService>();
+        services.AddScoped<IIdeSubmissionService, IdeSubmissionService>();
         return services;
     }
 }
