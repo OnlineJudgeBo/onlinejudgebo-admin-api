@@ -189,7 +189,8 @@ public class PublicService : IPublicService
                 ContestId = request.ContestId,
                 CourseId = request.CourseId,
                 AssignmentId = request.AssignmentId,
-                FileName = request.FileName
+                FileName = request.FileName,
+                ClientIp = request.ClientIp
             });
 
             return new PublicSubmissionResponse

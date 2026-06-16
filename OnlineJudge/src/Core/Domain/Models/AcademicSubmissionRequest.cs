@@ -15,4 +15,6 @@ public class AcademicSubmissionRequest
     public long? AssignmentId { get; set; }
 
     public string? FileName { get; set; }
+
+    public string ClientIp { get; set; } = "0.0.0.0";
 }

@@ -59,7 +59,7 @@ public class PublicAuthController : ControllerBase
                 registerForCreation.LastName,
                 registerForCreation.School,
                 registerForCreation.SiteId,
-                GetClientIp());
+                ClientIpHelper.GetClientIp(HttpContext));
 
             return Ok(CreateAuthResponse(user));
         }
@@ -150,19 +150,4 @@ public class PublicAuthController : ControllerBase
         };
     }
 
-    private string GetClientIp()
-    {
-        var forwarded = Request.Headers["X-Forwarded-For"].FirstOrDefault();
-        var rawIp = string.IsNullOrWhiteSpace(forwarded)
-            ? HttpContext.Connection.RemoteIpAddress?.ToString() ?? "0.0.0.0"
-            : forwarded;
-
-        var ip = rawIp.Split(',')[0].Trim();
-        if (string.IsNullOrWhiteSpace(ip) || ip.Contains(':', StringComparison.Ordinal))
-        {
-            return "0.0.0.0";
-        }
-
-        return ip.Length > 20 ? ip[..20] : ip;
-    }
 }
