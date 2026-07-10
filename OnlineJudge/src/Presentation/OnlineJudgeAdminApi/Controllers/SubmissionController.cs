@@ -15,16 +15,31 @@ public class SubmissionController : ControllerBase
 {
     private readonly IAcademicService _academicService;
     private readonly IIdeSubmissionService _ideSubmissionService;
+    private readonly ISolutionService _solutionService;
     private readonly UserClaimsHelper _userClaimsHelper;
 
     public SubmissionController(
         IAcademicService academicService,
         IIdeSubmissionService ideSubmissionService,
+        ISolutionService solutionService,
         UserClaimsHelper userClaimsHelper)
     {
         _academicService = academicService ?? throw new ArgumentNullException(nameof(academicService));
         _ideSubmissionService = ideSubmissionService ?? throw new ArgumentNullException(nameof(ideSubmissionService));
+        _solutionService = solutionService ?? throw new ArgumentNullException(nameof(solutionService));
         _userClaimsHelper = userClaimsHelper ?? throw new ArgumentNullException(nameof(userClaimsHelper));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetSubmissionAuditAsync(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] int? problemId = null,
+        [FromQuery] string? userId = null,
+        [FromQuery] string? clientIp = null)
+    {
+        var currentUser = _userClaimsHelper.GetUserContextRole();
+        return Ok(await _solutionService.GetSubmissionAuditAsync(currentUser.SiteId, page, pageSize, problemId, userId, clientIp));
     }
 
     [HttpPost]

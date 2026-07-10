@@ -27,6 +27,7 @@ namespace OnlineJudgeAdminApi.Controllers
             _currentUser = _userClaimsHelper.GetUserContextRole();
         }
 
+        [HttpPost]
         [HttpPost("teacher")]
         public async Task<IActionResult> CreateScheduleTeacher([FromBody] TeacherScheduleForCreation teacherScheduleDto)
         {
@@ -38,6 +39,22 @@ namespace OnlineJudgeAdminApi.Controllers
             return Ok(schedule);
         }
 
+        [HttpPut("{id}")]
+        [HttpPut("teacher/{id}")]
+        public async Task<IActionResult> UpdateTeacher(int id, [FromBody] TeacherScheduleForCreation teacherScheduleDto)
+        {
+            return Ok(await _scheduleService.UpdateTeacherAsync(id, teacherScheduleDto.TeacherName));
+        }
+
+        [HttpDelete("{id}")]
+        [HttpDelete("teacher/{id}")]
+        public async Task<IActionResult> DeleteTeacher(int id)
+        {
+            await _scheduleService.DeleteTeacherAsync(id);
+            return Ok();
+        }
+
+        [HttpGet]
         [HttpGet("teachers")]
         public async Task<IActionResult> GetTeachers()
         {

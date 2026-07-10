@@ -42,6 +42,13 @@ namespace OnlineJudgeAdminApi.Controllers
             return Ok(schedules);
         }
 
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateSchedule(int id, ScheduleForCreation scheduleForUpdate)
+        {
+            ScheduleForCreationModel schedule = _mapper.Map<ScheduleForCreationModel>(scheduleForUpdate);
+            return Ok(await _scheduleService.UpdateScheduleAsync(id, schedule));
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteSchedule(int id)
         {

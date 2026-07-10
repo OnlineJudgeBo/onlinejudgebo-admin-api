@@ -102,6 +102,43 @@ public class ContestServiceTests
         Assert.Equal("Contest does not exist.", error.Message);
     }
 
+
+    [Fact]
+    public async Task UpdateContestAsync_ReplacesContestUsersWithSubmittedValidUsers()
+    {
+        Contest? capturedContest = null;
+        var contestRepository = new Mock<IContestsRepository>();
+        contestRepository.Setup(item => item.GetContestByIdAsync(10)).ReturnsAsync(new Contest { ContestId = 10 });
+        contestRepository
+            .Setup(item => item.UpdateContestAsync(10, It.IsAny<Contest>(), 1))
+            .Callback<int, Contest, int>((_, contest, _) => capturedContest = contest)
+            .ReturnsAsync(new Contest { ContestId = 10 });
+
+        var userRepository = new Mock<IUserRepository>();
+        userRepository.Setup(item => item.GetUserById("keep", 1)).ReturnsAsync(new User { UserId = "keep" });
+        userRepository.Setup(item => item.GetUserById("alsoKeep", 1)).ReturnsAsync(new User { UserId = "alsoKeep" });
+        userRepository.Setup(item => item.GetUserById("removed", 1)).ReturnsAsync(new User { UserId = "removed" });
+        userRepository.Setup(item => item.GetUserById("missing", 1)).ReturnsAsync((User)null!);
+
+        var service = CreateService(contestRepository.Object, userRepository: userRepository.Object);
+
+        await service.UpdateContestAsync(10, new Contest
+        {
+            Track = "GENERAL",
+            Level = "PRACTICE",
+            ContestProblems = new List<ContestProblem>(),
+            ContestUsers = new List<ContestUser>
+            {
+                new ContestUser { UserId = "removed" }
+            }
+        }, " keep, alsoKeep\nmissing ", 1);
+
+        Assert.NotNull(capturedContest);
+        Assert.Equal(new[] { "alsoKeep", "keep" }, capturedContest!.ContestUsers!.Select(user => user.UserId).OrderBy(userId => userId).ToArray());
+        Assert.DoesNotContain(capturedContest.ContestUsers!, user => user.UserId == "removed");
+        Assert.All(capturedContest.ContestUsers!, user => Assert.Equal(1, user.SiteId));
+    }
+
     [Fact]
     public async Task PromoteContestAsync_PromotesContestAndItsProblems()
     {

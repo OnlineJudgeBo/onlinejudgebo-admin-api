@@ -71,6 +71,7 @@ public class JudgeController : ControllerBase
     public async Task<IActionResult> RemoteExecutionAsync(RemoteExecutionForCreation remoteExecutionForCreation)
     {
         RemoteExecutionRequest remoteExecutionRequest = _mapper.Map<RemoteExecutionRequest>(remoteExecutionForCreation);
+        remoteExecutionRequest.ClientIp = ClientIpHelper.GetClientIp(HttpContext);
 
         var claimsIdentity = User.Identity as ClaimsIdentity;
         var userIdClaim = claimsIdentity?.FindFirst(ClaimTypes.NameIdentifier);
