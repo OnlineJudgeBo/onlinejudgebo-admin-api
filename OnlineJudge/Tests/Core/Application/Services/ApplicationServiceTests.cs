@@ -191,7 +191,7 @@ public class ApplicationServiceTests
         var userRepository = new Mock<IUserRepository>();
         userRepository.Setup(item => item.GetUserById("student", 1)).ReturnsAsync(new User { UserId = "student" });
         var solutionService = new Mock<ISolutionService>();
-        solutionService.Setup(item => item.SaveSolutionRemoteAsync("student", 1000, 2, "print(42)", 77)).ReturnsAsync(123);
+        solutionService.Setup(item => item.SaveSolutionRemoteAsync("student", 1000, 2, "print(42)", 77, "198.51.100.20")).ReturnsAsync(123);
         var solutionClientRepository = new Mock<ISolutionClientRepository>();
         var service = CreateJudgeService(
             solutionClientRepository.Object,
@@ -205,7 +205,8 @@ public class ApplicationServiceTests
             JudgeLanguageId = 2,
             ClientSource = "print(42)",
             ClientSubmitId = 77,
-            ClientId = 9
+            ClientId = 9,
+            ClientIp = "198.51.100.20"
         }, "student", 1);
 
         solutionClientRepository.Verify(item => item.SaveSourceCodeAsync(123, "print(42)"), Times.Once);
@@ -223,7 +224,7 @@ public class ApplicationServiceTests
             .ReturnsAsync(123);
         var service = new SolutionService(repository.Object, Mock.Of<IValidator<Problem>>());
 
-        var id = await service.SaveSolutionRemoteAsync("student", 1000, 2, "print(42)", 77);
+        var id = await service.SaveSolutionRemoteAsync("student", 1000, 2, "print(42)", 77, "203.0.113.7");
 
         Assert.Equal(123, id);
         Assert.NotNull(capturedSolution);
@@ -233,7 +234,7 @@ public class ApplicationServiceTests
         Assert.Equal(0, capturedSolution.Time);
         Assert.Equal(0, capturedSolution.Memory);
         Assert.Equal(0, capturedSolution.Result);
-        Assert.Equal("0.0.0.0", capturedSolution.Ip);
+        Assert.Equal("203.0.113.7", capturedSolution.Ip);
         Assert.Equal("print(42)".Length, capturedSolution.CodeLength);
         Assert.Equal(77, capturedSolution.RemoteId);
         Assert.True(capturedSolution.IsRemoteOj);

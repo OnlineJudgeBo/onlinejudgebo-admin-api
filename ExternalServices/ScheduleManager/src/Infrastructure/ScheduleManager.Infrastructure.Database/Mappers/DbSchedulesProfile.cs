@@ -23,6 +23,11 @@ public class DbSchedulesProfile : Profile
                 Id = src.Teacher.Id,
                 Name = src.Teacher.Name
             } : null))
+            .ForMember(dest => dest.Assistant, opt => opt.MapFrom(src => src.Assistant != null ? new Teacher
+            {
+                Id = src.Assistant.Id,
+                Name = src.Assistant.Name
+            } : null))
             .ReverseMap();
     }
 }

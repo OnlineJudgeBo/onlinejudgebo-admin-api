@@ -18,7 +18,7 @@ public class SolutionService : ISolutionService
         _userValidation = ProblemValidation ?? throw new ArgumentNullException(nameof(ProblemValidation));
     }
 
-    public async Task<int> SaveSolutionRemoteAsync(string userId, int problemId, int languageId, string source, int clientSubmitId)
+    public async Task<int> SaveSolutionRemoteAsync(string userId, int problemId, int languageId, string source, int clientSubmitId, string clientIp = "0.0.0.0")
     {
         Solution solution = new Solution();
         solution.UserId = userId;
@@ -28,7 +28,7 @@ public class SolutionService : ISolutionService
         solution.InDate = DateTime.Now;
         solution.Result = 0;
         solution.Language = languageId;
-        solution.Ip = "0.0.0.0";
+        solution.Ip = string.IsNullOrWhiteSpace(clientIp) ? "0.0.0.0" : clientIp.Trim();
         solution.CodeLength = source.Length;
         solution.Num = 0;
         solution.RemoteId = clientSubmitId;
@@ -68,4 +68,22 @@ public class SolutionService : ISolutionService
 
         await _solutionRepository.UpdateSolutionRemoteAsync(solution);
     }
+
+
+    public Task<AdminSubmissionAuditResponse> GetSubmissionAuditAsync(
+        int siteId,
+        int page,
+        int pageSize,
+        int? problemId,
+        string? userId,
+        string? clientIp)
+    {
+        if (siteId <= 0)
+        {
+            throw new ArgumentException("SiteId inválido.");
+        }
+
+        return _solutionRepository.GetSubmissionAuditAsync(siteId, page, pageSize, problemId, userId, clientIp);
+    }
+
 }
