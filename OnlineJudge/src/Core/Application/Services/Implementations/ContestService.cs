@@ -11,7 +11,7 @@ public class ContestService : IContestService
     private readonly IUserRepository _userRepository;
     private readonly IPrivilegeRepository _privilegeRepository;
     private readonly IValidator<Problem> _userValidation;
-    private static readonly string[] separator = new string[] { "," };
+    private static readonly string[] UserListSeparators = new[] { ",", "\r\n", "\n", "\r" };
 
     public ContestService(
         IContestsRepository topicRepository,
@@ -58,6 +58,8 @@ public class ContestService : IContestService
             problem.Num = numeration++;
         }
 
+        contest.ContestUsers ??= new List<ContestUser>();
+
         HashSet<string> uniqueUserIds = new HashSet<string>();
         uniqueUserIds.Add(userIdCreator);
         foreach (var existingUser in contest.ContestUsers)
@@ -65,8 +67,7 @@ public class ContestService : IContestService
             uniqueUserIds.Add(existingUser.UserId);
         }
 
-        string[] users = manualUserList.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
-        foreach (var userId in users)
+        foreach (var userId in ParseManualUserList(manualUserList))
         {
             uniqueUserIds.Add(userId);
         }
@@ -110,14 +111,11 @@ public class ContestService : IContestService
             numeration++;
         }
 
-        string[] users = manualUserList.Split(separator, StringSplitOptions.RemoveEmptyEntries);
-        HashSet<string> uniqueUserIds = new HashSet<string>();
-        /*foreach (var existingUser in contest.ContestUsers)
-        {
-            uniqueUserIds.Add(existingUser.UserId);
-        }*/
+        contest.ContestUsers ??= new List<ContestUser>();
 
-        foreach (var userId in users)
+        HashSet<string> uniqueUserIds = new HashSet<string>();
+
+        foreach (var userId in ParseManualUserList(manualUserList))
         {
             uniqueUserIds.Add(userId);
         }
@@ -159,6 +157,14 @@ public class ContestService : IContestService
         }
         await _contestRepository.PromoteContestAsync(contestId, siteId);
         await _problemRepository.PromoteProblemAsync(problemIdList);
+    }
+
+    private static IEnumerable<string> ParseManualUserList(string? manualUserList)
+    {
+        return (manualUserList ?? string.Empty)
+            .Split(UserListSeparators, StringSplitOptions.RemoveEmptyEntries)
+            .Select(userId => userId.Trim())
+            .Where(userId => !string.IsNullOrWhiteSpace(userId));
     }
 
     private static void EnsureContestMetadata(Contest contest)

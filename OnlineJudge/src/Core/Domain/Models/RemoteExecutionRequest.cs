@@ -11,4 +11,6 @@ public partial class RemoteExecutionRequest
     public int JudgeProblemId { get; set; }
 
     public int ClientId { get; set; }
+
+    public string ClientIp { get; set; } = "0.0.0.0";
 }

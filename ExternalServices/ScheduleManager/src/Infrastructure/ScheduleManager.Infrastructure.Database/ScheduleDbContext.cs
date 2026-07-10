@@ -17,6 +17,7 @@ public partial class ScheduleDbContext : DbContext
     public virtual DbSet<DbSchedule> Schedules { get; set; }
     public virtual DbSet<DbTeacher> Teachers { get; set; }
     public virtual DbSet<DbSubject> Subjects { get; set; }
+    public virtual DbSet<DbAssistant> Assistants { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -30,6 +31,7 @@ public partial class ScheduleDbContext : DbContext
             entity.ToTable("schedules");
 
             entity.HasIndex(e => e.TeacherId, "teacher_id");
+            entity.HasIndex(e => e.AssistantId, "assistant_id");
             entity.HasIndex(e => e.SubjectId, "subject_id");
 
             entity.Property(e => e.Id)
@@ -52,6 +54,10 @@ public partial class ScheduleDbContext : DbContext
                 .HasColumnType("int(11)")
                 .HasColumnName("teacher_id");
 
+            entity.Property(e => e.AssistantId)
+                .HasColumnType("int(11)")
+                .HasColumnName("assistant_id");
+
             entity.Property(e => e.SubjectId)
                 .HasColumnType("int(11)")
                 .HasColumnName("subject_id");
@@ -61,6 +67,12 @@ public partial class ScheduleDbContext : DbContext
                 .HasForeignKey(d => d.TeacherId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("schedules_ibfk_1");
+
+            entity.HasOne(d => d.Assistant)
+                .WithMany()
+                .HasForeignKey(d => d.AssistantId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fk_schedules_assistants");
 
             entity.HasOne(d => d.Subject)
                 .WithMany(p => p.Schedules)
@@ -95,6 +107,36 @@ public partial class ScheduleDbContext : DbContext
             entity.Property(e => e.Name)
                 .HasMaxLength(100)
                 .HasColumnName("name");
+        });
+
+        modelBuilder.Entity<DbAssistant>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+            entity.ToTable("assistants");
+
+            entity.HasIndex(e => e.SubjectId, "subject_id");
+
+            entity.Property(e => e.Id)
+                .HasColumnType("int(11)")
+                .HasColumnName("id");
+
+            entity.Property(e => e.SubjectId)
+                .HasColumnType("int(11)")
+                .HasColumnName("subject_id");
+
+            entity.Property(e => e.Name)
+                .HasMaxLength(100)
+                .HasColumnName("name");
+
+            entity.Property(e => e.Schedule)
+                .HasMaxLength(255)
+                .HasColumnName("schedule");
+
+            entity.HasOne(d => d.Subject)
+                .WithMany()
+                .HasForeignKey(d => d.SubjectId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("assistants_ibfk_1");
         });
 
         OnModelCreatingPartial(modelBuilder);

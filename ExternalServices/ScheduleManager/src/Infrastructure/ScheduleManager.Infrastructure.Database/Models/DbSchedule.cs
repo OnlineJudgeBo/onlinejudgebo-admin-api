@@ -23,4 +23,10 @@ public partial class DbSchedule
     [ForeignKey("TeacherId")]
     [JsonIgnore]
     public virtual DbTeacher? Teacher { get; set; }
+
+    public int? AssistantId { get; set; }
+
+    [ForeignKey("AssistantId")]
+    [JsonIgnore]
+    public virtual DbTeacher? Assistant { get; set; }
 }

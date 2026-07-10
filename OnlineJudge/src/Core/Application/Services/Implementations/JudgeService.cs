@@ -97,7 +97,13 @@ public class JudgeService : IJudgeService
             throw new Exception($"The user is not valid");
         }
 
-        int solution_id = await _solutionService.SaveSolutionRemoteAsync(userId, request.JudgeProblemId, request.JudgeLanguageId, request.ClientSource, request.ClientSubmitId);
+        int solution_id = await _solutionService.SaveSolutionRemoteAsync(
+            userId,
+            request.JudgeProblemId,
+            request.JudgeLanguageId,
+            request.ClientSource,
+            request.ClientSubmitId,
+            request.ClientIp);
 
         if (solution_id == 0)
         {
