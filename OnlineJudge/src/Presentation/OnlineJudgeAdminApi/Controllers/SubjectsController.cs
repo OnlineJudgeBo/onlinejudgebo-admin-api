@@ -39,6 +39,19 @@ namespace OnlineJudgeAdminApi.Controllers
             return Ok(schedule);
         }
 
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateSubject(int id, [FromBody] SubjectForCreation subject)
+        {
+            return Ok(await _scheduleService.UpdateSubjectAsync(id, new Subject { Name = subject.SubjectName }));
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteSubject(int id)
+        {
+            await _scheduleService.DeleteSubjectAsync(id);
+            return Ok();
+        }
+
         [HttpGet()]
         public async Task<IActionResult> GetSubjects()
         {
