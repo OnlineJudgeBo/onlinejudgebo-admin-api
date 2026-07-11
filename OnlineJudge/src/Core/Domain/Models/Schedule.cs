@@ -1,4 +1,4 @@
-namespace ScheduleManager.Core.Domain.Models;
+namespace OnlineJudgeAdmin.Core.Domain.Models;
 
 public partial class Schedule
 {
@@ -13,5 +13,4 @@ public partial class Schedule
     public Subject Subject { get; set; } = null!;
 
     public Teacher? Teacher { get; set; }
-    public Teacher? Assistant { get; set; }
 }

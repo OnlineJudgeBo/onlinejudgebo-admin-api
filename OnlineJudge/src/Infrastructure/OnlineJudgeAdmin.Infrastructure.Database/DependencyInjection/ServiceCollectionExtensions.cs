@@ -28,6 +28,7 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.DependencyInjection
             services.AddScoped<IAcademicRepository, AcademicRepository>();
             services.AddScoped<IPublicRepository, PublicRepository>();
             services.AddScoped<IIdeCustomInputRepository, IdeCustomInputRepository>();
+            services.AddScoped<IScheduleRepository, ScheduleRepository>();
 
             services.AddMysqlClient(configuration);
             return services;
@@ -37,6 +38,7 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.DependencyInjection
         {
             var connectionString = GetRequiredConnectionSetting(configuration, "DefaultConnection");
             var academicConnectionString = ResolveAcademicConnectionString(configuration, connectionString);
+            var scheduleConnectionString = GetRequiredConnectionSetting(configuration, "ScheduleConnection");
             var mysqlMajor = GetRequiredConnectionSetting(configuration, "MysqlMajor");
             var mysqlMinor = GetRequiredConnectionSetting(configuration, "MysqlMinor");
             var mysqlBuild = GetRequiredConnectionSetting(configuration, "MysqlBuild");
@@ -52,6 +54,10 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.DependencyInjection
 
             services.AddDbContext<AcademicCatalogDbContext>(options =>
                 options.UseMySql(academicConnectionString, mysqlVersion, mySqlOptions =>
+                    mySqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
+
+            services.AddDbContext<ScheduleManagementDbContext>(options =>
+                options.UseMySql(scheduleConnectionString, mysqlVersion, mySqlOptions =>
                     mySqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
 
             return services;

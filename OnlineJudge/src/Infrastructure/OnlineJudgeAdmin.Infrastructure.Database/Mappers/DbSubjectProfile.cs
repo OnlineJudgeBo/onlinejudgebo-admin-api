@@ -1,8 +1,8 @@
 using AutoMapper;
-using ScheduleManager.Core.Domain.Models;
-using ScheduleManager.Infrastructure.Database.Models;
+using OnlineJudgeAdmin.Core.Domain.Models;
+using OnlineJudgeAdmin.Infrastructure.Database.Models;
 
-namespace ScheduleManager.Infrastructure.Database.Mappers;
+namespace OnlineJudgeAdmin.Infrastructure.Database.Mappers;
 
 public class DbSubjectProfile : Profile
 {

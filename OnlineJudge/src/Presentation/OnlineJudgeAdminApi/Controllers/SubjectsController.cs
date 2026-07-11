@@ -1,62 +1,47 @@
-using AutoMapper;
-using Microsoft.AspNetCore.Mvc;
-using OnlineJudgeAdminApi.Helpers;
-using OnlineJudgeAdmin.Core.Domain.Models;
-using ScheduleManager.Core.Domain.Abstractions.Services;
-using OnlineJudgeAdminApi.DataTransferObjects;
-using ScheduleManager.Core.Domain.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
+using OnlineJudgeAdmin.Core.Domain.Models;
+using OnlineJudgeAdminApi.DataTransferObjects;
 
-namespace OnlineJudgeAdminApi.Controllers
+namespace OnlineJudgeAdminApi.Controllers;
+
+[Route("api/schedule-management/subjects")]
+[ApiController]
+[Authorize]
+public class SubjectsController : ControllerBase
 {
-    [Route("api/schedule-management/subjects")]
-    [ApiController]
-    [Authorize]
+    private readonly IScheduleService _scheduleService;
 
-    public class SubjectsController : ControllerBase
+    public SubjectsController(IScheduleService scheduleService)
     {
-        private readonly IScheduleService _scheduleService;
-        private readonly UserClaimsHelper _userClaimsHelper;
-        private readonly IMapper _mapper;
-        private readonly CurrentUser _currentUser;
+        _scheduleService = scheduleService ?? throw new ArgumentNullException(nameof(scheduleService));
+    }
 
-        public SubjectsController(IScheduleService scheduleService, UserClaimsHelper userClaimsHelper, IMapper mapper)
-        {
-            _scheduleService = scheduleService ?? throw new ArgumentNullException(nameof(scheduleService));
-            _userClaimsHelper = userClaimsHelper ?? throw new ArgumentNullException(nameof(userClaimsHelper));
-            _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
-            _currentUser = _userClaimsHelper.GetUserContextRole();
-        }
+    [HttpPost]
+    public async Task<IActionResult> CreateSubject([FromBody] SubjectForCreation subject)
+    {
+        var createdSubject = await _scheduleService.CreateSubjectAsync(new Subject { Name = subject.SubjectName });
+        return Ok(createdSubject);
+    }
 
-        [HttpPost()]
-        public async Task<IActionResult> CreateScheduleTeacher([FromBody] SubjectForCreation subject)
-        {
-            var schedule = await _scheduleService.CreateSubjectAsync(new Subject { Name = subject.SubjectName });
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateSubject(int id, [FromBody] SubjectForCreation subject)
+    {
+        return Ok(await _scheduleService.UpdateSubjectAsync(id, new Subject { Name = subject.SubjectName }));
+    }
 
-            if (schedule == null)
-                return BadRequest($"No se pudo crear el horario para el profesor {subject.SubjectName}.");
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteSubject(int id)
+    {
+        await _scheduleService.DeleteSubjectAsync(id);
+        return Ok();
+    }
 
-            return Ok(schedule);
-        }
-
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateSubject(int id, [FromBody] SubjectForCreation subject)
-        {
-            return Ok(await _scheduleService.UpdateSubjectAsync(id, new Subject { Name = subject.SubjectName }));
-        }
-
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteSubject(int id)
-        {
-            await _scheduleService.DeleteSubjectAsync(id);
-            return Ok();
-        }
-
-        [HttpGet()]
-        public async Task<IActionResult> GetSubjects()
-        {
-            var teachers = await _scheduleService.GetSubjectAsync();
-            return Ok(teachers);
-        }
+    [HttpGet]
+    public async Task<IActionResult> GetSubjects()
+    {
+        var subjects = await _scheduleService.GetSubjectsAsync();
+        return Ok(subjects);
     }
 }

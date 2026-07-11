@@ -1,29 +1,29 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using ScheduleManager.Core.Domain.Abstractions.Repositories;
-using ScheduleManager.Core.Domain.Models;
-using ScheduleManager.Infrastructure.Database.Models;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
+using OnlineJudgeAdmin.Core.Domain.Models;
+using OnlineJudgeAdmin.Infrastructure.Database.Models;
 
-namespace ScheduleManager.Infrastructure.Database.Implementations;
+namespace OnlineJudgeAdmin.Infrastructure.Database.Implementations;
 
-public class ScheduleManagerRepository : IScheduleManagerRepository
+public class ScheduleRepository : IScheduleRepository
 {
-    private readonly ScheduleDbContext _context;
+    private readonly ScheduleManagementDbContext _context;
     private readonly IMapper _mapper;
 
-    public ScheduleManagerRepository(ScheduleDbContext context, IMapper mapper)
+    public ScheduleRepository(ScheduleManagementDbContext context, IMapper mapper)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
-    public async Task<Teacher> GetTeacherByIdAsync(int id)
+    public async Task<Teacher?> GetTeacherByIdAsync(int id)
     {
         var teacher = await _context.Teachers.FirstOrDefaultAsync(t => t.Id == id);
         return _mapper.Map<Teacher>(teacher);
     }
 
-    public async Task<Subject> GetSubjectByIdAsync(int id)
+    public async Task<Subject?> GetSubjectByIdAsync(int id)
     {
         var subject = await _context.Subjects.FirstOrDefaultAsync(t => t.Id == id);
         return _mapper.Map<Subject>(subject);
@@ -31,11 +31,7 @@ public class ScheduleManagerRepository : IScheduleManagerRepository
 
     public async Task<IEnumerable<Schedule>> GetSchedulesWithTeachersAsync()
     {
-        var schedules = await _context.Schedules
-            .Include(s => s.Subject)
-            .Include(s => s.Teacher)
-            .Include(s => s.Assistant)
-            .ToListAsync();
+        var schedules = await GetSchedulesWithDetails().ToListAsync();
 
         return _mapper.Map<IEnumerable<Schedule>>(schedules);
     }
@@ -68,15 +64,10 @@ public class ScheduleManagerRepository : IScheduleManagerRepository
         dbSchedule.EndTime = schedule.EndTime;
         dbSchedule.SubjectId = schedule.Subject.Id;
         dbSchedule.TeacherId = schedule.Teacher?.Id;
-        dbSchedule.AssistantId = schedule.Assistant?.Id;
 
         await _context.SaveChangesAsync();
 
-        return _mapper.Map<Schedule>(await _context.Schedules
-            .Include(s => s.Subject)
-            .Include(s => s.Teacher)
-            .Include(s => s.Assistant)
-            .FirstAsync(s => s.Id == id));
+        return _mapper.Map<Schedule>(await GetSchedulesWithDetails().FirstAsync(s => s.Id == id));
     }
 
     public async Task<Teacher> CreateTeacherAsync(string teacherName)
@@ -106,10 +97,10 @@ public class ScheduleManagerRepository : IScheduleManagerRepository
 
     public async Task DeleteTeacherAsync(int id)
     {
-        var hasSchedules = await _context.Schedules.AnyAsync(schedule => schedule.TeacherId == id || schedule.AssistantId == id);
+        var hasSchedules = await _context.Schedules.AnyAsync(schedule => schedule.TeacherId == id);
         if (hasSchedules)
         {
-            throw new InvalidOperationException("No se puede eliminar un docente o auxiliar con horarios asignados.");
+            throw new InvalidOperationException("No se puede eliminar un docente con horarios asignados.");
         }
 
         await _context.Teachers.Where(teacher => teacher.Id == id).ExecuteDeleteAsync();
@@ -117,17 +108,17 @@ public class ScheduleManagerRepository : IScheduleManagerRepository
 
     public async Task<IEnumerable<Schedule>> GetSchedulesAsync()
     {
-        IEnumerable<DbSchedule> schedules = await _context.Schedules.ToListAsync();
+        IEnumerable<DbSchedule> schedules = await GetSchedulesWithDetails().ToListAsync();
         return _mapper.Map<IEnumerable<Schedule>>(schedules);
     }
 
-    public async Task<IEnumerable<Subject>> GetSubjectAsync()
+    public async Task<IEnumerable<Subject>> GetSubjectsAsync()
     {
         IEnumerable<DbSubject> subjects = await _context.Subjects.ToListAsync();
         return _mapper.Map<IEnumerable<Subject>>(subjects);
     }
 
-    public async Task<Subject> CreateSubjectsAsync(Subject subject)
+    public async Task<Subject> CreateSubjectAsync(Subject subject)
     {
         var dbSubject = await _context.Subjects.FirstOrDefaultAsync(t => t.Name == subject.Name);
         if (dbSubject == null)
@@ -165,19 +156,18 @@ public class ScheduleManagerRepository : IScheduleManagerRepository
             StartTime = schedule.StartTime,
             EndTime = schedule.EndTime,
             SubjectId = schedule.Subject.Id,
-            TeacherId = schedule.Teacher?.Id,
-            AssistantId = schedule.Assistant?.Id
+            TeacherId = schedule.Teacher?.Id
         };
 
         await _context.Schedules.AddAsync(dbSchedule);
         await _context.SaveChangesAsync();
 
-        return _mapper.Map<Schedule>(dbSchedule);
+        return _mapper.Map<Schedule>(await GetSchedulesWithDetails().FirstAsync(schedule => schedule.Id == dbSchedule.Id));
     }
 
-    public async Task<Assistant?> GetAssistantBySubjectIdAsync(int subjectId)
+    public async Task<SubjectAssistant?> GetSubjectAssistantBySubjectIdAsync(int subjectId)
     {
-        var assistants = await _context.Assistants
+        var assistants = await _context.SubjectAssistants
             .Where(item => item.SubjectId == subjectId)
             .OrderBy(item => item.Id)
             .ToListAsync();
@@ -187,7 +177,7 @@ public class ScheduleManagerRepository : IScheduleManagerRepository
             return null;
         }
 
-        return new Assistant
+        return new SubjectAssistant
         {
             Id = assistants.First().Id,
             SubjectId = subjectId,
@@ -196,11 +186,11 @@ public class ScheduleManagerRepository : IScheduleManagerRepository
         };
     }
 
-    public async Task<Assistant> UpsertAssistantAsync(int subjectId, string name, string schedule)
+    public async Task<SubjectAssistant> UpsertSubjectAssistantAsync(int subjectId, string name, string schedule)
     {
-        await _context.Assistants.Where(item => item.SubjectId == subjectId).ExecuteDeleteAsync();
+        await _context.SubjectAssistants.Where(item => item.SubjectId == subjectId).ExecuteDeleteAsync();
 
-        var assistant = new DbAssistant
+        var assistant = new DbSubjectAssistant
         {
             SubjectId = subjectId,
             Name = name,
@@ -209,17 +199,24 @@ public class ScheduleManagerRepository : IScheduleManagerRepository
 
         if (!string.IsNullOrWhiteSpace(name) || !string.IsNullOrWhiteSpace(schedule))
         {
-            await _context.Assistants.AddAsync(assistant);
+            await _context.SubjectAssistants.AddAsync(assistant);
         }
 
         await _context.SaveChangesAsync();
 
-        return new Assistant
+        return new SubjectAssistant
         {
             Id = assistant.Id,
             SubjectId = assistant.SubjectId,
             Name = assistant.Name,
             Schedule = assistant.Schedule
         };
+    }
+
+    private IQueryable<DbSchedule> GetSchedulesWithDetails()
+    {
+        return _context.Schedules
+            .Include(schedule => schedule.Subject)
+            .Include(schedule => schedule.Teacher);
     }
 }

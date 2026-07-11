@@ -1,67 +1,59 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
 using OnlineJudgeAdminApi.DataTransferObjects;
-using OnlineJudgeAdminApi.Helpers;
-using ScheduleManager.Core.Domain.Abstractions.Services;
-using ScheduleManager.Core.Domain.Models;
 
-namespace OnlineJudgeAdminApi.Controllers
+namespace OnlineJudgeAdminApi.Controllers;
+
+[Route("api/schedule-management/schedules")]
+[ApiController]
+[Authorize]
+public class ScheduleController : ControllerBase
 {
-    [Route("api/schedule-management/schedules")]
-    [ApiController]
-    [Authorize]
+    private readonly IScheduleService _scheduleService;
+    private readonly IMapper _mapper;
 
-    public class ScheduleController : ControllerBase
+    public ScheduleController(IScheduleService scheduleService, IMapper mapper)
     {
-        private readonly IScheduleService _scheduleService;
-        private readonly UserClaimsHelper _userClaimsHelper;
-        private readonly IMapper _mapper;
-        private readonly CurrentUser _currentUser;
+        _scheduleService = scheduleService ?? throw new ArgumentNullException(nameof(scheduleService));
+        _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+    }
 
-        public ScheduleController(IScheduleService scheduleService, UserClaimsHelper userClaimsHelper, IMapper mapper)
-        {
-            _scheduleService = scheduleService ?? throw new ArgumentNullException(nameof(scheduleService));
-            _userClaimsHelper = userClaimsHelper ?? throw new ArgumentNullException(nameof(userClaimsHelper));
-            _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
-            _currentUser = _userClaimsHelper.GetUserContextRole();
-        }
+    [HttpGet]
+    public async Task<IActionResult> GetSchedules()
+    {
+        var schedules = await _scheduleService.GetSchedulesAsync();
+        return Ok(schedules);
+    }
 
-        [HttpGet]
-        public async Task<IActionResult> GetSchedules()
-        {
-            var schedules = await _scheduleService.GetSchedulesAsync();
-            return Ok(schedules);
-        }
+    [HttpGet("teachers")]
+    public async Task<IActionResult> GetSchedulesWithTeachers()
+    {
+        var schedules = await _scheduleService.GetSchedulesWithTeachersAsync();
+        return Ok(schedules);
+    }
 
-        [HttpGet("teachers")]
-        public async Task<IActionResult> GetSchedulesWithTeachers()
-        {
-            var schedules = await _scheduleService.GetSchedulesWithTeachersAsync();
-            return Ok(schedules);
-        }
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateSchedule(int id, ScheduleForCreation scheduleForUpdate)
+    {
+        ScheduleForCreationModel schedule = _mapper.Map<ScheduleForCreationModel>(scheduleForUpdate);
+        return Ok(await _scheduleService.UpdateScheduleAsync(id, schedule));
+    }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateSchedule(int id, ScheduleForCreation scheduleForUpdate)
-        {
-            ScheduleForCreationModel schedule = _mapper.Map<ScheduleForCreationModel>(scheduleForUpdate);
-            return Ok(await _scheduleService.UpdateScheduleAsync(id, schedule));
-        }
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteSchedule(int id)
+    {
+        await _scheduleService.DeleteScheduleAsync(id);
+        return Ok();
+    }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteSchedule(int id)
-        {
-            await _scheduleService.DeleteScheduleAsync(id);
-            return Ok();
-        }
-
-        [HttpPost()]
-        public async Task<IActionResult> CreateSchedule(ScheduleForCreation scheduleForCreation)
-        {
-            ScheduleForCreationModel schedule = _mapper.Map<ScheduleForCreationModel>(scheduleForCreation);
-            await _scheduleService.CreateScheduleAsync(schedule);
-            return Ok("Horarios creados correctamente.");
-        }
+    [HttpPost]
+    public async Task<IActionResult> CreateSchedule(ScheduleForCreation scheduleForCreation)
+    {
+        ScheduleForCreationModel schedule = _mapper.Map<ScheduleForCreationModel>(scheduleForCreation);
+        await _scheduleService.CreateScheduleAsync(schedule);
+        return Ok("Horarios creados correctamente.");
     }
 }
