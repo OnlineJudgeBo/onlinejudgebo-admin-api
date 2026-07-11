@@ -2,8 +2,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace OnlineJudgeAdminApi.DataTransferObjects;
 
-public partial class TeacherScheduleForCreation
+public class TeacherScheduleForCreation
 {
     [Required]
-    public string TeacherName { get; set; }
+    public string TeacherName { get; set; } = string.Empty;
 }

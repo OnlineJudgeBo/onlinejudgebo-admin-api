@@ -1,10 +1,7 @@
-using System.ComponentModel.DataAnnotations;
+namespace OnlineJudgeAdmin.Core.Domain.Models;
 
-namespace OnlineJudgeAdminApi.DataTransferObjects;
-
-public class ScheduleForCreation
+public partial class ScheduleForCreationModel
 {
-    [Required]
     public List<string> ScheduleDays { get; set; } = new();
     public string ScheduleTime { get; set; } = string.Empty;
     public int Subject { get; set; }

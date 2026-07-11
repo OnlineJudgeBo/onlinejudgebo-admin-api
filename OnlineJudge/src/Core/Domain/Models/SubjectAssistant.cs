@@ -1,6 +1,6 @@
-namespace ScheduleManager.Core.Domain.Models;
+namespace OnlineJudgeAdmin.Core.Domain.Models;
 
-public class Assistant
+public partial class SubjectAssistant
 {
     public int Id { get; set; }
     public int SubjectId { get; set; }

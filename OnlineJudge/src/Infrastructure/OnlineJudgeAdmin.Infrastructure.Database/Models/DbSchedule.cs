@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
-namespace ScheduleManager.Infrastructure.Database.Models;
+namespace OnlineJudgeAdmin.Infrastructure.Database.Models;
 
 public partial class DbSchedule
 {
@@ -23,10 +23,4 @@ public partial class DbSchedule
     [ForeignKey("TeacherId")]
     [JsonIgnore]
     public virtual DbTeacher? Teacher { get; set; }
-
-    public int? AssistantId { get; set; }
-
-    [ForeignKey("AssistantId")]
-    [JsonIgnore]
-    public virtual DbTeacher? Assistant { get; set; }
 }

@@ -2,6 +2,7 @@ using OnlineJudgeAdmin.Infrastructure.Database.DependencyInjection;
 using OnlineJudgeAdmin.Infrastructure.AwsS3.DependencyInjection;
 using OnlineJudgeAdmin.Infrastructure.FileSystemLocalManager.DependencyInjection;
 using OnlineJudgeAdmin.Infrastructure.IdeIntegration.DependencyInjection;
+using OnlineJudgeAdmin.Infrastructure.Database;
 using OnlineJudgeAdmin.Core.Application.Validators.DependencyInjection;
 using OnlineJudgeAdmin.Core.Application.Services.DependencyInjection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -14,9 +15,6 @@ using Microsoft.EntityFrameworkCore;
 using OnlineJudgeAdminApi.ExceptionHandler;
 using OnlineJudgeAdminApi.Helpers;
 using OnlineJudgeAdmin.Infrastructure.Database.Models;
-using ScheduleManager.Infrastructure.Database.DependencyInjection;
-using ScheduleManager.Infrastructure.Database;
-using ScheduleManager.Core.Application.Services.DependencyInjection;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -80,20 +78,12 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     mySqlOptions => mySqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
     .LogTo(Console.WriteLine, LogLevel.Information));
 
-builder.Services.AddDbContext<ScheduleDbContext>(options =>
-    options.UseMySql(builder.Configuration.GetConnectionString("ScheduleConnection"),
-    Microsoft.EntityFrameworkCore.ServerVersion.Parse("11.2.2-mariadb"),
-    mySqlOptions => mySqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
-    .LogTo(Console.WriteLine, LogLevel.Information));
-
 //builder.Services.AddHttpContextAccessor();
 builder.Services.AddAutoMapper(_ => { }, Assembly.GetExecutingAssembly());
 builder.Services.AddDatabaseRepositories(builder.Configuration);
-builder.Services.AddScheduleDatabaseRepositories(builder.Configuration);
 builder.Services.AddApplicationValidators();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddApplicationServices(builder.Configuration);
-builder.Services.AddApplicationScheduleServices(builder.Configuration);
 builder.Services.AddFileSystemLocalManagerInfrastructureManager(builder.Configuration);
 builder.Services.AddAwsS3FileManager(builder.Configuration);
 builder.Services.AddIdeIntegrationInfrastructure(builder.Configuration);

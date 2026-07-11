@@ -27,6 +27,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IIdeLanguageDefinitionService, IdeLanguageDefinitionService>();
         services.AddScoped<IIdeContextService, IdeContextService>();
         services.AddScoped<IIdeSubmissionService, IdeSubmissionService>();
+        services.AddScoped<IScheduleService, ScheduleService>();
         return services;
     }
 }

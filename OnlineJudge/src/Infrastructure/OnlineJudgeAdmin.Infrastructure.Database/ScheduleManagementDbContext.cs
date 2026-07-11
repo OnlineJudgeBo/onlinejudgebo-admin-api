@@ -1,15 +1,14 @@
 using Microsoft.EntityFrameworkCore;
-using ScheduleManager.Infrastructure.Database.Models;
 
-namespace ScheduleManager.Infrastructure.Database;
+namespace OnlineJudgeAdmin.Infrastructure.Database.Models;
 
-public partial class ScheduleDbContext : DbContext
+public partial class ScheduleManagementDbContext : DbContext
 {
-    public ScheduleDbContext()
+    public ScheduleManagementDbContext()
     {
     }
 
-    public ScheduleDbContext(DbContextOptions<ScheduleDbContext> options)
+    public ScheduleManagementDbContext(DbContextOptions<ScheduleManagementDbContext> options)
         : base(options)
     {
     }
@@ -17,7 +16,7 @@ public partial class ScheduleDbContext : DbContext
     public virtual DbSet<DbSchedule> Schedules { get; set; }
     public virtual DbSet<DbTeacher> Teachers { get; set; }
     public virtual DbSet<DbSubject> Subjects { get; set; }
-    public virtual DbSet<DbAssistant> Assistants { get; set; }
+    public virtual DbSet<DbSubjectAssistant> SubjectAssistants { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -31,8 +30,7 @@ public partial class ScheduleDbContext : DbContext
             entity.ToTable("schedules");
 
             entity.HasIndex(e => e.TeacherId, "teacher_id");
-            entity.HasIndex(e => e.AssistantId, "assistant_id");
-            entity.HasIndex(e => e.SubjectId, "subject_id");
+            entity.HasIndex(e => e.SubjectId, "fk_schedules_subjects");
 
             entity.Property(e => e.Id)
                 .HasColumnType("int(11)")
@@ -54,10 +52,6 @@ public partial class ScheduleDbContext : DbContext
                 .HasColumnType("int(11)")
                 .HasColumnName("teacher_id");
 
-            entity.Property(e => e.AssistantId)
-                .HasColumnType("int(11)")
-                .HasColumnName("assistant_id");
-
             entity.Property(e => e.SubjectId)
                 .HasColumnType("int(11)")
                 .HasColumnName("subject_id");
@@ -68,16 +62,10 @@ public partial class ScheduleDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("schedules_ibfk_1");
 
-            entity.HasOne(d => d.Assistant)
-                .WithMany()
-                .HasForeignKey(d => d.AssistantId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("fk_schedules_assistants");
-
             entity.HasOne(d => d.Subject)
                 .WithMany(p => p.Schedules)
                 .HasForeignKey(d => d.SubjectId)
-                .OnDelete(DeleteBehavior.Cascade)
+                .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("fk_schedules_subjects");
         });
 
@@ -100,6 +88,8 @@ public partial class ScheduleDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("PRIMARY");
             entity.ToTable("subjects");
 
+            entity.HasIndex(e => e.Name, "name").IsUnique();
+
             entity.Property(e => e.Id)
                 .HasColumnType("int(11)")
                 .HasColumnName("id");
@@ -109,12 +99,12 @@ public partial class ScheduleDbContext : DbContext
                 .HasColumnName("name");
         });
 
-        modelBuilder.Entity<DbAssistant>(entity =>
+        modelBuilder.Entity<DbSubjectAssistant>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
             entity.ToTable("assistants");
 
-            entity.HasIndex(e => e.SubjectId, "subject_id");
+            entity.HasIndex(e => e.SubjectId, "idx_assistants_subject_id");
 
             entity.Property(e => e.Id)
                 .HasColumnType("int(11)")
@@ -131,12 +121,6 @@ public partial class ScheduleDbContext : DbContext
             entity.Property(e => e.Schedule)
                 .HasMaxLength(255)
                 .HasColumnName("schedule");
-
-            entity.HasOne(d => d.Subject)
-                .WithMany()
-                .HasForeignKey(d => d.SubjectId)
-                .OnDelete(DeleteBehavior.Cascade)
-                .HasConstraintName("assistants_ibfk_1");
         });
 
         OnModelCreatingPartial(modelBuilder);
