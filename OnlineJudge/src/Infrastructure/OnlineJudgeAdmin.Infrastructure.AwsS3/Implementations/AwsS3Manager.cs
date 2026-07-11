@@ -1,22 +1,25 @@
-using Amazon.Runtime;
+using Amazon;
 using Amazon.S3;
 using Amazon.S3.Transfer;
 using Microsoft.Extensions.Configuration;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
 
 namespace OnlineJudgeAdmin.Infrastructure.AwsS3.Implementations;
+
 public class AwsS3Manager : IAwsS3FileManager
 {
+    private const string DefaultRegion = "us-east-1";
+
     private readonly AmazonS3Client _s3Client;
-    private readonly IConfiguration _configuration;
-    private readonly string _path;
 
     public AwsS3Manager(IConfiguration configuration)
     {
-        _configuration = configuration;
-        var credentials = new BasicAWSCredentials("***REMOVED_AWS_ACCESS_KEY***", "***REMOVED_AWS_SECRET_KEY***");
-        _s3Client = new AmazonS3Client(credentials, Amazon.RegionEndpoint.USEast1);
-        _path = _configuration["FileSettings:ProblemsFilePath"];
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        var regionName = configuration["AWS:Region"] ?? DefaultRegion;
+        var region = RegionEndpoint.GetBySystemName(regionName);
+
+        _s3Client = new AmazonS3Client(region);
     }
 
     public async Task<string> S3UploadFileAsync(string bucketName, string keyName, string filePath)
