@@ -1,16 +1,54 @@
-name: OnlineJudge - admin - back
+name: CI/CD OnlineJudge Admin API
+
+permissions:
+  contents: read
+  packages: write
+
 on:
   push:
     branches:
       - develop
+
   pull_request:
-    branches: 'develop'
+    branches:
+      - develop
+
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: 'Tags de Cucumber, por ejemplo @contest'
+        required: false
+        default: ''
+
+      env:
+        description: 'Archivo application.properties'
+        required: false
+        default: 'dev'
+
+      reset_db:
+        description: 'Ejecutar scripts/reset-test-db.sh --yes antes de las pruebas'
+        required: false
+        type: boolean
+        default: true
+
+      keep_image_versions:
+        description: 'Cantidad de versiones Docker a conservar en GHCR'
+        required: false
+        default: '3'
+
+concurrency:
+  group: admin-api-develop
+  cancel-in-progress: false
 
 jobs:
-  build:
+  unit-tests:
+    name: Build and unit tests
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -20,11 +58,20 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore OnlineJudgeAdmin.sln
 
+      - name: Build solution
+        run: |
+          dotnet build OnlineJudgeAdmin.sln \
+            --no-restore \
+            --configuration Release
+
       - name: Run unit tests
         run: |
           mkdir -p TestResults
+
           dotnet test OnlineJudgeAdmin.sln \
             --no-restore \
+            --no-build \
+            --configuration Release \
             --logger "trx;LogFileName=unittest-report.trx" \
             --results-directory TestResults
 
@@ -32,6 +79,7 @@ jobs:
         if: always()
         run: |
           python3 - <<'PY'
+          import os
           import pathlib
           import xml.etree.ElementTree as ET
 
@@ -43,8 +91,19 @@ jobs:
           else:
               for trx_file in trx_files:
                   root = ET.parse(trx_file).getroot()
-                  ns = {"trx": root.tag.split("}")[0].strip("{")} if root.tag.startswith("{") else {}
-                  counters = root.find(".//trx:Counters", ns) if ns else root.find(".//Counters")
+
+                  namespace = (
+                      {"trx": root.tag.split("}")[0].strip("{")}
+                      if root.tag.startswith("{")
+                      else {}
+                  )
+
+                  counters = (
+                      root.find(".//trx:Counters", namespace)
+                      if namespace
+                      else root.find(".//Counters")
+                  )
+
                   if counters is None:
                       lines.append(f"- `{trx_file}`: counters not found")
                       continue
@@ -53,87 +112,230 @@ jobs:
                   passed = counters.attrib.get("passed", "0")
                   failed = counters.attrib.get("failed", "0")
                   skipped = counters.attrib.get("notExecuted", "0")
-                  lines.append(f"- `{trx_file}`: total={total}, passed={passed}, failed={failed}, skipped={skipped}")
 
-          pathlib.Path(__import__("os").environ["GITHUB_STEP_SUMMARY"]).write_text("\n".join(lines) + "\n")
+                  lines.append(
+                      f"- `{trx_file}`: "
+                      f"total={total}, "
+                      f"passed={passed}, "
+                      f"failed={failed}, "
+                      f"skipped={skipped}"
+                  )
+
+          summary_path = pathlib.Path(os.environ["GITHUB_STEP_SUMMARY"])
+          summary_path.write_text("\n".join(lines) + "\n")
           PY
 
       - name: Upload unit test report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: unittest-report
+          name: admin-api-unittest-report
           path: TestResults/*.trx
           if-no-files-found: error
+          retention-days: 14
 
-  docker-package:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions: write-all
-    if: ${{github.ref == 'refs/heads/develop'}}
+  deploy-backend:
+    name: Deploy backend to E2E environment
+    runs-on: self-hosted
+    needs:
+      - unit-tests
+
+    if: >-
+      ${{
+        success() &&
+        github.event_name != 'pull_request' &&
+        github.ref == 'refs/heads/develop'
+      }}
+
+    timeout-minutes: 20
+
     steps:
-    - uses: actions/checkout@v4
-    - name: Login to Registry
-      uses: docker/login-action@v2
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    - name: Build Docker images
-      run: |
-        docker build --rm -t ghcr.io/onlinejudgebo/onlinejudgebo-admin-api:development .
-    - name: Push Docker image to registry
-      run: |
-        docker push ghcr.io/onlinejudgebo/onlinejudgebo-admin-api:development
+      - name: Pull latest backend code
+        run: |
+          set -euo pipefail
 
-#  deploy-jv-umsa-bo:
-#    runs-on: ubuntu-latest
-#    needs: docker-package
-#    if: ${{github.ref == 'refs/heads/develop'}}
-#    steps:
-#      - name: Setup SSH connection
-#        uses: webfactory/ssh-agent@v0.9.0
-#        with:
-#          ssh-private-key: ${{ secrets.DEV_SSH_SECRET }}
-#
-#      - name: Adding Known Hosts
-#        run: ssh-keyscan -p ${{ vars.DEV_SSH_PORT }} -H ${{ vars.DEV_SSH_HOST }} >> ~/.ssh/known_hosts
-#
-#      - name: Login to the GitHub Packages Docker Registry
-#        run: ssh -p ${{ vars.DEV_SSH_PORT }} ${{ vars.DEV_SSH_USERNAME }}@${{ vars.DEV_SSH_HOST }} "echo ${{ secrets.DOCKER_REGISTRY_TOKEN }} | docker login ghcr.io -u ${{ vars.DOCKER_REGISTRY_USER }}" --password-stdin
-#
-#      - name: Run docker-compose
-#        continue-on-error: true
-#        run: ssh -p ${{ vars.DEV_SSH_PORT }} ${{ vars.DEV_SSH_USERNAME }}@${{ vars.DEV_SSH_HOST }} "cd /var/www/patito2.0/admin-api && chmod +x deploy.sh && ./deploy.sh"
-#
-#      - name: Delete unused images
-#        run: ssh -p ${{ vars.DEV_SSH_PORT }} ${{ vars.DEV_SSH_USERNAME }}@${{ vars.DEV_SSH_HOST }} "docker image prune -f"
-#
-#      - name: Logout from the GitHub Packages Docker Registry
-#        run: ssh -p ${{ vars.DEV_SSH_PORT }} ${{ vars.DEV_SSH_USERNAME }}@${{ vars.DEV_SSH_HOST }} "docker logout ghcr.io"
-#
-#  deploy-juezvirtual:
-#    runs-on: ubuntu-latest
-#    needs: docker-package
-#    if: ${{github.ref == 'refs/heads/develop'}}
-#    steps:
-#      - name: Setup SSH connection
-#        uses: webfactory/ssh-agent@v0.9.0
-#        with:
-#          ssh-private-key: ${{ secrets.DEV_SSH_SECRET_OJ }}
-#
-#      - name: Adding Known Hosts
-#        run: ssh-keyscan -p ${{ vars.DEV_SSH_PORT_OJ }} -H ${{ vars.DEV_SSH_HOST_OJ }} >> ~/.ssh/known_hosts
-#
-#      - name: Login to the GitHub Packages Docker Registry
-#        run: ssh -p ${{ vars.DEV_SSH_PORT_OJ }} ${{ vars.DEV_SSH_USERNAME_OJ }}@${{ vars.DEV_SSH_HOST_OJ }} "echo ${{ secrets.DOCKER_REGISTRY_TOKEN }} | docker login ghcr.io -u ${{ vars.DOCKER_REGISTRY_USER }}" --password-stdin
-#
-#      - name: Run docker-compose
-#        continue-on-error: true
-#        run: ssh -p ${{ vars.DEV_SSH_PORT_OJ }} ${{ vars.DEV_SSH_USERNAME_OJ }}@${{ vars.DEV_SSH_HOST_OJ }} "cd /var/www/admin-api && chmod +x deploy.sh && ./deploy.sh"
-#
-#      - name: Delete unused images
-#        run: ssh -p ${{ vars.DEV_SSH_PORT_OJ }} ${{ vars.DEV_SSH_USERNAME_OJ }}@${{ vars.DEV_SSH_HOST_OJ }} "docker image prune -f"
-#
-#      - name: Logout from the GitHub Packages Docker Registry
-#        run: ssh -p ${{ vars.DEV_SSH_PORT_OJ }} ${{ vars.DEV_SSH_USERNAME_OJ }}@${{ vars.DEV_SSH_HOST_OJ }} "docker logout ghcr.io"
+          cd "/home/github-runner/patito/onlineJudgeAdmin-back"
+
+          git fetch origin develop
+          git checkout develop
+          git reset --hard origin/develop
+
+      - name: Rebuild local Docker Compose stack
+        run: |
+          set -euo pipefail
+
+          cd /home/github-runner/patito
+
+          docker compose down
+          docker compose up -d --build
+
+      - name: Show deployed services
+        run: |
+          cd /home/github-runner/patito
+          docker compose ps
+
+      - name: Show logs when deployment fails
+        if: failure()
+        run: |
+          cd /home/github-runner/patito
+          docker compose ps
+          docker compose logs --tail=200
+
+  run-automation-tests:
+    name: Run Selenium BDD tests
+    runs-on: self-hosted
+    needs:
+      - deploy-backend
+
+    if: >-
+      ${{
+        success() &&
+        github.event_name != 'pull_request'
+      }}
+
+    timeout-minutes: 180
+
+    steps:
+      - name: Trigger and wait for automation tests
+        env:
+          GH_TOKEN: ${{ secrets.PATITO_AUTOMATION_TOKEN }}
+          WORKFLOW_FILE: selenium-tests.yml
+          AUTOMATION_REPO: OnlineJudgeBo/patito-automation-test
+          ENV_NAME: ${{ inputs.env || 'dev' }}
+          TAGS: ${{ inputs.tags || '' }}
+          RESET_DB: ${{ inputs.reset_db || 'true' }}
+
+        run: |
+          set -euo pipefail
+
+          echo "Capturando ejecuciones existentes..."
+
+          BEFORE_IDS="$(
+            gh run list \
+              --repo "$AUTOMATION_REPO" \
+              --workflow "$WORKFLOW_FILE" \
+              --limit 20 \
+              --json databaseId \
+              --jq '.[].databaseId'
+          )"
+
+          echo "Ejecutando $WORKFLOW_FILE..."
+
+          gh workflow run "$WORKFLOW_FILE" \
+            --repo "$AUTOMATION_REPO" \
+            --ref main \
+            -f env="$ENV_NAME" \
+            -f tags="$TAGS" \
+            -f reset_db="$RESET_DB"
+
+          echo "Buscando la nueva ejecución..."
+
+          RUN_ID=""
+
+          for attempt in $(seq 1 20); do
+            sleep 10
+
+            CURRENT_IDS="$(
+              gh run list \
+                --repo "$AUTOMATION_REPO" \
+                --workflow "$WORKFLOW_FILE" \
+                --limit 20 \
+                --json databaseId \
+                --jq '.[].databaseId'
+            )"
+
+            for id in $CURRENT_IDS; do
+              if ! grep -qx "$id" <<< "$BEFORE_IDS"; then
+                RUN_ID="$id"
+                break 2
+              fi
+            done
+
+            echo "Intento $attempt: la ejecución todavía no aparece."
+          done
+
+          if [ -z "$RUN_ID" ]; then
+            echo "::error::No se pudo identificar la nueva ejecución de Selenium."
+            exit 1
+          fi
+
+          echo "Ejecución encontrada: $RUN_ID"
+          echo "https://github.com/$AUTOMATION_REPO/actions/runs/$RUN_ID"
+
+          gh run watch "$RUN_ID" \
+            --repo "$AUTOMATION_REPO" \
+            --exit-status
+
+  publish-image:
+    name: Publish approved backend image
+    runs-on: ubuntu-24.04
+    needs:
+      - run-automation-tests
+
+    if: >-
+      ${{
+        success() &&
+        github.event_name != 'pull_request'
+      }}
+
+    env:
+      IMAGE_NAME: ghcr.io/onlinejudgebo/onlinejudgebo-admin-api
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish approved image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:development
+            ${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  cleanup-images:
+    name: Cleanup old backend images
+    runs-on: ubuntu-24.04
+    needs:
+      - publish-image
+
+    if: >-
+      ${{
+        success() &&
+        github.event_name != 'pull_request'
+      }}
+
+    continue-on-error: true
+
+    steps:
+      - name: Keep recent image versions
+        uses: actions/delete-package-versions@v5
+        with:
+          owner: OnlineJudgeBo
+          package-name: onlinejudgebo-admin-api
+          package-type: container
+          min-versions-to-keep: ${{ inputs.keep_image_versions || '3' }}
+
+      - name: Delete untagged image versions
+        uses: actions/delete-package-versions@v5
+        with:
+          owner: OnlineJudgeBo
+          package-name: onlinejudgebo-admin-api
+          package-type: container
+          min-versions-to-keep: '0'
+          delete-only-untagged-versions: 'true'
