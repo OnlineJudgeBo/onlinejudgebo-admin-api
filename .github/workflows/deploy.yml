@@ -330,12 +330,3 @@ jobs:
           package-name: onlinejudgebo-admin-api
           package-type: container
           min-versions-to-keep: ${{ inputs.keep_image_versions || '3' }}
-
-      - name: Delete untagged image versions
-        uses: actions/delete-package-versions@v5
-        with:
-          owner: OnlineJudgeBo
-          package-name: onlinejudgebo-admin-api
-          package-type: container
-          min-versions-to-keep: '0'
-          delete-only-untagged-versions: 'true'
