@@ -35,6 +35,22 @@ public class JudgeController : ControllerBase
         return Ok(await _judgeService.RejudgeSolutionByIdAsync(_currentUser.SiteId, id));
     }
 
+    [HttpPatch("solution/{id:int}/verdict")]
+    public async Task<IActionResult> ManuallyJudgeSolutionAsync(
+        int id,
+        [FromBody] ManualJudgeForUpdate request)
+    {
+        if (!HasManualJudgeRole(User))
+        {
+            return Forbid();
+        }
+
+        return Ok(await _judgeService.ManuallyJudgeSolutionAsync(
+            _currentUser.SiteId,
+            id,
+            request.ResultCode));
+    }
+
     [HttpGet("rejudge/problem/{problemId:int}")]
     public async Task<IActionResult> RejudgeSolutionByProblemIdAsync(int problemId)
     {
@@ -86,5 +102,20 @@ public class JudgeController : ControllerBase
         Solution solution = _mapper.Map<Solution>(remoteResult);
         await _solutionService.UpdateSolutionRemoteAsync(solution);
         return Ok();
+    }
+
+    private static bool HasManualJudgeRole(ClaimsPrincipal user)
+    {
+        var allowedRoles = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "Administrador",
+            "Docente",
+            "Auxiliar"
+        };
+
+        return user.Claims
+            .Where(claim => claim.Type is ClaimTypes.Role or "role" or "roles")
+            .SelectMany(claim => claim.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            .Any(allowedRoles.Contains);
     }
 }

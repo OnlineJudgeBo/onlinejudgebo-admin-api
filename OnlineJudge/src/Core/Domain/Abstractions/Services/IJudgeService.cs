@@ -5,6 +5,7 @@ namespace OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 public interface IJudgeService
 {
     public Task<RejudgeOperationResponse> RejudgeSolutionByIdAsync(int siteId, int solutionId);
+    public Task<ManualJudgeResponse> ManuallyJudgeSolutionAsync(int siteId, int solutionId, short resultCode);
     public Task<RejudgeOperationResponse> RejudgeSolutionByProblemIdAsync(int siteId, int problemId);
     public Task<RejudgeOperationResponse> RejudgeSolutionByContestIdAsync(int siteId, int contestId);
     public Task<RejudgeOperationResponse> RejudgeSolutionsByRangeAsync(int siteId, int fromSolutionId, int toSolutionId);

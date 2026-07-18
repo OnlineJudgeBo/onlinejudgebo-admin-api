@@ -23,6 +23,15 @@ public class JudgeRepository : IJudgeRepository
             "UPDATE `solution` SET result = 1 WHERE site_id = {0} AND solution_id = {1}", siteId, solutionId);
     }
 
+    public async Task<int> ManuallyJudgeSolutionAsync(int siteId, int solutionId, short resultCode)
+    {
+        return await _context.Database.ExecuteSqlRawAsync(
+            "UPDATE `solution` SET result = {0}, judgetime = CURRENT_TIMESTAMP WHERE site_id = {1} AND solution_id = {2}",
+            resultCode,
+            siteId,
+            solutionId);
+    }
+
     public async Task<int> RejudgeSolutionByProblemIdAsync(int siteId, int problemId)
     {
         return await _context.Database.ExecuteSqlRawAsync(

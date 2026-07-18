@@ -37,6 +37,31 @@ public class JudgeService : IJudgeService
         return BuildRejudgeResponse(siteId, "solution", matched);
     }
 
+    public async Task<ManualJudgeResponse> ManuallyJudgeSolutionAsync(int siteId, int solutionId, short resultCode)
+    {
+        ValidateSite(siteId);
+        ValidatePositiveId(solutionId, "SolutionId");
+
+        var verdict = JudgeVerdictCatalog.Map(resultCode);
+        if (!verdict.IsFinal)
+        {
+            throw new ArgumentException("El veredicto manual no es válido.");
+        }
+
+        var matched = await _judgeRepository.ManuallyJudgeSolutionAsync(siteId, solutionId, resultCode);
+        if (matched == 0)
+        {
+            throw new KeyNotFoundException("No se encontró la solución solicitada.");
+        }
+
+        return new ManualJudgeResponse
+        {
+            SolutionId = solutionId,
+            ResultCode = resultCode,
+            Verdict = verdict.StatusLabel
+        };
+    }
+
     public async Task<RejudgeOperationResponse> RejudgeSolutionByProblemIdAsync(int siteId, int problemId)
     {
         ValidateSite(siteId);

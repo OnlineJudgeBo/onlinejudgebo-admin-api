@@ -144,6 +144,62 @@ public class ApplicationServiceTests
     }
 
     [Fact]
+    public async Task JudgeService_ManuallyJudgeSolution_DelegatesValidFinalVerdict()
+    {
+        var judgeRepository = new Mock<IJudgeRepository>();
+        judgeRepository
+            .Setup(item => item.ManuallyJudgeSolutionAsync(1, 123, JudgeResultCodes.AiDetected))
+            .ReturnsAsync(1);
+        var service = CreateJudgeService(judgeRepository: judgeRepository.Object);
+
+        var result = await service.ManuallyJudgeSolutionAsync(1, 123, JudgeResultCodes.AiDetected);
+
+        Assert.Equal(123, result.SolutionId);
+        Assert.Equal(JudgeResultCodes.AiDetected, result.ResultCode);
+        Assert.Equal("AI_DETECTED", result.Verdict);
+        judgeRepository.Verify(
+            item => item.ManuallyJudgeSolutionAsync(1, 123, JudgeResultCodes.AiDetected),
+            Times.Once);
+    }
+
+    [Theory]
+    [InlineData(JudgeResultCodes.Pending)]
+    [InlineData(JudgeResultCodes.WaitRejudge)]
+    [InlineData(JudgeResultCodes.Compiling)]
+    [InlineData(JudgeResultCodes.RunningAndJudging)]
+    [InlineData(JudgeResultCodes.CompileOk)]
+    [InlineData(JudgeResultCodes.TestRunDone)]
+    [InlineData(99)]
+    public async Task JudgeService_ManuallyJudgeSolution_RejectsNonFinalVerdict(short resultCode)
+    {
+        var judgeRepository = new Mock<IJudgeRepository>();
+        var service = CreateJudgeService(judgeRepository: judgeRepository.Object);
+
+        var error = await Assert.ThrowsAsync<ArgumentException>(
+            () => service.ManuallyJudgeSolutionAsync(1, 123, resultCode));
+
+        Assert.Equal("El veredicto manual no es válido.", error.Message);
+        judgeRepository.Verify(
+            item => item.ManuallyJudgeSolutionAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<short>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task JudgeService_ManuallyJudgeSolution_ThrowsWhenSolutionDoesNotExistInSite()
+    {
+        var judgeRepository = new Mock<IJudgeRepository>();
+        judgeRepository
+            .Setup(item => item.ManuallyJudgeSolutionAsync(1, 123, JudgeResultCodes.WrongAnswer))
+            .ReturnsAsync(0);
+        var service = CreateJudgeService(judgeRepository: judgeRepository.Object);
+
+        var error = await Assert.ThrowsAsync<KeyNotFoundException>(
+            () => service.ManuallyJudgeSolutionAsync(1, 123, JudgeResultCodes.WrongAnswer));
+
+        Assert.Equal("No se encontró la solución solicitada.", error.Message);
+    }
+
+    [Fact]
     public async Task JudgeService_RejudgeRange_RejectsInvertedRange()
     {
         var judgeRepository = new Mock<IJudgeRepository>();

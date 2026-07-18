@@ -41,6 +41,7 @@ public class DomainModelTests
     [InlineData(JudgeResultCodes.Accepted, "accepted", "finished", true)]
     [InlineData(JudgeResultCodes.WrongAnswer, "wrong_answer", "finished", true)]
     [InlineData(JudgeResultCodes.CompileError, "compile_error", "finished", true)]
+    [InlineData(JudgeResultCodes.AiDetected, "ai_detected", "finished", true)]
     [InlineData(99, "unknown", "evaluating", false)]
     public void JudgeVerdictCatalog_Map_ReturnsCanonicalStatus(short resultCode, string expectedStatusKey, string expectedGeneralStatusKey, bool expectedIsFinal)
     {

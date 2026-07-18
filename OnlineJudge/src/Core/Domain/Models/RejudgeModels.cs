@@ -11,6 +11,15 @@ public class RejudgeOperationResponse
     public DateTime RequestedAtUtc { get; set; }
 }
 
+public class ManualJudgeResponse
+{
+    public int SolutionId { get; set; }
+
+    public short ResultCode { get; set; }
+
+    public string Verdict { get; set; } = string.Empty;
+}
+
 public class RejudgeHistoryResponse
 {
     public int SiteId { get; set; }
