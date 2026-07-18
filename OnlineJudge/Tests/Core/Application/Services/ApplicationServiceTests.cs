@@ -156,7 +156,7 @@ public class ApplicationServiceTests
 
         Assert.Equal(123, result.SolutionId);
         Assert.Equal(JudgeResultCodes.AiDetected, result.ResultCode);
-        Assert.Equal("AI_DETECTED", result.Verdict);
+        Assert.Equal("AI DETECTED", result.Verdict);
         judgeRepository.Verify(
             item => item.ManuallyJudgeSolutionAsync(1, 123, JudgeResultCodes.AiDetected),
             Times.Once);
