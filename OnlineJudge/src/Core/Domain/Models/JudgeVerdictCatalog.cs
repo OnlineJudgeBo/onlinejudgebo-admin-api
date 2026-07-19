@@ -46,7 +46,7 @@ public static class JudgeVerdictCatalog
             JudgeResultCodes.CompileError => new JudgeVerdictInfo("compile_error", "Compile Error", "finished", "Finalizado", true),
             JudgeResultCodes.CompileOk => new JudgeVerdictInfo("compiled", "Compile OK", "evaluating", "En evaluacion", false),
             JudgeResultCodes.TestRunDone => new JudgeVerdictInfo("test_run", "Test Running Done", "evaluating", "En evaluacion", false),
-            JudgeResultCodes.AiDetected => new JudgeVerdictInfo("ai_detected", "AI DETECTED", "finished", "Finalizado", true),
+            JudgeResultCodes.AiDetected => new JudgeVerdictInfo("ai_detected", "IA Detected", "finished", "Finalizado", true),
             _ => new JudgeVerdictInfo("unknown", $"Estado {resultCode}", "evaluating", "En evaluacion", false)
         };
     }
