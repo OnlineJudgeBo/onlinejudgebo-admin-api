@@ -154,7 +154,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          cd "/home/github-runner/patito/onlineJudgeAdmin-back"
+          cd "/home/github-runner/patito/onlineJudgeBo-admin-api"
 
           git fetch origin develop
           git checkout develop
