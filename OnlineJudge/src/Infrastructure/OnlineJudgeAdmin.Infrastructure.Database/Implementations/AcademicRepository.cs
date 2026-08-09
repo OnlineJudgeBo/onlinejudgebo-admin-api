@@ -82,6 +82,13 @@ public class AcademicRepository : IAcademicRepository
 
     public async Task<IEnumerable<AcademicCourseSummary>> GetManageableCoursesAsync(int siteId, string userId, bool includeAllCourses)
     {
+        var managedMemberships = await _academicContext.CourseUsers
+            .Where(member => member.UserId == userId
+                && (member.Role == "teacher" || member.Role == "assistant" || member.Role == "admin"))
+            .Select(member => new { member.CourseId, member.Role })
+            .ToListAsync();
+
+        var managedMembershipIds = managedMemberships.Select(member => member.CourseId).ToList();
         var courseIds = includeAllCourses
             ? await _academicContext.Courses
                 .OrderBy(course => course.Name)
@@ -89,7 +96,7 @@ public class AcademicRepository : IAcademicRepository
                 .Select(course => course.CourseId)
                 .ToListAsync()
             : await _academicContext.Courses
-                .Where(course => course.CreatedByUserId == userId)
+                .Where(course => course.CreatedByUserId == userId || managedMembershipIds.Contains(course.CourseId))
                 .OrderBy(course => course.Name)
                 .ThenBy(course => course.CourseId)
                 .Select(course => course.CourseId)
@@ -100,12 +107,10 @@ public class AcademicRepository : IAcademicRepository
             return Array.Empty<AcademicCourseSummary>();
         }
 
-        var membershipRolesByCourse = includeAllCourses
-            ? new Dictionary<long, string>()
-            : await _academicContext.CourseUsers
-                .Where(member => member.UserId == userId
-                    && courseIds.Contains(member.CourseId))
-                .ToDictionaryAsync(member => member.CourseId, member => member.Role);
+        var membershipRolesByCourse = managedMemberships
+            .Where(member => courseIds.Contains(member.CourseId))
+            .GroupBy(member => member.CourseId)
+            .ToDictionary(group => group.Key, group => group.First().Role);
 
         return await BuildCourseSummariesAsync(courseIds, membershipRolesByCourse, includeAllCourses ? "admin" : "teacher", userId);
     }
@@ -205,6 +210,45 @@ public class AcademicRepository : IAcademicRepository
                 && courseMember.Role == "student")
             .CountAsync();
         var assignments = await BuildCourseAssignmentsAsync(siteId, courseId, userId);
+        await EnsureAssignmentContentItemsAsync(courseId, teacher ?? course.CreatedByUserId ?? userId);
+        var canViewDraftContent = allowAdminAccess || (member != null && member.Role != "student");
+        var storedContent = await _academicContext.CourseContentItems
+            .Where(item => item.CourseId == courseId && (item.IsPublished || canViewDraftContent))
+            .OrderBy(item => item.Position)
+            .ThenBy(item => item.ItemId)
+            .ToListAsync();
+        var assignmentsById = assignments.ToDictionary(item => item.AssignmentId);
+        var content = storedContent.Select(item => new AcademicCourseContentItem
+        {
+            ItemId = item.ItemId,
+            CourseId = item.CourseId,
+            Type = item.ItemType,
+            Title = item.Title,
+            Description = item.Description,
+            ContentUrl = item.ContentUrl,
+            ContentBody = item.ContentBody,
+            AssignmentId = item.AssignmentId,
+            Position = item.Position,
+            IsPublished = item.IsPublished,
+            Assignment = item.AssignmentId.HasValue && assignmentsById.TryGetValue(item.AssignmentId.Value, out var linkedAssignment) ? linkedAssignment : null
+        }).ToList();
+        var linkedAssignmentIds = content.Where(item => item.AssignmentId.HasValue).Select(item => item.AssignmentId!.Value).ToHashSet();
+        var nextPosition = content.Count == 0 ? 10 : content.Max(item => item.Position) + 10;
+        foreach (var assignment in assignments.Where(item => !linkedAssignmentIds.Contains(item.AssignmentId)))
+        {
+            content.Add(new AcademicCourseContentItem
+            {
+                CourseId = courseId,
+                Type = "contest",
+                Title = assignment.Title,
+                Description = assignment.Description,
+                AssignmentId = assignment.AssignmentId,
+                Position = nextPosition,
+                IsPublished = assignment.IsActive,
+                Assignment = assignment
+            });
+            nextPosition += 10;
+        }
         var stages = await BuildCourseStagesAsync(course.LearningPathId, teacher ?? course.CreatedByUserId ?? userId);
         var effectiveMemberRole = member?.Role ?? (allowAdminAccess ? "admin" : string.Empty);
         var canManage = string.Equals(effectiveMemberRole, "teacher", StringComparison.OrdinalIgnoreCase)
@@ -232,6 +276,7 @@ public class AcademicRepository : IAcademicRepository
             AssignmentCount = assignments.Count,
             CanManage = canManage,
             Assignments = assignments,
+            Content = content.OrderBy(item => item.Position).ToList(),
             Stages = stages
         };
     }
@@ -371,6 +416,8 @@ public class AcademicRepository : IAcademicRepository
             throw new ArgumentException("Course not found.");
         }
 
+        await EnsureAssignmentContentItemsAsync(courseId, userId);
+
         var problemIds = request.ProblemIds
             .Where(problemId => problemId > 0)
             .Distinct()
@@ -416,10 +463,102 @@ public class AcademicRepository : IAcademicRepository
             .ToList();
 
         await _academicContext.CourseAssignmentProblems.AddRangeAsync(assignmentProblems);
+        var nextPosition = (await _academicContext.CourseContentItems
+            .Where(item => item.CourseId == courseId)
+            .MaxAsync(item => (int?)item.Position) ?? 0) + 10;
+        await _academicContext.CourseContentItems.AddAsync(new DbCourseContentItem
+        {
+            CourseId = courseId,
+            ItemType = "contest",
+            Title = assignment.Title,
+            Description = assignment.Description,
+            AssignmentId = assignment.AssignmentId,
+            Position = nextPosition,
+            IsPublished = assignment.IsActive,
+            CreatedByUserId = userId,
+            CreatedAt = DateTime.UtcNow
+        });
         await _academicContext.SaveChangesAsync();
 
         var assignments = await BuildCourseAssignmentsAsync(siteId, courseId, string.Empty);
         return assignments.First(item => item.AssignmentId == assignment.AssignmentId);
+    }
+
+    public async Task<AcademicCourseContentItem> CreateCourseMaterialAsync(
+        long courseId,
+        string userId,
+        AcademicCourseMaterialCreationRequest request)
+    {
+        await EnsureAssignmentContentItemsAsync(courseId, userId);
+        var nextPosition = (await _academicContext.CourseContentItems
+            .Where(item => item.CourseId == courseId)
+            .MaxAsync(item => (int?)item.Position) ?? 0) + 10;
+        var material = new DbCourseContentItem
+        {
+            CourseId = courseId,
+            ItemType = "material",
+            Title = request.Title.Trim(),
+            Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
+            ContentUrl = string.IsNullOrWhiteSpace(request.ContentUrl) ? null : request.ContentUrl.Trim(),
+            ContentBody = string.IsNullOrWhiteSpace(request.ContentBody) ? null : request.ContentBody.Trim(),
+            Position = nextPosition,
+            IsPublished = request.IsPublished,
+            CreatedByUserId = userId,
+            CreatedAt = DateTime.UtcNow
+        };
+        await _academicContext.CourseContentItems.AddAsync(material);
+        await _academicContext.SaveChangesAsync();
+        return new AcademicCourseContentItem
+        {
+            ItemId = material.ItemId, CourseId = courseId, Type = material.ItemType,
+            Title = material.Title, Description = material.Description, ContentUrl = material.ContentUrl,
+            ContentBody = material.ContentBody, Position = material.Position, IsPublished = material.IsPublished
+        };
+    }
+
+    public async Task ReorderCourseContentAsync(long courseId, IReadOnlyList<long> itemIds)
+    {
+        var items = await _academicContext.CourseContentItems
+            .Where(item => item.CourseId == courseId)
+            .ToListAsync();
+        var itemsById = items.ToDictionary(item => item.ItemId);
+        var position = 10;
+        foreach (var itemId in itemIds)
+        {
+            if (!itemsById.TryGetValue(itemId, out var item)) continue;
+            item.Position = position;
+            position += 10;
+        }
+        await _academicContext.SaveChangesAsync();
+    }
+
+    private async Task EnsureAssignmentContentItemsAsync(long courseId, string userId)
+    {
+        var linkedIds = await _academicContext.CourseContentItems
+            .Where(item => item.CourseId == courseId && item.AssignmentId.HasValue)
+            .Select(item => item.AssignmentId!.Value)
+            .ToListAsync();
+        var missing = await _academicContext.CourseAssignments
+            .Where(item => item.CourseId == courseId && !linkedIds.Contains(item.AssignmentId))
+            .OrderBy(item => item.OpensAt)
+            .ThenBy(item => item.AssignmentId)
+            .ToListAsync();
+        if (missing.Count == 0) return;
+        var position = (await _academicContext.CourseContentItems
+            .Where(item => item.CourseId == courseId)
+            .MaxAsync(item => (int?)item.Position) ?? 0) + 10;
+        foreach (var assignment in missing)
+        {
+            await _academicContext.CourseContentItems.AddAsync(new DbCourseContentItem
+            {
+                CourseId = courseId, ItemType = "contest", Title = assignment.Title,
+                Description = assignment.Description, AssignmentId = assignment.AssignmentId,
+                Position = position, IsPublished = assignment.IsActive,
+                CreatedByUserId = assignment.CreatedByUserId ?? userId, CreatedAt = assignment.CreatedAt
+            });
+            position += 10;
+        }
+        await _academicContext.SaveChangesAsync();
     }
 
     public async Task<AcademicCourseAssignment> UpdateCourseAssignmentAsync(
@@ -1520,7 +1659,7 @@ public class AcademicRepository : IAcademicRepository
             })
             .OrderByDescending(item => item.TotalSolved)
             .ThenByDescending(item => item.TotalAccepted)
-            .ThenBy(item => item.TotalAttempts)
+            .ThenByDescending(item => item.TotalAttempts)
             .ThenBy(item => item.UserId)
             .ToList();
 

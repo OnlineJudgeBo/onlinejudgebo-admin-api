@@ -26,6 +26,10 @@ public interface IAcademicService
 
     Task<AcademicCourseAssignment> CreateCourseAssignmentAsync(int siteId, long courseId, CurrentUser currentUser, AcademicCourseAssignmentCreationRequest request);
 
+    Task<AcademicCourseContentItem> CreateCourseMaterialAsync(int siteId, long courseId, CurrentUser currentUser, AcademicCourseMaterialCreationRequest request);
+
+    Task ReorderCourseContentAsync(int siteId, long courseId, CurrentUser currentUser, IReadOnlyList<long> itemIds);
+
     Task<AcademicCourseAssignment> UpdateCourseAssignmentAsync(int siteId, long courseId, long assignmentId, CurrentUser currentUser, AcademicCourseAssignmentCreationRequest request);
 
     Task<AcademicCourseAssignmentDetailResponse> GetCourseAssignmentAsync(int siteId, long courseId, long assignmentId, CurrentUser currentUser);

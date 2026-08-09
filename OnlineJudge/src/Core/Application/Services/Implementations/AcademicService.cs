@@ -35,10 +35,10 @@ public class AcademicService : IAcademicService
     {
         ValidateRequestContext(siteId, currentUser);
 
-        var canManageAcademic = IsAcademicManager(currentUser);
-        var courses = (await _academicRepository.GetManageableCoursesAsync(siteId, currentUser.UserId, canManageAcademic)).ToList();
+        var includeAllCourses = currentUser.Role == UserRolesEnum.Administrador;
+        var courses = (await _academicRepository.GetManageableCoursesAsync(siteId, currentUser.UserId, includeAllCourses)).ToList();
 
-        if (canManageAcademic && currentUser.Role != UserRolesEnum.Administrador)
+        if (IsAcademicManager(currentUser) && currentUser.Role != UserRolesEnum.Administrador)
         {
             var managerRole = GetAcademicManagerCourseRole(currentUser);
             foreach (var course in courses.Where(course => string.Equals(course.Role, "admin", StringComparison.OrdinalIgnoreCase)))
@@ -82,7 +82,7 @@ public class AcademicService : IAcademicService
     public async Task<AcademicCourseDetail> GetCourseAsync(int siteId, long courseId, CurrentUser currentUser)
     {
         var course = await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
-        if (IsAcademicManager(currentUser))
+        if (currentUser.Role == UserRolesEnum.Administrador)
         {
             course.CanManage = true;
             if (string.IsNullOrWhiteSpace(course.MemberRole))
@@ -96,8 +96,8 @@ public class AcademicService : IAcademicService
 
     public async Task<IEnumerable<AcademicCourseMember>> GetCourseMembersAsync(int siteId, long courseId, CurrentUser currentUser)
     {
-        await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
-        EnsureAcademicManager(currentUser, "view course members");
+        var course = await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
+        EnsureCourseManager(course, currentUser, "view course members");
         return await _academicRepository.GetCourseMembersAsync(siteId, courseId);
     }
 
@@ -114,8 +114,8 @@ public class AcademicService : IAcademicService
             throw new ArgumentException("Member username is required.");
         }
 
-        await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
-        EnsureAcademicManager(currentUser, "add course members");
+        var course = await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
+        EnsureCourseManager(course, currentUser, "add course members");
         request.UserId = request.UserId.Trim();
         request.Role = string.Equals(request.Role?.Trim(), "assistant", StringComparison.OrdinalIgnoreCase)
             ? "assistant"
@@ -133,8 +133,8 @@ public class AcademicService : IAcademicService
             throw new ArgumentException("Member username is required.");
         }
 
-        await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
-        EnsureAcademicManager(currentUser, "remove course members");
+        var course = await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
+        EnsureCourseManager(course, currentUser, "remove course members");
         await _academicRepository.RemoveCourseMemberAsync(siteId, courseId, memberUserId.Trim());
     }
 
@@ -144,10 +144,53 @@ public class AcademicService : IAcademicService
         CurrentUser currentUser,
         AcademicCourseAssignmentCreationRequest request)
     {
-        await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
-        EnsureAcademicManager(currentUser, "create assignments");
+        var course = await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
+        EnsureCourseManager(course, currentUser, "create assignments");
         EnsureValidAssignmentRequest(request);
         return await _academicRepository.CreateCourseAssignmentAsync(siteId, courseId, currentUser.UserId, request);
+    }
+
+    public async Task<AcademicCourseContentItem> CreateCourseMaterialAsync(
+        int siteId,
+        long courseId,
+        CurrentUser currentUser,
+        AcademicCourseMaterialCreationRequest request)
+    {
+        var course = await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
+        EnsureCourseManager(course, currentUser, "create course materials");
+        if (string.IsNullOrWhiteSpace(request.Title))
+        {
+            throw new ArgumentException("Material title is required.");
+        }
+        if (string.IsNullOrWhiteSpace(request.ContentBody) && string.IsNullOrWhiteSpace(request.ContentUrl))
+        {
+            throw new ArgumentException("Add material content or a resource link.");
+        }
+        if (!string.IsNullOrWhiteSpace(request.ContentUrl)
+            && (!Uri.TryCreate(request.ContentUrl, UriKind.Absolute, out var uri)
+                || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)))
+        {
+            throw new ArgumentException("Material URL must be a valid HTTP or HTTPS address.");
+        }
+        return await _academicRepository.CreateCourseMaterialAsync(courseId, currentUser.UserId, request);
+    }
+
+    public async Task ReorderCourseContentAsync(int siteId, long courseId, CurrentUser currentUser, IReadOnlyList<long> itemIds)
+    {
+        var course = await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
+        EnsureCourseManager(course, currentUser, "reorder course content");
+
+        var existingIds = course.Content.Select(item => item.ItemId).ToHashSet();
+        var submittedIds = (itemIds ?? Array.Empty<long>()).ToList();
+        if (submittedIds.Count == 0
+            || submittedIds.Count != existingIds.Count
+            || submittedIds.Distinct().Count() != submittedIds.Count
+            || submittedIds.Any(id => !existingIds.Contains(id)))
+        {
+            throw new ArgumentException("The provided order does not match the course content.");
+        }
+
+        await _academicRepository.ReorderCourseContentAsync(courseId, submittedIds);
     }
 
     public async Task<AcademicCourseAssignment> UpdateCourseAssignmentAsync(
@@ -164,8 +207,8 @@ public class AcademicService : IAcademicService
             throw new ArgumentException("Assignment id is required.");
         }
 
-        await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
-        EnsureAcademicManager(currentUser, "update assignments");
+        var course = await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
+        EnsureCourseManager(course, currentUser, "update assignments");
         EnsureValidAssignmentRequest(request);
         return await _academicRepository.UpdateCourseAssignmentAsync(siteId, courseId, assignmentId, currentUser.UserId, request);
     }
@@ -220,14 +263,15 @@ public class AcademicService : IAcademicService
     {
         var course = await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
         var report = await _academicRepository.GetCourseReportAsync(siteId, courseId);
-        report.CanDownloadCsv = IsAcademicManager(currentUser);
+        report.CanDownloadCsv = course.CanManage || IsAcademicManager(currentUser);
         return report;
     }
 
     public async Task<AcademicStudentProgress> GetStudentProgressAsync(int siteId, long courseId, string studentUserId, CurrentUser currentUser)
     {
-        await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
-        if (!IsAcademicManager(currentUser)
+        var course = await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
+        if (!course.CanManage
+            && !IsAcademicManager(currentUser)
             && !string.Equals(studentUserId, currentUser.UserId, StringComparison.OrdinalIgnoreCase))
         {
             throw new UnauthorizedAccessException("Only teachers, assistants or owner student can view this progress.");
@@ -334,17 +378,21 @@ public class AcademicService : IAcademicService
     private async Task<AcademicCourseDetail> GetCourseForCurrentUserAsync(int siteId, long courseId, CurrentUser currentUser)
     {
         ValidateRequestContext(siteId, currentUser);
-        return await _academicRepository.GetCourseAsync(siteId, courseId, currentUser.UserId, IsAcademicManager(currentUser));
+        return await _academicRepository.GetCourseAsync(
+            siteId,
+            courseId,
+            currentUser.UserId,
+            currentUser.Role == UserRolesEnum.Administrador);
     }
 
-    private static void EnsureAcademicManager(CurrentUser currentUser, string action)
+    private static void EnsureCourseManager(AcademicCourseDetail course, CurrentUser currentUser, string action)
     {
-        if (IsAcademicManager(currentUser))
+        if (course.CanManage || IsAcademicManager(currentUser))
         {
             return;
         }
 
-        throw new UnauthorizedAccessException($"Only administrators, teachers or assistants can {action}.");
+        throw new UnauthorizedAccessException($"Only the course's teachers, assistants or site administrators can {action}.");
     }
 
     private static void EnsureValidAssignmentRequest(AcademicCourseAssignmentCreationRequest request)
