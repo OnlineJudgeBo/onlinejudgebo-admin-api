@@ -76,14 +76,20 @@ public class RoleRepository : IRoleRepository
         };
 
         _context.UserRoles.Add(userRole);
-        _context.SaveChanges();
+        await _context.SaveChangesAsync();
     }
 
     public async Task RemoveRoleFromUserAsync(string userId, int roleId, int siteId)
     {
-        var userRole = _context.UserRoles
-            .FirstOrDefault(ur => ur.UserId == userId && ur.RoleId == roleId && ur.SiteId == siteId);
+        var userRole = await _context.UserRoles
+            .FirstOrDefaultAsync(ur => ur.UserId == userId && ur.RoleId == roleId && ur.SiteId == siteId);
+
+        if (userRole is null)
+        {
+            return;
+        }
+
         _context.UserRoles.Remove(userRole);
-        _context.SaveChangesAsync();
+        await _context.SaveChangesAsync();
     }
 }

@@ -10,7 +10,7 @@ public class AcademicCourseMember
 
     public string? Email { get; set; }
 
-    public string Role { get; set; } = "student";
+    public string Role { get; set; } = CourseRoleNames.Student;
 
     public bool IsOwner { get; set; }
 }

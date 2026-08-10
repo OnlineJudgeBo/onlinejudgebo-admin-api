@@ -36,5 +36,7 @@ public class AcademicCourseDetail
 
     public List<AcademicCourseAssignment> Assignments { get; set; } = new();
 
+    public List<AcademicCourseContentItem> Content { get; set; } = new();
+
     public List<AcademicStageAccess> Stages { get; set; } = new();
 }

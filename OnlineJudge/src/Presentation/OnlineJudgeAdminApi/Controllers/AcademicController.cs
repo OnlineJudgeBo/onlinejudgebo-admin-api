@@ -44,7 +44,6 @@ public class AcademicController : ControllerBase
     }
 
     [HttpGet("sites/{siteId:int}/courses/manageable")]
-    [Authorize(Roles = "Administrador,Docente,Auxiliar")]
     public async Task<IActionResult> GetManageableCoursesAsync(int siteId)
     {
         var currentUser = _userClaimsHelper.GetUserContextRole();
@@ -88,7 +87,6 @@ public class AcademicController : ControllerBase
     }
 
     [HttpGet("sites/{siteId:int}/courses/{courseId:long}/members")]
-    [Authorize(Roles = "Administrador,Docente,Auxiliar")]
     public async Task<IActionResult> GetCourseMembersAsync(int siteId, long courseId)
     {
         var currentUser = _userClaimsHelper.GetUserContextRole();
@@ -96,7 +94,6 @@ public class AcademicController : ControllerBase
     }
 
     [HttpPost("sites/{siteId:int}/courses/{courseId:long}/members")]
-    [Authorize(Roles = "Administrador,Docente,Auxiliar")]
     public async Task<IActionResult> AddCourseMemberAsync(int siteId, long courseId, AcademicCourseMemberForCreation memberForCreation)
     {
         var currentUser = _userClaimsHelper.GetUserContextRole();
@@ -111,7 +108,6 @@ public class AcademicController : ControllerBase
     }
 
     [HttpDelete("sites/{siteId:int}/courses/{courseId:long}/members/{memberUserId}")]
-    [Authorize(Roles = "Administrador,Docente,Auxiliar")]
     public async Task<IActionResult> RemoveCourseMemberAsync(int siteId, long courseId, string memberUserId)
     {
         var currentUser = _userClaimsHelper.GetUserContextRole();
@@ -120,7 +116,6 @@ public class AcademicController : ControllerBase
     }
 
     [HttpPost("sites/{siteId:int}/courses/{courseId:long}/assignments")]
-    [Authorize(Roles = "Administrador,Docente,Auxiliar")]
     public async Task<IActionResult> CreateCourseAssignmentAsync(int siteId, long courseId, AcademicAssignmentForCreation assignmentForCreation)
     {
         var currentUser = _userClaimsHelper.GetUserContextRole();
@@ -139,8 +134,29 @@ public class AcademicController : ControllerBase
         return Ok(await _academicService.CreateCourseAssignmentAsync(siteId, courseId, currentUser, request));
     }
 
+    [HttpPost("sites/{siteId:int}/courses/{courseId:long}/materials")]
+    public async Task<IActionResult> CreateCourseMaterialAsync(int siteId, long courseId, AcademicCourseMaterialForCreation material)
+    {
+        var currentUser = _userClaimsHelper.GetUserContextRole();
+        return Ok(await _academicService.CreateCourseMaterialAsync(siteId, courseId, currentUser, new AcademicCourseMaterialCreationRequest
+        {
+            Title = material.Title,
+            Description = material.Description,
+            ContentUrl = material.ContentUrl,
+            ContentBody = material.ContentBody,
+            IsPublished = material.IsPublished
+        }));
+    }
+
+    [HttpPut("sites/{siteId:int}/courses/{courseId:long}/content-order")]
+    public async Task<IActionResult> ReorderCourseContentAsync(int siteId, long courseId, AcademicCourseContentOrderForUpdate orderForUpdate)
+    {
+        var currentUser = _userClaimsHelper.GetUserContextRole();
+        await _academicService.ReorderCourseContentAsync(siteId, courseId, currentUser, orderForUpdate.ItemIds ?? new List<long>());
+        return NoContent();
+    }
+
     [HttpPut("sites/{siteId:int}/courses/{courseId:long}/assignments/{assignmentId:long}")]
-    [Authorize(Roles = "Administrador,Docente,Auxiliar")]
     public async Task<IActionResult> UpdateCourseAssignmentAsync(int siteId, long courseId, long assignmentId, AcademicAssignmentForCreation assignmentForCreation)
     {
         var currentUser = _userClaimsHelper.GetUserContextRole();
@@ -186,7 +202,6 @@ public class AcademicController : ControllerBase
     }
 
     [HttpGet("sites/{siteId:int}/courses/{courseId:long}/report")]
-    [Authorize(Roles = "Administrador,Docente,Auxiliar")]
     public async Task<IActionResult> GetCourseReportAsync(int siteId, long courseId)
     {
         var currentUser = _userClaimsHelper.GetUserContextRole();
@@ -194,7 +209,6 @@ public class AcademicController : ControllerBase
     }
 
     [HttpGet("sites/{siteId:int}/courses/{courseId:long}/report.csv")]
-    [Authorize(Roles = "Administrador,Docente,Auxiliar")]
     public async Task<IActionResult> DownloadCourseReportCsvAsync(int siteId, long courseId)
     {
         var currentUser = _userClaimsHelper.GetUserContextRole();
@@ -210,7 +224,6 @@ public class AcademicController : ControllerBase
     }
 
     [HttpGet("sites/{siteId:int}/courses/{courseId:long}/students/{userId}/progress")]
-    [Authorize(Roles = "Administrador,Docente,Auxiliar")]
     public async Task<IActionResult> GetStudentProgressAsync(int siteId, long courseId, string userId)
     {
         var currentUser = _userClaimsHelper.GetUserContextRole();
@@ -276,36 +289,46 @@ public class AcademicController : ControllerBase
     private static string BuildCourseReportCsv(AcademicCourseReportResponse report)
     {
         var builder = new StringBuilder();
-        builder.Append("rank,userId,nick,totalSolved,totalAttempts,totalAccepted");
 
+        // Title row: the contest/material title spans its own 3 columns (solved, attempts, accepted),
+        // matching the grouped header shown on screen.
+        var titleRow = new List<string> { "", "", "", "", "", "" };
+        var headerRow = new List<string> { "rank", "userId", "nick", "totalSolved", "totalAttempts", "totalAccepted" };
         foreach (var assignment in report.Assignments)
         {
             var normalizedTitle = BuildCsvHeaderKey(assignment.Title);
-            builder.Append(',').Append(normalizedTitle).Append("_solved");
-            builder.Append(',').Append(normalizedTitle).Append("_attempts");
-            builder.Append(',').Append(normalizedTitle).Append("_accepted");
+            titleRow.Add(assignment.Title);
+            titleRow.Add(string.Empty);
+            titleRow.Add(string.Empty);
+            headerRow.Add(normalizedTitle + "_solved");
+            headerRow.Add(normalizedTitle + "_attempts");
+            headerRow.Add(normalizedTitle + "_accepted");
         }
 
-        builder.AppendLine();
+        builder.AppendLine(string.Join(',', titleRow.Select(EscapeCsv)));
+        builder.AppendLine(string.Join(',', headerRow.Select(EscapeCsv)));
 
         foreach (var item in report.Items)
         {
-            builder.Append(item.Rank).Append(',');
-            builder.Append(EscapeCsv(item.UserId)).Append(',');
-            builder.Append(EscapeCsv(item.Nick)).Append(',');
-            builder.Append(item.TotalSolved).Append(',');
-            builder.Append(item.TotalAttempts).Append(',');
-            builder.Append(item.TotalAccepted);
+            var row = new List<string>
+            {
+                item.Rank.ToString(),
+                item.UserId,
+                item.Nick,
+                item.TotalSolved.ToString(),
+                item.TotalAttempts.ToString(),
+                item.TotalAccepted.ToString()
+            };
 
             foreach (var assignment in report.Assignments)
             {
                 var stats = item.Assignments.FirstOrDefault(cell => cell.AssignmentId == assignment.AssignmentId);
-                builder.Append(',').Append(stats?.Solved ?? 0);
-                builder.Append(',').Append(stats?.Attempts ?? 0);
-                builder.Append(',').Append(stats?.Accepted ?? 0);
+                row.Add((stats?.Solved ?? 0).ToString());
+                row.Add((stats?.Attempts ?? 0).ToString());
+                row.Add((stats?.Accepted ?? 0).ToString());
             }
 
-            builder.AppendLine();
+            builder.AppendLine(string.Join(',', row.Select(EscapeCsv)));
         }
 
         return builder.ToString();

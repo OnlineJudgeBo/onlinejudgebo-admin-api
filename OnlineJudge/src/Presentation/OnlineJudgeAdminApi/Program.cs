@@ -120,6 +120,29 @@ using (var scope = app.Services.CreateScope())
           PRIMARY KEY (solution_id, case_number)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
         """);
+
+    var academicContext = scope.ServiceProvider.GetRequiredService<AcademicCatalogDbContext>();
+    academicContext.Database.ExecuteSqlRaw("""
+        CREATE TABLE IF NOT EXISTS course_content_item (
+          item_id BIGINT NOT NULL AUTO_INCREMENT,
+          course_id BIGINT NOT NULL,
+          item_type VARCHAR(16) NOT NULL,
+          title VARCHAR(255) NOT NULL,
+          description TEXT NULL,
+          content_url VARCHAR(2048) NULL,
+          content_body MEDIUMTEXT NULL,
+          assignment_id BIGINT UNSIGNED NULL,
+          position INT NOT NULL DEFAULT 10,
+          is_published TINYINT(1) NOT NULL DEFAULT 1,
+          created_by_user_id VARCHAR(48) NOT NULL,
+          created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (item_id),
+          UNIQUE KEY uk_course_content_assignment (assignment_id),
+          KEY idx_course_content_order (course_id, position),
+          CONSTRAINT fk_course_content_course FOREIGN KEY (course_id) REFERENCES course(course_id) ON DELETE CASCADE,
+          CONSTRAINT fk_course_content_assignment FOREIGN KEY (assignment_id) REFERENCES course_assignment(assignment_id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        """);
 }
 
 // Configure the HTTP request pipeline.

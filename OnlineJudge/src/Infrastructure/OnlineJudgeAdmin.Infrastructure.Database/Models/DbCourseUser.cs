@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using OnlineJudgeAdmin.Core.Domain.Models;
 
 namespace OnlineJudgeAdmin.Infrastructure.Database.Models;
 
@@ -12,5 +13,5 @@ public class DbCourseUser
     public string UserId { get; set; } = string.Empty;
 
     [Column("role")]
-    public string Role { get; set; } = "student";
+    public string Role { get; set; } = CourseRoleNames.Student;
 }

@@ -19,18 +19,18 @@ public class AcademicServiceTests
     {
         var repository = new Mock<IAcademicRepository>();
         repository
-            .Setup(item => item.GetManageableCoursesAsync(1, "teacher", true))
+            .Setup(item => item.GetManageableCoursesAsync(1, "teacher", false))
             .ReturnsAsync(new[]
             {
-                new AcademicCourseSummary { CourseId = 1, Role = "admin" },
-                new AcademicCourseSummary { CourseId = 2, Role = "student" }
+                new AcademicCourseSummary { CourseId = 1, Role = CourseRoleNames.Admin },
+                new AcademicCourseSummary { CourseId = 2, Role = CourseRoleNames.Student }
             });
         var service = new AcademicService(repository.Object);
 
         var courses = (await service.GetManageableCoursesAsync(1, CurrentUser(UserRolesEnum.Docente, "teacher"))).ToList();
 
-        Assert.Equal("teacher", courses[0].Role);
-        Assert.Equal("student", courses[1].Role);
+        Assert.Equal(CourseRoleNames.Teacher, courses[0].Role);
+        Assert.Equal(CourseRoleNames.Student, courses[1].Role);
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public class AcademicServiceTests
     {
         AcademicCourseMemberCreationRequest? capturedRequest = null;
         var repository = new Mock<IAcademicRepository>();
-        repository.Setup(item => item.GetCourseAsync(1, 10, "teacher", true)).ReturnsAsync(new AcademicCourseDetail { CourseId = 10 });
+        repository.Setup(item => item.GetCourseAsync(1, 10, "teacher", false)).ReturnsAsync(new AcademicCourseDetail { CourseId = 10 });
         repository
             .Setup(item => item.AddCourseMemberAsync(1, 10, It.IsAny<AcademicCourseMemberCreationRequest>()))
             .Callback<int, long, AcademicCourseMemberCreationRequest>((_, _, request) => capturedRequest = request)
@@ -68,12 +68,12 @@ public class AcademicServiceTests
         await service.AddCourseMemberAsync(1, 10, CurrentUser(UserRolesEnum.Docente, "teacher"), new AcademicCourseMemberCreationRequest
         {
             UserId = " student ",
-            Role = " assistant "
+            Role = " auxiliar "
         });
 
         Assert.NotNull(capturedRequest);
         Assert.Equal("student", capturedRequest!.UserId);
-        Assert.Equal("assistant", capturedRequest.Role);
+        Assert.Equal(CourseRoleNames.Assistant, capturedRequest.Role);
     }
 
     [Fact]
@@ -81,7 +81,7 @@ public class AcademicServiceTests
     {
         AcademicCourseAssignmentCreationRequest? capturedRequest = null;
         var repository = new Mock<IAcademicRepository>();
-        repository.Setup(item => item.GetCourseAsync(1, 10, "teacher", true)).ReturnsAsync(new AcademicCourseDetail { CourseId = 10 });
+        repository.Setup(item => item.GetCourseAsync(1, 10, "teacher", false)).ReturnsAsync(new AcademicCourseDetail { CourseId = 10 });
         repository
             .Setup(item => item.CreateCourseAssignmentAsync(1, 10, "teacher", It.IsAny<AcademicCourseAssignmentCreationRequest>()))
             .Callback<int, long, string, AcademicCourseAssignmentCreationRequest>((_, _, _, request) => capturedRequest = request)
@@ -106,7 +106,7 @@ public class AcademicServiceTests
     public async Task CreateCourseAssignmentAsync_RejectsDueDateBeforeOpenDate()
     {
         var repository = new Mock<IAcademicRepository>();
-        repository.Setup(item => item.GetCourseAsync(1, 10, "teacher", true)).ReturnsAsync(new AcademicCourseDetail { CourseId = 10 });
+        repository.Setup(item => item.GetCourseAsync(1, 10, "teacher", false)).ReturnsAsync(new AcademicCourseDetail { CourseId = 10 });
         var service = new AcademicService(repository.Object);
 
         var error = await Assert.ThrowsAsync<ArgumentException>(() => service.CreateCourseAssignmentAsync(1, 10, CurrentUser(UserRolesEnum.Docente, "teacher"), new AcademicCourseAssignmentCreationRequest

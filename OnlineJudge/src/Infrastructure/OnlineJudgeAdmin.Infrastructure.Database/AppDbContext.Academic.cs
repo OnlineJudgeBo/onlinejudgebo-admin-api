@@ -23,6 +23,7 @@ public partial class AcademicCatalogDbContext
     public virtual DbSet<DbCourseAssignment> CourseAssignments { get; set; }
     public virtual DbSet<DbCourseAssignmentProblem> CourseAssignmentProblems { get; set; }
     public virtual DbSet<DbCourseSubmissionContext> CourseSubmissionContexts { get; set; }
+    public virtual DbSet<DbCourseContentItem> CourseContentItems { get; set; }
 
     partial void OnModelCreatingAcademicPartial(ModelBuilder modelBuilder)
     {
@@ -50,6 +51,14 @@ public partial class AcademicCatalogDbContext
             entity.HasIndex(e => e.CourseId, "idx_course_submission_course");
             entity.HasIndex(e => e.AssignmentId, "idx_course_submission_assignment");
             entity.HasIndex(e => e.UserId, "idx_course_submission_user");
+        });
+
+        modelBuilder.Entity<DbCourseContentItem>(entity =>
+        {
+            entity.ToTable("course_content_item");
+            entity.HasKey(e => e.ItemId);
+            entity.HasIndex(e => new { e.CourseId, e.Position }, "idx_course_content_order");
+            entity.HasIndex(e => e.AssignmentId, "uk_course_content_assignment").IsUnique();
         });
     }
 }
