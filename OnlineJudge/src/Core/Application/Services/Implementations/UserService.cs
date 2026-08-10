@@ -21,8 +21,9 @@ public class UserService : IUserService
         _userValidation = userValidator ?? throw new ArgumentNullException(nameof(userValidator));
     }
 
-    public async Task<IEnumerable<User>> GetAllUserProfilesAsync(int siteId)
+    public async Task<IEnumerable<User>> GetAllUserProfilesAsync(CurrentUser currentUser, int siteId)
     {
+        EnsureUserManager(currentUser, siteId);
         return await _userRepository.GetAllUsersProfilesAsync(siteId);
     }
 
@@ -36,13 +37,19 @@ public class UserService : IUserService
         return await _userRepository.CheckUserEmailAvailable(userProfile, siteId);
     }
 
-    public async Task<IEnumerable<User>> SearchUserProfilesAsync(string searchTerm, int siteId)
+    public async Task<IEnumerable<User>> SearchUserProfilesAsync(CurrentUser currentUser, string searchTerm, int siteId)
     {
+        EnsureUserManager(currentUser, siteId);
         return await _userRepository.SearchUserProfilesAsync(searchTerm, siteId);
     }
 
-    public async Task<UserProfile> UpdateUserProfile(User userToUpdate, string userId, int siteId)
+    public async Task<UserProfile> UpdateUserProfile(CurrentUser currentUser, User userToUpdate, string userId, int siteId)
     {
+        EnsureSameSite(currentUser, siteId);
+        if (!string.Equals(currentUser.UserId, userId, StringComparison.Ordinal)
+            && currentUser.Role is not UserRolesEnum.Administrador and not UserRolesEnum.Auxiliar)
+            throw new UnauthorizedAccessException("Solo el propio usuario, un administrador o un auxiliar pueden actualizar el perfil.");
+
         if (userToUpdate.UserId != userId)
         {
             await _userRepository.UpdateUser(userToUpdate, userId, siteId);
@@ -50,38 +57,53 @@ public class UserService : IUserService
         return await _userRepository.UpdateUserProfile(userToUpdate.UserProfile, siteId);
     }
 
-    public async Task ChangePassword(string password, string userId, int siteId)
+    public async Task ChangePassword(CurrentUser currentUser, string password, string userId, int siteId)
     {
+        EnsureSameSite(currentUser, siteId);
+        if (!string.Equals(currentUser.UserId, userId, StringComparison.Ordinal)
+            && currentUser.Role is not UserRolesEnum.Administrador and not UserRolesEnum.Auxiliar)
+        {
+            throw new UnauthorizedAccessException("Solo el propio usuario, un administrador o un auxiliar pueden cambiar la contraseña.");
+        }
+
         string passwordEncrypt = GeneratePasswordHash(password);
         await _userRepository.ChangePassword(passwordEncrypt, userId, siteId);
     }
 
-    public async Task DeleteRoleAsync(string userId, int roleId, int siteId)
+    public async Task DeleteRoleAsync(CurrentUser currentUser, string userId, int roleId, int siteId)
     {
-        UserRole role = await _roleRepository.GetUserRoleAsync(userId, siteId);
-
-        if (role.Role.RoleName == "Administrador" || role.Role.RoleName == "Docente")
-        {
-            await _userRepository.DeleteRoleAsync(userId, roleId, siteId);
-        }
-        else
+        EnsureSameSite(currentUser, siteId);
+        if (currentUser.Role != UserRolesEnum.Administrador)
         {
             throw new UnauthorizedAccessException("Solo los administradores pueden eliminar roles.");
         }
+
+        await _userRepository.DeleteRoleAsync(userId, roleId, siteId);
     }
 
     public async Task DeleteUserAsync(CurrentUser currentUser, string userId, int siteId)
     {
-        UserRole role = await _roleRepository.GetUserRoleAsync(userId, siteId);
-
-        if (role == null || role.Role.RoleName == "Administrador" || role.Role.RoleName == "Docente")
-        {
-            await _userRepository.DeleteUserAsync(userId, siteId);
-        }
-        else
+        EnsureSameSite(currentUser, siteId);
+        if (currentUser.Role != UserRolesEnum.Administrador)
         {
             throw new UnauthorizedAccessException("Solo los administradores pueden eliminar usuarios.");
         }
+
+        await _userRepository.DeleteUserAsync(userId, siteId);
+    }
+
+    private static void EnsureSameSite(CurrentUser currentUser, int siteId)
+    {
+        ArgumentNullException.ThrowIfNull(currentUser);
+        if (siteId <= 0 || currentUser.SiteId != siteId)
+            throw new UnauthorizedAccessException("El usuario no pertenece al sitio solicitado.");
+    }
+
+    private static void EnsureUserManager(CurrentUser currentUser, int siteId)
+    {
+        EnsureSameSite(currentUser, siteId);
+        if (currentUser.Role is not UserRolesEnum.Administrador and not UserRolesEnum.Auxiliar)
+            throw new UnauthorizedAccessException("Solo los administradores o auxiliares pueden consultar usuarios.");
     }
 
     private static string GeneratePasswordHash(string password)

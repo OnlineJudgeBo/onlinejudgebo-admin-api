@@ -13,7 +13,7 @@ public class UserServiceTests
         var service = CreateService(userRepository.Object);
         var user = new User { UserId = "new", UserProfile = new UserProfile { UserId = "new" } };
 
-        var profile = await service.UpdateUserProfile(user, "old", 1);
+        var profile = await service.UpdateUserProfile(User("admin", UserRolesEnum.Administrador), user, "old", 1);
 
         Assert.Equal("new", profile.UserId);
         userRepository.Verify(item => item.UpdateUser(user, "old", 1), Times.Once);
@@ -31,23 +31,30 @@ public class UserServiceTests
             .Returns(Task.CompletedTask);
         var service = CreateService(userRepository.Object);
 
-        await service.ChangePassword("secret1", "student", 1);
+        await service.ChangePassword(User("student", UserRolesEnum.Invitado), "secret1", "student", 1);
 
         Assert.False(string.IsNullOrWhiteSpace(capturedHash));
         Assert.NotEqual("secret1", capturedHash);
     }
 
-    [Theory]
-    [InlineData("Administrador")]
-    [InlineData("Docente")]
-    public async Task DeleteRoleAsync_AllowsPrivilegedRoles(string roleName)
+    [Fact]
+    public async Task ChangePassword_AllowsAuxiliaryToChangeAnotherUserPassword()
     {
         var userRepository = new Mock<IUserRepository>();
-        var roleRepository = new Mock<IRoleRepository>();
-        roleRepository.Setup(item => item.GetUserRoleAsync("teacher", 1)).ReturnsAsync(new UserRole { Role = new Role { RoleName = roleName } });
-        var service = CreateService(userRepository.Object, roleRepository.Object);
+        var service = CreateService(userRepository.Object);
 
-        await service.DeleteRoleAsync("teacher", 2, 1);
+        await service.ChangePassword(User("assistant", UserRolesEnum.Auxiliar), "secret1", "student", 1);
+
+        userRepository.Verify(item => item.ChangePassword(It.IsAny<string>(), "student", 1), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteRoleAsync_AllowsAdministrator()
+    {
+        var userRepository = new Mock<IUserRepository>();
+        var service = CreateService(userRepository.Object);
+
+        await service.DeleteRoleAsync(User("admin", UserRolesEnum.Administrador), "teacher", 2, 1);
 
         userRepository.Verify(item => item.DeleteRoleAsync("teacher", 2, 1), Times.Once);
     }
@@ -55,24 +62,20 @@ public class UserServiceTests
     [Fact]
     public async Task DeleteRoleAsync_RejectsNonPrivilegedRole()
     {
-        var roleRepository = new Mock<IRoleRepository>();
-        roleRepository.Setup(item => item.GetUserRoleAsync("student", 1)).ReturnsAsync(new UserRole { Role = new Role { RoleName = "Invitado" } });
-        var service = CreateService(roleRepository: roleRepository.Object);
+        var service = CreateService();
 
-        var error = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.DeleteRoleAsync("student", 2, 1));
+        var error = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.DeleteRoleAsync(User("teacher", UserRolesEnum.Docente), "student", 2, 1));
 
         Assert.Equal("Solo los administradores pueden eliminar roles.", error.Message);
     }
 
     [Fact]
-    public async Task DeleteUserAsync_AllowsWhenRepositoryReturnsNullRole()
+    public async Task DeleteUserAsync_AllowsAdministrator()
     {
         var userRepository = new Mock<IUserRepository>();
-        var roleRepository = new Mock<IRoleRepository>();
-        roleRepository.Setup(item => item.GetUserRoleAsync("student", 1)).ReturnsAsync((UserRole)null!);
-        var service = CreateService(userRepository.Object, roleRepository.Object);
+        var service = CreateService(userRepository.Object);
 
-        await service.DeleteUserAsync(new CurrentUser { UserId = "admin", SiteId = 1, Role = UserRolesEnum.Administrador }, "student", 1);
+        await service.DeleteUserAsync(User("admin", UserRolesEnum.Administrador), "student", 1);
 
         userRepository.Verify(item => item.DeleteUserAsync("student", 1), Times.Once);
     }
@@ -80,14 +83,15 @@ public class UserServiceTests
     [Fact]
     public async Task DeleteUserAsync_RejectsNonPrivilegedRole()
     {
-        var roleRepository = new Mock<IRoleRepository>();
-        roleRepository.Setup(item => item.GetUserRoleAsync("student", 1)).ReturnsAsync(new UserRole { Role = new Role { RoleName = "Invitado" } });
-        var service = CreateService(roleRepository: roleRepository.Object);
+        var service = CreateService();
 
-        var error = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.DeleteUserAsync(new CurrentUser(), "student", 1));
+        var error = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.DeleteUserAsync(User("teacher", UserRolesEnum.Docente), "student", 1));
 
         Assert.Equal("Solo los administradores pueden eliminar usuarios.", error.Message);
     }
+
+    private static CurrentUser User(string userId, UserRolesEnum role) =>
+        new() { UserId = userId, SiteId = 1, Role = role };
 
     private static UserService CreateService(IUserRepository? userRepository = null, IRoleRepository? roleRepository = null)
     {
