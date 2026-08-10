@@ -186,6 +186,41 @@ public class AcademicServiceTests
         Assert.Equal(1000, capturedRequest!.ProblemId);
     }
 
+    [Fact]
+    public async Task CreateLearningPathAsync_RejectsNonAdministrator()
+    {
+        var service = new AcademicService(Mock.Of<IAcademicRepository>());
+
+        var error = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.CreateLearningPathAsync(1, CurrentUser(UserRolesEnum.Docente), new LearningPathAdminUpsertRequest { Key = "cpp", Title = "C++" }));
+
+        Assert.Equal("Only administrators can configure learning paths.", error.Message);
+    }
+
+    [Fact]
+    public async Task CreateLearningPathAsync_ValidatesAndDelegates()
+    {
+        var request = new LearningPathAdminUpsertRequest { Key = "cpp", Title = "C++", Version = 1 };
+        var repository = new Mock<IAcademicRepository>();
+        repository.Setup(item => item.CreateLearningPathAsync(1, request)).ReturnsAsync(new LearningPathResponse { Track = new LearningPathTrack { Id = "cpp" } });
+        var service = new AcademicService(repository.Object);
+
+        var response = await service.CreateLearningPathAsync(1, CurrentUser(UserRolesEnum.Administrador, "admin"), request);
+
+        Assert.Equal("cpp", response.Track.Id);
+        repository.Verify(item => item.CreateLearningPathAsync(1, request), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateLearningPathTopicAsync_RejectsInvalidProblemIds()
+    {
+        var service = new AcademicService(Mock.Of<IAcademicRepository>());
+        var request = new LearningPathTopicAdminRequest { Key = "variables", Title = "Variables", ProblemIds = new List<int> { 0 } };
+
+        var error = await Assert.ThrowsAsync<ArgumentException>(() => service.CreateLearningPathTopicAsync(1, "cpp", 1, CurrentUser(UserRolesEnum.Administrador, "admin"), request));
+
+        Assert.Equal("Problem ids must be positive.", error.Message);
+    }
+
     private static CurrentUser CurrentUser(UserRolesEnum role, string userId = "student")
     {
         return new CurrentUser

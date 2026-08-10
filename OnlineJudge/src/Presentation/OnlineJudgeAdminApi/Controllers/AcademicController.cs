@@ -51,7 +51,7 @@ public class AcademicController : ControllerBase
     }
 
     [HttpPost("sites/{siteId:int}/courses")]
-    [Authorize(Roles = "Administrador,Docente,Auxiliar")]
+    [Authorize(Roles = AuthorizationRoles.AdministradorDocenteAuxiliar)]
     public async Task<IActionResult> CreateCourseAsync(int siteId, AcademicCourseForCreation courseForCreation)
     {
         var currentUser = _userClaimsHelper.GetUserContextRole();
@@ -247,6 +247,7 @@ public class AcademicController : ControllerBase
     }
 
     [AllowAnonymous]
+    [AllowAnonymous]
     [HttpGet("sites/{siteId:int}/learning-paths/{learningPathKey}")]
     public async Task<IActionResult> GetLearningPathAsync(int siteId, string learningPathKey)
     {
@@ -260,6 +261,99 @@ public class AcademicController : ControllerBase
             };
 
         return Ok(await _academicService.GetLearningPathAsync(siteId, learningPathKey, currentUser));
+    }
+
+    // The learning-path catalog is scoped to the authenticated administrator's site.
+    [HttpPost("learning-paths")]
+    [Authorize(Roles = AuthorizationRoles.Administrador)]
+    public async Task<IActionResult> CreateLearningPathAsync(LearningPathAdminUpsertRequest request)
+    {
+        var currentUser = _userClaimsHelper.GetUserContextRole();
+        return Ok(await _academicService.CreateLearningPathAsync(currentUser.SiteId, currentUser, request));
+    }
+
+    [HttpPut("learning-paths/{learningPathKey}")]
+    [Authorize(Roles = AuthorizationRoles.Administrador)]
+    public async Task<IActionResult> UpdateLearningPathAsync(string learningPathKey, LearningPathAdminUpsertRequest request)
+    {
+        var currentUser = _userClaimsHelper.GetUserContextRole();
+        return Ok(await _academicService.UpdateLearningPathAsync(currentUser.SiteId, learningPathKey, currentUser, request));
+    }
+
+    [HttpDelete("learning-paths/{learningPathKey}")]
+    [Authorize(Roles = AuthorizationRoles.Administrador)]
+    public async Task<IActionResult> DeleteLearningPathAsync(string learningPathKey)
+    {
+        var currentUser = _userClaimsHelper.GetUserContextRole();
+        await _academicService.DeleteLearningPathAsync(currentUser.SiteId, learningPathKey, currentUser);
+        return NoContent();
+    }
+
+    [HttpPost("learning-paths/{learningPathKey}/stages")]
+    [Authorize(Roles = AuthorizationRoles.Administrador)]
+    public async Task<IActionResult> CreateLearningPathStageAsync(string learningPathKey, LearningPathStageAdminRequest request)
+    {
+        var currentUser = _userClaimsHelper.GetUserContextRole();
+        return Ok(await _academicService.CreateLearningPathStageAsync(currentUser.SiteId, learningPathKey, currentUser, request));
+    }
+
+    [HttpPost("learning-paths/{learningPathKey}/stages/{stageId:long}/link")]
+    [Authorize(Roles = AuthorizationRoles.Administrador)]
+    public async Task<IActionResult> LinkLearningPathStageAsync(string learningPathKey, long stageId)
+    {
+        var currentUser = _userClaimsHelper.GetUserContextRole();
+        return Ok(await _academicService.LinkLearningPathStageAsync(currentUser.SiteId, learningPathKey, stageId, currentUser));
+    }
+
+    [HttpDelete("learning-paths/{learningPathKey}/stages/{stageId:long}/link")]
+    [Authorize(Roles = AuthorizationRoles.Administrador)]
+    public async Task<IActionResult> UnlinkLearningPathStageAsync(string learningPathKey, long stageId)
+    {
+        var currentUser = _userClaimsHelper.GetUserContextRole();
+        await _academicService.UnlinkLearningPathStageAsync(currentUser.SiteId, learningPathKey, stageId, currentUser);
+        return NoContent();
+    }
+
+    [HttpPut("learning-paths/{learningPathKey}/stages/{stageId:long}")]
+    [Authorize(Roles = AuthorizationRoles.Administrador)]
+    public async Task<IActionResult> UpdateLearningPathStageAsync(string learningPathKey, long stageId, LearningPathStageAdminRequest request)
+    {
+        var currentUser = _userClaimsHelper.GetUserContextRole();
+        return Ok(await _academicService.UpdateLearningPathStageAsync(currentUser.SiteId, learningPathKey, stageId, currentUser, request));
+    }
+
+    [HttpDelete("learning-paths/{learningPathKey}/stages/{stageId:long}")]
+    [Authorize(Roles = AuthorizationRoles.Administrador)]
+    public async Task<IActionResult> DeleteLearningPathStageAsync(string learningPathKey, long stageId)
+    {
+        var currentUser = _userClaimsHelper.GetUserContextRole();
+        await _academicService.DeleteLearningPathStageAsync(currentUser.SiteId, learningPathKey, stageId, currentUser);
+        return NoContent();
+    }
+
+    [HttpPost("learning-paths/{learningPathKey}/stages/{stageId:long}/topics")]
+    [Authorize(Roles = AuthorizationRoles.Administrador)]
+    public async Task<IActionResult> CreateLearningPathTopicAsync(string learningPathKey, long stageId, LearningPathTopicAdminRequest request)
+    {
+        var currentUser = _userClaimsHelper.GetUserContextRole();
+        return Ok(await _academicService.CreateLearningPathTopicAsync(currentUser.SiteId, learningPathKey, stageId, currentUser, request));
+    }
+
+    [HttpPut("learning-paths/{learningPathKey}/stages/{stageId:long}/topics/{topicId:long}")]
+    [Authorize(Roles = AuthorizationRoles.Administrador)]
+    public async Task<IActionResult> UpdateLearningPathTopicAsync(string learningPathKey, long stageId, long topicId, LearningPathTopicAdminRequest request)
+    {
+        var currentUser = _userClaimsHelper.GetUserContextRole();
+        return Ok(await _academicService.UpdateLearningPathTopicAsync(currentUser.SiteId, learningPathKey, stageId, topicId, currentUser, request));
+    }
+
+    [HttpDelete("learning-paths/{learningPathKey}/stages/{stageId:long}/topics/{topicId:long}")]
+    [Authorize(Roles = AuthorizationRoles.Administrador)]
+    public async Task<IActionResult> DeleteLearningPathTopicAsync(string learningPathKey, long stageId, long topicId)
+    {
+        var currentUser = _userClaimsHelper.GetUserContextRole();
+        await _academicService.DeleteLearningPathTopicAsync(currentUser.SiteId, learningPathKey, stageId, topicId, currentUser);
+        return NoContent();
     }
 
     [HttpGet("sites/{siteId:int}/learning-paths/{learningPathKey}/progress")]
