@@ -37,11 +37,11 @@ public class PublicAuthController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Unauthorized(new { error = ex.Message });
+            return Unauthorized(new ErrorDetails { StatusCode = 401, Message = ex.Message });
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return BadRequest(new ErrorDetails { StatusCode = 400, Message = ex.Message });
         }
     }
 
@@ -65,11 +65,11 @@ public class PublicAuthController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return Conflict(new { error = ex.Message });
+            return Conflict(new ErrorDetails { StatusCode = 409, Message = ex.Message });
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return BadRequest(new ErrorDetails { StatusCode = 400, Message = ex.Message });
         }
     }
 
@@ -84,15 +84,15 @@ public class PublicAuthController : ControllerBase
         }
         catch (KeyNotFoundException ex)
         {
-            return NotFound(new { error = ex.Message });
+            return NotFound(new ErrorDetails { StatusCode = 404, Message = ex.Message });
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return BadRequest(new ErrorDetails { StatusCode = 400, Message = ex.Message });
         }
         catch (InvalidOperationException ex)
         {
-            return StatusCode(500, new { error = ex.Message });
+            return StatusCode(500, new ErrorDetails { StatusCode = 500, Message = ex.Message });
         }
     }
 
@@ -107,11 +107,11 @@ public class PublicAuthController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Unauthorized(new { error = ex.Message });
+            return Unauthorized(new ErrorDetails { StatusCode = 401, Message = ex.Message });
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return BadRequest(new ErrorDetails { StatusCode = 400, Message = ex.Message });
         }
     }
 

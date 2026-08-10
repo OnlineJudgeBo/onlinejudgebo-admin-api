@@ -9,7 +9,7 @@ namespace OnlineJudgeAdminApi.Controllers;
 
 [ApiController]
 [Route("/api/[controller]")]
-[Authorize(Roles = "Administrador")]
+[Authorize(Roles = AuthorizationRoles.Administrador)]
 public class RolesController : ControllerBase
 {
     private readonly IRoleService _roleService;

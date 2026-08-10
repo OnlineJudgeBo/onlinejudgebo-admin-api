@@ -30,7 +30,7 @@ public class JudgeController : ControllerBase
     }
 
     [HttpGet("rejudge/solution/{id:int}")]
-    [Authorize(Roles = "Administrador,Docente,Auxiliar")]
+    [Authorize(Roles = AuthorizationRoles.AdministradorDocenteAuxiliar)]
     public async Task<IActionResult> RejudgeSolutionByIdAsync(int id)
     {
         return Ok(await _judgeService.RejudgeSolutionByIdAsync(_currentUser.SiteId, id));
@@ -53,21 +53,21 @@ public class JudgeController : ControllerBase
     }
 
     [HttpGet("rejudge/problem/{problemId:int}")]
-    [Authorize(Roles = "Administrador,Docente,Auxiliar")]
+    [Authorize(Roles = AuthorizationRoles.AdministradorDocenteAuxiliar)]
     public async Task<IActionResult> RejudgeSolutionByProblemIdAsync(int problemId)
     {
         return Ok(await _judgeService.RejudgeSolutionByProblemIdAsync(_currentUser.SiteId, problemId));
     }
 
     [HttpGet("rejudge/contest/{contestId:int}")]
-    [Authorize(Roles = "Administrador,Docente,Auxiliar")]
+    [Authorize(Roles = AuthorizationRoles.AdministradorDocenteAuxiliar)]
     public async Task<IActionResult> RejudgeSolutionByContestIdAsync(int contestId)
     {
         return Ok(await _judgeService.RejudgeSolutionByContestIdAsync(_currentUser.SiteId, contestId));
     }
 
     [HttpGet("rejudge/range")]
-    [Authorize(Roles = "Administrador,Docente,Auxiliar")]
+    [Authorize(Roles = AuthorizationRoles.AdministradorDocenteAuxiliar)]
     public async Task<IActionResult> RejudgeSolutionsByRangeAsync(
         [FromQuery] int fromSolutionId,
         [FromQuery] int toSolutionId)
@@ -76,14 +76,14 @@ public class JudgeController : ControllerBase
     }
 
     [HttpGet("rejudge/language/{languageId:int}")]
-    [Authorize(Roles = "Administrador,Docente,Auxiliar")]
+    [Authorize(Roles = AuthorizationRoles.AdministradorDocenteAuxiliar)]
     public async Task<IActionResult> RejudgeSolutionsByLanguageAsync(int languageId)
     {
         return Ok(await _judgeService.RejudgeSolutionsByLanguageAsync(_currentUser.SiteId, languageId));
     }
 
     [HttpGet("rejudge/history")]
-    [Authorize(Roles = "Administrador,Docente,Auxiliar")]
+    [Authorize(Roles = AuthorizationRoles.AdministradorDocenteAuxiliar)]
     public async Task<IActionResult> GetRejudgeHistoryAsync([FromQuery] int limit = 50)
     {
         return Ok(await _judgeService.GetRejudgeHistoryAsync(_currentUser.SiteId, limit));

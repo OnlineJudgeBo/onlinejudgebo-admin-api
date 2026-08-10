@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 namespace OnlineJudgeAdminApi.Controllers;
 
-[Route("api/[controller]")]
+[Route("/api/[controller]")]
 [ApiController]
 [Authorize]
 

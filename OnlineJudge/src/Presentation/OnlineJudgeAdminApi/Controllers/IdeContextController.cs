@@ -39,12 +39,12 @@ public sealed class IdeContextController : ControllerBase
         }
         catch (Exception error) when (error is ArgumentException or InvalidOperationException)
         {
-            return Unauthorized(new { error = "invalid_ide_token" });
+            return Unauthorized(new ErrorDetails { StatusCode = 401, Message = "invalid_ide_token" });
         }
 
         if (claims.ProblemId <= 0)
         {
-            return BadRequest(new { error = "problem_id claim is required." });
+            return BadRequest(new ErrorDetails { StatusCode = 400, Message = "problem_id claim is required." });
         }
 
         if (problemId.HasValue && problemId.Value > 0 && problemId.Value != claims.ProblemId)
@@ -60,7 +60,7 @@ public sealed class IdeContextController : ControllerBase
         {
             IdeContextBuildStatus.Success => Ok(ToIdeContextResponse(result.Response!)),
             IdeContextBuildStatus.UserNotAllowed => Forbid(),
-            IdeContextBuildStatus.ProblemNotFound => NotFound(new { error = $"Problem {claims.ProblemId} was not found." }),
+            IdeContextBuildStatus.ProblemNotFound => NotFound(new ErrorDetails { StatusCode = 404, Message = $"Problem {claims.ProblemId} was not found." }),
             _ => StatusCode(StatusCodes.Status500InternalServerError),
         };
     }

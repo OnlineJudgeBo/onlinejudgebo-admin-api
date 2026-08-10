@@ -215,7 +215,7 @@ public class PublicController : ControllerBase
 
         if (items.Count == 0)
         {
-            return NotFound(new { error = "No hay códigos fuente disponibles para descargar." });
+            return NotFound(new ErrorDetails { StatusCode = 404, Message = "No hay códigos fuente disponibles para descargar." });
         }
 
         var archiveBytes = BuildOwnSourceCodesArchive(items);

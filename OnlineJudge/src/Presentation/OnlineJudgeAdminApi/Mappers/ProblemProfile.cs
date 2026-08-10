@@ -58,7 +58,7 @@ public class ProblemProfile : Profile
             .ForMember(dest => dest.Result, opt => opt.MapFrom(src => src.Result))
             .ForMember(dest => dest.JudgeTime, opt => opt.MapFrom(src => src.JudgeTime));
 
-        CreateMap<TopicForCreating, Topic>()
+        CreateMap<TopicForCreation, Topic>()
             .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name));
 
         CreateMap<TopicAddClassificationForCreation, Topic>()
