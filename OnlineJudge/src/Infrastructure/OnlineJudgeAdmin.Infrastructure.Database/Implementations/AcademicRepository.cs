@@ -1191,7 +1191,7 @@ public class AcademicRepository : IAcademicRepository
                     .Take(5)
                     .ToList(),
                 UnlockedByDefault = orderedTopic.UnlockedByDefault || orderedTopic.Order == orderedTopics.Min(topic => topic.Order),
-                Dependencies = new List<int>(),
+                Dependencies = new List<long>(),
                 Topics = stageTopics
             };
 

@@ -247,7 +247,6 @@ public class AcademicController : ControllerBase
     }
 
     [AllowAnonymous]
-    [AllowAnonymous]
     [HttpGet("sites/{siteId:int}/learning-paths/{learningPathKey}")]
     public async Task<IActionResult> GetLearningPathAsync(int siteId, string learningPathKey)
     {
