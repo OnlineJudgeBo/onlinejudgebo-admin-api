@@ -1,6 +1,6 @@
 namespace OnlineJudgeAdminApi.DataTransferObjects;
 
-public partial class TopicForCreating
+public partial class TopicForCreation
 {
     public string Name { get; set; }
 }
