@@ -41,7 +41,7 @@ public class AcademicService : IAcademicService
         if (IsAcademicManager(currentUser) && currentUser.Role != UserRolesEnum.Administrador)
         {
             var managerRole = GetAcademicManagerCourseRole(currentUser);
-            foreach (var course in courses.Where(course => string.Equals(course.Role, "admin", StringComparison.OrdinalIgnoreCase)))
+            foreach (var course in courses.Where(course => string.Equals(course.Role, CourseRoleNames.Admin, StringComparison.OrdinalIgnoreCase)))
             {
                 course.Role = managerRole;
             }
@@ -117,9 +117,9 @@ public class AcademicService : IAcademicService
         var course = await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
         EnsureCourseManager(course, currentUser, "add course members");
         request.UserId = request.UserId.Trim();
-        request.Role = string.Equals(request.Role?.Trim(), "assistant", StringComparison.OrdinalIgnoreCase)
-            ? "assistant"
-            : "student";
+        request.Role = string.Equals(request.Role?.Trim(), CourseRoleNames.Assistant, StringComparison.OrdinalIgnoreCase)
+            ? CourseRoleNames.Assistant
+            : CourseRoleNames.Student;
 
         return await _academicRepository.AddCourseMemberAsync(siteId, courseId, request);
     }
@@ -431,9 +431,9 @@ public class AcademicService : IAcademicService
     {
         return currentUser.Role switch
         {
-            UserRolesEnum.Administrador => "admin",
-            UserRolesEnum.Auxiliar => "assistant",
-            UserRolesEnum.Docente => "teacher",
+            UserRolesEnum.Administrador => CourseRoleNames.Admin,
+            UserRolesEnum.Auxiliar => CourseRoleNames.Assistant,
+            UserRolesEnum.Docente => CourseRoleNames.Teacher,
             _ => string.Empty
         };
     }

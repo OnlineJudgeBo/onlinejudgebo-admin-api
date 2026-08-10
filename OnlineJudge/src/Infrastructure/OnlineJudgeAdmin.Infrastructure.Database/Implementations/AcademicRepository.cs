@@ -77,14 +77,14 @@ public class AcademicRepository : IAcademicRepository
         var membershipRolesByCourse = myMemberships
             .ToDictionary(item => item.CourseId, item => item.Role);
 
-        return await BuildCourseSummariesAsync(courseIds, membershipRolesByCourse, "student", userId);
+        return await BuildCourseSummariesAsync(courseIds, membershipRolesByCourse, CourseRoleNames.Student, userId);
     }
 
     public async Task<IEnumerable<AcademicCourseSummary>> GetManageableCoursesAsync(int siteId, string userId, bool includeAllCourses)
     {
         var managedMemberships = await _academicContext.CourseUsers
             .Where(member => member.UserId == userId
-                && (member.Role == "teacher" || member.Role == "assistant" || member.Role == "admin"))
+                && (member.Role == CourseRoleNames.Teacher || member.Role == CourseRoleNames.Assistant || member.Role == CourseRoleNames.Admin))
             .Select(member => new { member.CourseId, member.Role })
             .ToListAsync();
 
@@ -112,7 +112,7 @@ public class AcademicRepository : IAcademicRepository
             .GroupBy(member => member.CourseId)
             .ToDictionary(group => group.Key, group => group.First().Role);
 
-        return await BuildCourseSummariesAsync(courseIds, membershipRolesByCourse, includeAllCourses ? "admin" : "teacher", userId);
+        return await BuildCourseSummariesAsync(courseIds, membershipRolesByCourse, includeAllCourses ? CourseRoleNames.Admin : CourseRoleNames.Teacher, userId);
     }
 
     public async Task<AcademicCourseDetail> CreateCourseAsync(int siteId, string userId, AcademicCourseCreationRequest request)
@@ -138,7 +138,7 @@ public class AcademicRepository : IAcademicRepository
         {
             CourseId = course.CourseId,
             UserId = userId,
-            Role = "teacher"
+            Role = CourseRoleNames.Teacher
         });
 
         await _academicContext.SaveChangesAsync();
@@ -168,7 +168,7 @@ public class AcademicRepository : IAcademicRepository
             {
                 CourseId = course.CourseId,
                 UserId = userId,
-                Role = "student"
+                Role = CourseRoleNames.Student
             });
         }
 
@@ -198,7 +198,7 @@ public class AcademicRepository : IAcademicRepository
 
         var teacher = await _academicContext.CourseUsers
             .Where(courseMember => courseMember.CourseId == courseId
-                && courseMember.Role == "teacher")
+                && courseMember.Role == CourseRoleNames.Teacher)
             .OrderBy(courseMember => courseMember.UserId)
             .Select(courseMember => courseMember.UserId)
             .FirstOrDefaultAsync();
@@ -207,11 +207,11 @@ public class AcademicRepository : IAcademicRepository
 
         var studentCount = await _academicContext.CourseUsers
             .Where(courseMember => courseMember.CourseId == courseId
-                && courseMember.Role == "student")
+                && courseMember.Role == CourseRoleNames.Student)
             .CountAsync();
         var assignments = await BuildCourseAssignmentsAsync(siteId, courseId, userId);
         await EnsureAssignmentContentItemsAsync(courseId, teacher ?? course.CreatedByUserId ?? userId);
-        var canViewDraftContent = allowAdminAccess || (member != null && member.Role != "student");
+        var canViewDraftContent = allowAdminAccess || (member != null && member.Role != CourseRoleNames.Student);
         var storedContent = await _academicContext.CourseContentItems
             .Where(item => item.CourseId == courseId && (item.IsPublished || canViewDraftContent))
             .OrderBy(item => item.Position)
@@ -250,10 +250,10 @@ public class AcademicRepository : IAcademicRepository
             nextPosition += 10;
         }
         var stages = await BuildCourseStagesAsync(course.LearningPathId, teacher ?? course.CreatedByUserId ?? userId);
-        var effectiveMemberRole = member?.Role ?? (allowAdminAccess ? "admin" : string.Empty);
-        var canManage = string.Equals(effectiveMemberRole, "teacher", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(effectiveMemberRole, "assistant", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(effectiveMemberRole, "admin", StringComparison.OrdinalIgnoreCase);
+        var effectiveMemberRole = member?.Role ?? (allowAdminAccess ? CourseRoleNames.Admin : string.Empty);
+        var canManage = string.Equals(effectiveMemberRole, CourseRoleNames.Teacher, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(effectiveMemberRole, CourseRoleNames.Assistant, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(effectiveMemberRole, CourseRoleNames.Admin, StringComparison.OrdinalIgnoreCase);
         var ownerUserId = teacher ?? course.CreatedByUserId ?? userId;
         var canSeeInviteCode = string.Equals(ownerUserId, userId, StringComparison.OrdinalIgnoreCase);
 
@@ -301,7 +301,7 @@ public class AcademicRepository : IAcademicRepository
         }
 
         var ownerUserId = members
-            .Where(member => member.Role == "teacher")
+            .Where(member => member.Role == CourseRoleNames.Teacher)
             .OrderBy(member => member.UserId)
             .Select(member => member.UserId)
             .FirstOrDefault() ?? course.CreatedByUserId ?? string.Empty;
@@ -368,7 +368,7 @@ public class AcademicRepository : IAcademicRepository
         }
         else
         {
-            if (string.Equals(existingMember.Role, "teacher", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(existingMember.Role, CourseRoleNames.Teacher, StringComparison.OrdinalIgnoreCase))
             {
                 throw new ArgumentException("Teacher membership cannot be edited from this endpoint.");
             }
@@ -393,7 +393,7 @@ public class AcademicRepository : IAcademicRepository
             throw new ArgumentException("Course member not found.");
         }
 
-        if (string.Equals(existingMember.Role, "teacher", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(existingMember.Role, CourseRoleNames.Teacher, StringComparison.OrdinalIgnoreCase))
         {
             throw new ArgumentException("Teacher membership cannot be removed from this endpoint.");
         }
@@ -666,7 +666,7 @@ public class AcademicRepository : IAcademicRepository
         }
 
         var studentUserIds = await _academicContext.CourseUsers
-            .Where(member => member.CourseId == courseId && member.Role == "student")
+            .Where(member => member.CourseId == courseId && member.Role == CourseRoleNames.Student)
             .OrderBy(member => member.UserId)
             .Select(member => member.UserId)
             .Distinct()
@@ -748,7 +748,7 @@ public class AcademicRepository : IAcademicRepository
         }
 
         var studentUserIds = await _academicContext.CourseUsers
-            .Where(member => member.CourseId == courseId && member.Role == "student")
+            .Where(member => member.CourseId == courseId && member.Role == CourseRoleNames.Student)
             .Select(member => member.UserId)
             .Distinct()
             .ToListAsync();
@@ -912,7 +912,7 @@ public class AcademicRepository : IAcademicRepository
         return await _academicContext.CourseUsers
             .AnyAsync(member => member.CourseId == submissionContext.CourseId
                 && member.UserId == userId
-                && (member.Role == "admin" || member.Role == "teacher" || member.Role == "assistant"));
+                && (member.Role == CourseRoleNames.Admin || member.Role == CourseRoleNames.Teacher || member.Role == CourseRoleNames.Assistant));
     }
 
     public async Task<IEnumerable<AcademicCourseRankingItem>> GetCourseRankingAsync(int siteId, long courseId)
@@ -1484,7 +1484,7 @@ public class AcademicRepository : IAcademicRepository
                 .ToDictionaryAsync(problem => problem.ProblemId, problem => problem.Title);
 
         var studentUserIds = await _academicContext.CourseUsers
-            .Where(member => member.CourseId == courseId && member.Role == "student")
+            .Where(member => member.CourseId == courseId && member.Role == CourseRoleNames.Student)
             .Select(member => member.UserId)
             .Distinct()
             .ToListAsync();
@@ -1589,14 +1589,14 @@ public class AcademicRepository : IAcademicRepository
         var ownerUserId = includeOwner
             ? await _academicContext.CourseUsers
                 .Where(member => member.CourseId == courseId
-                    && member.Role == "teacher")
+                    && member.Role == CourseRoleNames.Teacher)
                 .OrderBy(member => member.UserId)
                 .Select(member => member.UserId)
                 .FirstOrDefaultAsync() ?? course.CreatedByUserId ?? string.Empty
             : string.Empty;
         var studentUserIds = await _academicContext.CourseUsers
             .Where(member => member.CourseId == courseId
-                && member.Role == "student")
+                && member.Role == CourseRoleNames.Student)
             .OrderBy(member => member.UserId)
             .Select(member => member.UserId)
             .Distinct()
@@ -1839,7 +1839,7 @@ public class AcademicRepository : IAcademicRepository
             .ToList();
 
         var studentCounts = await _academicContext.CourseUsers
-            .Where(member => member.Role == "student"
+            .Where(member => member.Role == CourseRoleNames.Student
                 && courseIds.Contains(member.CourseId))
             .GroupBy(member => member.CourseId)
             .Select(group => new { CourseId = group.Key, Count = group.Count() })
@@ -1861,7 +1861,7 @@ public class AcademicRepository : IAcademicRepository
 
         var ownerByCourse = await _academicContext.CourseUsers
             .Where(member => courseIds.Contains(member.CourseId)
-                && member.Role == "teacher")
+                && member.Role == CourseRoleNames.Teacher)
             .GroupBy(member => member.CourseId)
             .Select(group => new
             {
@@ -2164,8 +2164,8 @@ public class AcademicRepository : IAcademicRepository
     {
         return role.ToLowerInvariant() switch
         {
-            "teacher" => 0,
-            "assistant" => 1,
+            CourseRoleNames.Teacher => 0,
+            CourseRoleNames.Assistant => 1,
             _ => 2
         };
     }
