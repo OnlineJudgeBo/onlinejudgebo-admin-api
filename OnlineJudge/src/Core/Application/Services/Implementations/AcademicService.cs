@@ -297,6 +297,96 @@ public class AcademicService : IAcademicService
         return await _academicRepository.GetLearningPathAsync(siteId, learningPathKey);
     }
 
+    public Task<LearningPathResponse> CreateLearningPathAsync(int siteId, CurrentUser currentUser, LearningPathAdminUpsertRequest request)
+    {
+        ValidateLearningPathManager(siteId, currentUser);
+        ValidateLearningPathRequest(request);
+        return _academicRepository.CreateLearningPathAsync(siteId, request);
+    }
+
+    public Task<LearningPathResponse> UpdateLearningPathAsync(int siteId, string learningPathKey, CurrentUser currentUser, LearningPathAdminUpsertRequest request)
+    {
+        ValidateLearningPathManager(siteId, currentUser);
+        ValidateKey(learningPathKey, "Learning path key");
+        ValidateLearningPathRequest(request);
+        return _academicRepository.UpdateLearningPathAsync(siteId, learningPathKey.Trim(), request);
+    }
+
+    public Task DeleteLearningPathAsync(int siteId, string learningPathKey, CurrentUser currentUser)
+    {
+        ValidateLearningPathManager(siteId, currentUser);
+        ValidateKey(learningPathKey, "Learning path key");
+        return _academicRepository.DeleteLearningPathAsync(siteId, learningPathKey.Trim());
+    }
+
+    public Task<LearningPathResponse> CreateLearningPathStageAsync(int siteId, string learningPathKey, CurrentUser currentUser, LearningPathStageAdminRequest request)
+    {
+        ValidateLearningPathManager(siteId, currentUser);
+        ValidateKey(learningPathKey, "Learning path key");
+        ValidateKey(request.Key, "Stage key");
+        ValidateKey(request.Name, "Stage name");
+        ValidatePositiveOrder(request.Order, "Stage order");
+        return _academicRepository.CreateLearningPathStageAsync(siteId, learningPathKey.Trim(), request);
+    }
+
+    public Task<LearningPathResponse> LinkLearningPathStageAsync(int siteId, string learningPathKey, long stageId, CurrentUser currentUser)
+    {
+        ValidateLearningPathManager(siteId, currentUser);
+        ValidateKey(learningPathKey, "Learning path key");
+        ValidatePositiveId(stageId, "Stage id");
+        return _academicRepository.LinkLearningPathStageAsync(siteId, learningPathKey.Trim(), stageId);
+    }
+
+    public Task UnlinkLearningPathStageAsync(int siteId, string learningPathKey, long stageId, CurrentUser currentUser)
+    {
+        ValidateLearningPathManager(siteId, currentUser);
+        ValidateKey(learningPathKey, "Learning path key");
+        ValidatePositiveId(stageId, "Stage id");
+        return _academicRepository.UnlinkLearningPathStageAsync(siteId, learningPathKey.Trim(), stageId);
+    }
+
+    public Task<LearningPathResponse> UpdateLearningPathStageAsync(int siteId, string learningPathKey, long stageId, CurrentUser currentUser, LearningPathStageAdminRequest request)
+    {
+        ValidateLearningPathManager(siteId, currentUser);
+        ValidatePositiveId(stageId, "Stage id");
+        ValidateKey(request.Key, "Stage key");
+        ValidateKey(request.Name, "Stage name");
+        ValidatePositiveOrder(request.Order, "Stage order");
+        return _academicRepository.UpdateLearningPathStageAsync(siteId, learningPathKey.Trim(), stageId, request);
+    }
+
+    public Task DeleteLearningPathStageAsync(int siteId, string learningPathKey, long stageId, CurrentUser currentUser)
+    {
+        ValidateLearningPathManager(siteId, currentUser);
+        ValidatePositiveId(stageId, "Stage id");
+        return _academicRepository.DeleteLearningPathStageAsync(siteId, learningPathKey.Trim(), stageId);
+    }
+
+    public Task<LearningPathResponse> CreateLearningPathTopicAsync(int siteId, string learningPathKey, long stageId, CurrentUser currentUser, LearningPathTopicAdminRequest request)
+    {
+        ValidateLearningPathManager(siteId, currentUser);
+        ValidatePositiveId(stageId, "Stage id");
+        ValidateTopicRequest(request);
+        return _academicRepository.CreateLearningPathTopicAsync(siteId, learningPathKey.Trim(), stageId, request);
+    }
+
+    public Task<LearningPathResponse> UpdateLearningPathTopicAsync(int siteId, string learningPathKey, long stageId, long topicId, CurrentUser currentUser, LearningPathTopicAdminRequest request)
+    {
+        ValidateLearningPathManager(siteId, currentUser);
+        ValidatePositiveId(stageId, "Stage id");
+        ValidatePositiveId(topicId, "Topic id");
+        ValidateTopicRequest(request);
+        return _academicRepository.UpdateLearningPathTopicAsync(siteId, learningPathKey.Trim(), stageId, topicId, request);
+    }
+
+    public Task DeleteLearningPathTopicAsync(int siteId, string learningPathKey, long stageId, long topicId, CurrentUser currentUser)
+    {
+        ValidateLearningPathManager(siteId, currentUser);
+        ValidatePositiveId(stageId, "Stage id");
+        ValidatePositiveId(topicId, "Topic id");
+        return _academicRepository.DeleteLearningPathTopicAsync(siteId, learningPathKey.Trim(), stageId, topicId);
+    }
+
     public async Task<LearningPathProgressResponse> GetLearningPathProgressAsync(int siteId, string learningPathKey, CurrentUser currentUser)
     {
         ValidateRequestContext(siteId, currentUser);
@@ -393,6 +483,46 @@ public class AcademicService : IAcademicService
         }
 
         throw new UnauthorizedAccessException($"Only the course's teachers, assistants or site administrators can {action}.");
+    }
+
+    private static void ValidateLearningPathManager(int siteId, CurrentUser currentUser)
+    {
+        ValidateRequestContext(siteId, currentUser);
+        if (currentUser.Role != UserRolesEnum.Administrador)
+        {
+            throw new UnauthorizedAccessException("Only administrators can configure learning paths.");
+        }
+    }
+
+    private static void ValidateLearningPathRequest(LearningPathAdminUpsertRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ValidateKey(request.Key, "Learning path key");
+        ValidateKey(request.Title, "Learning path title");
+        if (request.Version <= 0) throw new ArgumentException("Version must be positive.");
+    }
+
+    private static void ValidateTopicRequest(LearningPathTopicAdminRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ValidateKey(request.Key, "Topic key");
+        ValidateKey(request.Title, "Topic title");
+        if (request.ProblemIds.Any(id => id <= 0)) throw new ArgumentException("Problem ids must be positive.");
+    }
+
+    private static void ValidateKey(string? value, string name)
+    {
+        if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException($"{name} is required.");
+    }
+
+    private static void ValidatePositiveId(long id, string name)
+    {
+        if (id <= 0) throw new ArgumentException($"{name} is required.");
+    }
+
+    private static void ValidatePositiveOrder(int order, string name)
+    {
+        if (order <= 0) throw new ArgumentException($"{name} must be positive.");
     }
 
     private static void EnsureValidAssignmentRequest(AcademicCourseAssignmentCreationRequest request)

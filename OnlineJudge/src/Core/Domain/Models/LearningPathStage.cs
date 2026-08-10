@@ -2,11 +2,13 @@ namespace OnlineJudgeAdmin.Core.Domain.Models;
 
 public class LearningPathStage
 {
-    public int Id { get; set; }
+    public long StageId { get; set; }
+
+    public string StageKey { get; set; } = string.Empty;
 
     public string Name { get; set; } = string.Empty;
 
-    public int Order { get; set; }
+    public int SortOrder { get; set; }
 
     public string Difficulty { get; set; } = "basic";
 
@@ -16,7 +18,7 @@ public class LearningPathStage
 
     public bool UnlockedByDefault { get; set; }
 
-    public List<int> Dependencies { get; set; } = new();
+    public List<long> Dependencies { get; set; } = new();
 
     public List<LearningPathTopic> Topics { get; set; } = new();
 }
