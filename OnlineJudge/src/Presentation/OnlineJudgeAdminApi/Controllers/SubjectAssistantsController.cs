@@ -5,7 +5,7 @@ using OnlineJudgeAdminApi.DataTransferObjects;
 
 namespace OnlineJudgeAdminApi.Controllers;
 
-[Route("api/schedule-management/subjects/{subjectId}/assistant")]
+[Route("/api/schedule-management/subjects/{subjectId}/assistant")]
 [ApiController]
 [Authorize]
 public class SubjectAssistantsController : ControllerBase

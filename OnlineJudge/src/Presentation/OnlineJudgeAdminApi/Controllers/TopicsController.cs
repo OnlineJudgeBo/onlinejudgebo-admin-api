@@ -28,7 +28,7 @@ public class TopicsController : ControllerBase
     }
 
     [HttpPost()]
-    public async Task<IActionResult> AddTopicAsync(TopicForCreating topicForCreating)
+    public async Task<IActionResult> AddTopicAsync(TopicForCreation topicForCreating)
     {
         Topic newTopic = _mapper.Map<Topic>(topicForCreating);
 

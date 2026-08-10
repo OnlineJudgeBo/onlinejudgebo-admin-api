@@ -2,7 +2,9 @@ namespace OnlineJudgeAdmin.Core.Domain.Models;
 
 public class LearningPathTopic
 {
-    public string Id { get; set; } = string.Empty;
+    public long TopicId { get; set; }
+
+    public string TopicKey { get; set; } = string.Empty;
 
     public string Title { get; set; } = string.Empty;
 

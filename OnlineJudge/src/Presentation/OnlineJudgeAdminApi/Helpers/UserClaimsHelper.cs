@@ -58,14 +58,20 @@ public class UserClaimsHelper
 
     public CurrentUser GetUserContextRole()
     {
+        if (_httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated != true)
+            throw new UnauthorizedAccessException("Authenticated user context is required.");
+
         var userId = GetUserId();
         var roleString = GetUserRole();
+        var siteId = GetSiteId();
+        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(roleString) || siteId <= 0)
+            throw new UnauthorizedAccessException("The authentication token is missing required user, role or site claims.");
 
         return new CurrentUser
         {
-            UserId = userId ?? "defaultUserId",
+            UserId = userId,
             Role = ParseRole(roleString),
-            SiteId = GetSiteId()
+            SiteId = siteId
         };
     }
 
@@ -116,7 +122,7 @@ public class UserClaimsHelper
             "auxiliar" => UserRolesEnum.Auxiliar,
             "guest" => UserRolesEnum.Invitado,
             "invitado" => UserRolesEnum.Invitado,
-            _ => UserRolesEnum.Invitado
+            _ => throw new UnauthorizedAccessException("The authentication token contains an unsupported role claim.")
         };
     }
 }

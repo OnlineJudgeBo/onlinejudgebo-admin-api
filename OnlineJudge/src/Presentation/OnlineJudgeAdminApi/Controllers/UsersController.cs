@@ -32,12 +32,12 @@ public class UsersController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(searchTerm))
         {
-            return Ok(await _userService.GetAllUserProfilesAsync(_currentUser.SiteId));
+            return Ok(await _userService.GetAllUserProfilesAsync(_currentUser, _currentUser.SiteId));
         }
         else
         {
             string termToSearch = searchTerm.Trim();
-            return Ok(await _userService.SearchUserProfilesAsync(termToSearch, _currentUser.SiteId));
+            return Ok(await _userService.SearchUserProfilesAsync(_currentUser, termToSearch, _currentUser.SiteId));
         }
     }
 
@@ -61,20 +61,20 @@ public class UsersController : ControllerBase
     public async Task<ActionResult> UpdateProfileUser(UserForUpdate userToUpdate, string userId)
     {
         User userProfile = _mapper.Map<User>(userToUpdate);
-        return Ok(await _userService.UpdateUserProfile(userProfile, userId, _currentUser.SiteId));
+        return Ok(await _userService.UpdateUserProfile(_currentUser, userProfile, userId, _currentUser.SiteId));
     }
 
     [HttpPut("changePassword/{userId}")]
     public async Task<ActionResult> ChangePassword(UserPasswordForUpdate newPassword, string userId)
     {
-        await _userService.ChangePassword(newPassword.Password, userId, _currentUser.SiteId);
+        await _userService.ChangePassword(_currentUser, newPassword.Password, userId, _currentUser.SiteId);
         return Ok();
     }
 
     [HttpDelete("{userId}/role/{roleId:int}")]
     public async Task<ActionResult> DeleteRole(string userId, int roleId)
     {
-        await _userService.DeleteRoleAsync(userId, roleId, _currentUser.SiteId);
+        await _userService.DeleteRoleAsync(_currentUser, userId, roleId, _currentUser.SiteId);
         return Ok();
     }
 

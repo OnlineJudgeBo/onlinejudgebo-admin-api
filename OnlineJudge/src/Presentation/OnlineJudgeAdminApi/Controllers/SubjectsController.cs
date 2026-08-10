@@ -6,7 +6,7 @@ using OnlineJudgeAdminApi.DataTransferObjects;
 
 namespace OnlineJudgeAdminApi.Controllers;
 
-[Route("api/schedule-management/subjects")]
+[Route("/api/schedule-management/subjects")]
 [ApiController]
 [Authorize]
 public class SubjectsController : ControllerBase

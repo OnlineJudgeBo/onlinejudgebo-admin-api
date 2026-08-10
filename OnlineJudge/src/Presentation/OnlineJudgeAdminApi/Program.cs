@@ -46,7 +46,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             },
             OnAuthenticationFailed = context =>
             {
-                Console.WriteLine("Authentication failed: " + context.Exception.Message);
+                var logger = context.HttpContext.RequestServices
+                    .GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("JwtAuthentication");
+                logger.LogWarning(context.Exception, "JWT authentication failed");
                 return Task.CompletedTask;
             },
             OnChallenge = context =>
@@ -71,12 +74,6 @@ builder.Services.AddControllers()
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(builder.Configuration.GetConnectionString("DefaultConnection"),
-    Microsoft.EntityFrameworkCore.ServerVersion.Parse("11.2.2-mariadb"),
-    mySqlOptions => mySqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
-    .LogTo(Console.WriteLine, LogLevel.Information));
 
 //builder.Services.AddHttpContextAccessor();
 builder.Services.AddAutoMapper(_ => { }, Assembly.GetExecutingAssembly());
@@ -142,6 +139,16 @@ using (var scope = app.Services.CreateScope())
           CONSTRAINT fk_course_content_course FOREIGN KEY (course_id) REFERENCES course(course_id) ON DELETE CASCADE,
           CONSTRAINT fk_course_content_assignment FOREIGN KEY (assignment_id) REFERENCES course_assignment(assignment_id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        """);
+    academicContext.Database.ExecuteSqlRaw("""
+        ALTER TABLE learning_path
+          ADD COLUMN IF NOT EXISTS site_id INT NOT NULL DEFAULT 1;
+        """);
+    academicContext.Database.ExecuteSqlRaw("""
+        ALTER TABLE learning_path DROP INDEX IF EXISTS learning_path_key;
+        """);
+    academicContext.Database.ExecuteSqlRaw("""
+        CREATE UNIQUE INDEX IF NOT EXISTS site_learning_path_key ON learning_path (site_id, learning_path_key);
         """);
 }
 

@@ -39,7 +39,7 @@ public partial class AcademicCatalogDbContext : DbContext
         {
             entity.ToTable("learning_path");
             entity.HasKey(e => e.LearningPathId);
-            entity.HasIndex(e => e.LearningPathKey, "learning_path_key").IsUnique();
+            entity.HasIndex(e => new { e.SiteId, e.LearningPathKey }, "site_learning_path_key").IsUnique();
         });
 
         modelBuilder.Entity<DbLearningPathTopic>(entity =>

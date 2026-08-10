@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Mail;
 using System.Net.Mime;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 
 namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
@@ -9,27 +10,29 @@ namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
 public class WelcomeEmailService : IWelcomeEmailService
 {
     private readonly IConfiguration _configuration;
+    private readonly ILogger<WelcomeEmailService> _logger;
 
-    public WelcomeEmailService(IConfiguration configuration)
+    public WelcomeEmailService(IConfiguration configuration, ILogger<WelcomeEmailService> logger)
     {
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task SendWelcomeAsync(string email, string userId, string? displayName = null)
     {
-        var (hostKey, host) = GetConfiguredValue(
+        var (_, host) = GetConfiguredValue(
             "Email:Smtp:Host",
             "WelcomeEmail:SmtpHost",
             "PasswordRecovery:SmtpHost");
-        var (usernameKey, username) = GetConfiguredValue(
+        var (_, username) = GetConfiguredValue(
             "Email:Smtp:Username",
             "WelcomeEmail:SmtpUsername",
             "PasswordRecovery:SmtpUsername");
-        var (passwordKey, password) = GetConfiguredValue(
+        var (_, password) = GetConfiguredValue(
             "Email:Smtp:Password",
             "WelcomeEmail:SmtpPassword",
             "PasswordRecovery:SmtpPassword");
-        var (fromEmailKey, configuredFromEmail) = GetConfiguredValue(
+        var (_, configuredFromEmail) = GetConfiguredValue(
             "Email:Smtp:From:Email",
             "WelcomeEmail:FromEmail",
             "PasswordRecovery:FromEmail");
@@ -61,8 +64,7 @@ public class WelcomeEmailService : IWelcomeEmailService
                 missingFields.Add("Email:Smtp:From:Email");
             }
 
-            Console.Error.WriteLine(
-                $"[WelcomeEmail] Configuración incompleta. MissingFields={string.Join(", ", missingFields)} Recipient={email} UserId={userId}");
+            _logger.LogWarning("Welcome email configuration is incomplete. MissingFields={MissingFields}", string.Join(", ", missingFields));
 
             throw new InvalidOperationException($"La configuración de correo de bienvenida no está completa. MissingFields: {string.Join(", ", missingFields)}");
         }
@@ -117,21 +119,15 @@ public class WelcomeEmailService : IWelcomeEmailService
 
         try
         {
-            Console.Error.WriteLine(
-                $"[WelcomeEmail] Enviando welcome mail Host={host} Port={port} UseSsl={useSsl} From={fromEmail} To={email} UserId={userId} Subject={subject}");
-            Console.Error.WriteLine(
-                $"[WelcomeEmail] Config Debug HostKey={hostKey} UsernameKey={usernameKey} PasswordKey={passwordKey} FromKey={fromEmailKey} UsernameLoaded={!string.IsNullOrWhiteSpace(username)} UsernameLength={username?.Length ?? 0} PasswordLoaded={!string.IsNullOrWhiteSpace(password)} PasswordLength={password?.Length ?? 0}");
-
             await client.SendMailAsync(message);
+            _logger.LogInformation("Welcome email sent successfully");
         }
         catch (Exception ex) when (ex is SmtpException or InvalidOperationException)
         {
-            Console.Error.WriteLine(
-                $"[WelcomeEmail] Fallo SMTP Host={host} Port={port} UseSsl={useSsl} From={fromEmail} To={email} UserId={userId} Subject={subject}");
-            Console.Error.WriteLine(ex.ToString());
+            _logger.LogError(ex, "Welcome email delivery failed");
 
             throw new InvalidOperationException(
-                $"No se pudo enviar el correo de bienvenida. Host={host}; Port={port}; To={email}; Reason={ex.Message}",
+                "No se pudo enviar el correo de bienvenida.",
                 ex);
         }
     }

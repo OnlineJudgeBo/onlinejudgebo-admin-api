@@ -10,6 +10,9 @@ public class DbLearningPath
     [Column("learning_path_id")]
     public long LearningPathId { get; set; }
 
+    [Column("site_id")]
+    public int SiteId { get; set; }
+
     [Column("learning_path_key")]
     public string LearningPathKey { get; set; } = string.Empty;
 

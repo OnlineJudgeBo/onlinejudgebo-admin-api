@@ -117,7 +117,7 @@ public class AcademicRepository : IAcademicRepository
 
     public async Task<AcademicCourseDetail> CreateCourseAsync(int siteId, string userId, AcademicCourseCreationRequest request)
     {
-        var learningPathId = await ResolveDefaultLearningPathIdAsync();
+        var learningPathId = await ResolveDefaultLearningPathIdAsync(siteId);
         var courseKey = await GenerateUniqueCourseKeyAsync(request.Name);
         var inviteCode = await GenerateUniqueInviteCodeAsync();
 
@@ -1019,6 +1019,7 @@ public class AcademicRepository : IAcademicRepository
     public async Task<IEnumerable<LearningPathTrackSummary>> GetLearningPathsAsync(int siteId)
     {
         var learningPaths = await _academicContext.LearningPaths
+            .Where(path => path.SiteId == siteId)
             .OrderBy(path => path.Title)
             .ThenBy(path => path.LearningPathId)
             .ToListAsync();
@@ -1099,7 +1100,7 @@ public class AcademicRepository : IAcademicRepository
     public async Task<LearningPathResponse> GetLearningPathAsync(int siteId, string learningPathKey)
     {
         var learningPath = await _academicContext.LearningPaths
-            .FirstOrDefaultAsync(path => path.LearningPathKey == learningPathKey);
+            .FirstOrDefaultAsync(path => path.SiteId == siteId && path.LearningPathKey == learningPathKey);
 
         if (learningPath == null)
         {
@@ -1110,16 +1111,11 @@ public class AcademicRepository : IAcademicRepository
             .Where(link => link.LearningPathId == learningPath.LearningPathId)
             .ToListAsync();
 
-        if (linkedTopics.Count == 0)
-        {
-            throw new ArgumentException("Learning path has no stages configured.");
-        }
-
         var topicIds = linkedTopics.Select(item => item.TopicId).Distinct().ToList();
 
         var topics = await _academicContext.Topics
             .Where(topic => topicIds.Contains(topic.TopicId))
-            .Select(topic => new { topic.TopicId, topic.Name, topic.SortOrder, topic.UnlockedByDefault })
+            .Select(topic => new { topic.TopicId, topic.TopicKey, topic.Name, topic.SortOrder, topic.UnlockedByDefault })
             .ToListAsync();
 
         var subtopics = await _academicContext.Subtopics
@@ -1146,6 +1142,7 @@ public class AcademicRepository : IAcademicRepository
             .Select((topic, index) => new
             {
                 topic.TopicId,
+                topic.TopicKey,
                 topic.Name,
                 topic.SortOrder,
                 topic.UnlockedByDefault,
@@ -1165,7 +1162,8 @@ public class AcademicRepository : IAcademicRepository
             var stageTopics = stageSubtopics
                 .Select(subtopic => new LearningPathTopic
                 {
-                    Id = BuildLearningPathTopicId(subtopic),
+                    TopicId = subtopic.SubtopicId,
+                    TopicKey = BuildLearningPathTopicId(subtopic),
                     Title = subtopic.Title,
                     Description = subtopic.Summary,
                     Theory = subtopic.Theory,
@@ -1181,9 +1179,10 @@ public class AcademicRepository : IAcademicRepository
 
             var stage = new LearningPathStage
             {
-                Id = orderedTopic.Order,
+                StageId = orderedTopic.TopicId,
+                StageKey = orderedTopic.TopicKey,
                 Name = orderedTopic.Name,
-                Order = orderedTopic.Order,
+                SortOrder = orderedTopic.Order,
                 Difficulty = MapDifficulty(stageSubtopics.Select(subtopic => subtopic.DifficultyBand).FirstOrDefault()),
                 Description = stageSubtopics.Select(subtopic => subtopic.Summary).FirstOrDefault(summary => !string.IsNullOrWhiteSpace(summary)) ?? orderedTopic.Name,
                 LearningObjectives = stageSubtopics
@@ -1192,7 +1191,7 @@ public class AcademicRepository : IAcademicRepository
                     .Take(5)
                     .ToList(),
                 UnlockedByDefault = orderedTopic.UnlockedByDefault || orderedTopic.Order == orderedTopics.Min(topic => topic.Order),
-                Dependencies = new List<int>(),
+                Dependencies = new List<long>(),
                 Topics = stageTopics
             };
 
@@ -1200,15 +1199,15 @@ public class AcademicRepository : IAcademicRepository
         }
 
         var sortedStages = stages
-            .OrderBy(stage => stage.Order)
-            .ThenBy(stage => stage.Id)
+            .OrderBy(stage => stage.SortOrder)
+            .ThenBy(stage => stage.StageId)
             .ToList();
 
         for (var index = 0; index < sortedStages.Count; index++)
         {
             if (index > 0)
             {
-                sortedStages[index].Dependencies.Add(sortedStages[index - 1].Id);
+                sortedStages[index].Dependencies.Add(sortedStages[index - 1].StageId);
             }
         }
 
@@ -1226,6 +1225,9 @@ public class AcademicRepository : IAcademicRepository
                 Title = learningPath.Title,
                 Description = learningPath.Description,
                 Version = learningPath.Version,
+                LanguagePrimary = learningPath.LanguagePrimary,
+                Category = learningPath.Category,
+                Slug = learningPath.Slug ?? string.Empty,
                 TargetAudience = BuildTargetAudience(learningPath),
                 EstimatedTotalProblems = estimatedTotalProblems
             },
@@ -1240,11 +1242,263 @@ public class AcademicRepository : IAcademicRepository
         };
     }
 
+    public async Task<LearningPathResponse> CreateLearningPathAsync(int siteId, LearningPathAdminUpsertRequest request)
+    {
+        var key = NormalizeCatalogKey(request.Key);
+        if (await _academicContext.LearningPaths.AnyAsync(path => path.SiteId == siteId && path.LearningPathKey == key))
+            throw new ArgumentException("Learning path key already exists.");
+
+        await _academicContext.LearningPaths.AddAsync(new DbLearningPath
+        {
+            SiteId = siteId,
+            LearningPathKey = key,
+            Title = request.Title.Trim(),
+            Description = request.Description?.Trim() ?? string.Empty,
+            Version = request.Version,
+            LanguagePrimary = request.LanguagePrimary?.Trim() ?? string.Empty,
+            Category = request.Category?.Trim() ?? string.Empty,
+            Slug = string.IsNullOrWhiteSpace(request.Slug) ? key : request.Slug.Trim()
+        });
+        await _academicContext.SaveChangesAsync();
+        return await GetLearningPathAsync(siteId, key);
+    }
+
+    public async Task<LearningPathResponse> UpdateLearningPathAsync(int siteId, string learningPathKey, LearningPathAdminUpsertRequest request)
+    {
+        var path = await FindLearningPathAsync(siteId, learningPathKey);
+        var key = NormalizeCatalogKey(request.Key);
+        if (!string.Equals(path.LearningPathKey, key, StringComparison.Ordinal))
+            throw new ArgumentException("Learning path key cannot be changed.");
+        path.Title = request.Title.Trim();
+        path.Description = request.Description?.Trim() ?? string.Empty;
+        path.Version = request.Version;
+        path.LanguagePrimary = request.LanguagePrimary?.Trim() ?? string.Empty;
+        path.Category = request.Category?.Trim() ?? string.Empty;
+        path.Slug = string.IsNullOrWhiteSpace(request.Slug) ? key : request.Slug.Trim();
+        await _academicContext.SaveChangesAsync();
+        return await GetLearningPathAsync(siteId, path.LearningPathKey);
+    }
+
+    public async Task DeleteLearningPathAsync(int siteId, string learningPathKey)
+    {
+        var path = await FindLearningPathAsync(siteId, learningPathKey);
+        if (await _academicContext.Courses.AnyAsync(course => course.LearningPathId == path.LearningPathId))
+            throw new InvalidOperationException("Learning path is used by one or more courses.");
+
+        var stageIds = await _academicContext.LearningPathTopics.Where(link => link.LearningPathId == path.LearningPathId).Select(link => link.TopicId).ToListAsync();
+        foreach (var stageId in stageIds) await DeleteStageDataAsync(path.LearningPathId, stageId);
+        _academicContext.LearningPathProgresses.RemoveRange(_academicContext.LearningPathProgresses.Where(item => item.LearningPathId == path.LearningPathId));
+        _academicContext.LearningPathTopicProgresses.RemoveRange(_academicContext.LearningPathTopicProgresses.Where(item => item.LearningPathId == path.LearningPathId));
+        _academicContext.LearningPaths.Remove(path);
+        await _academicContext.SaveChangesAsync();
+    }
+
+    public async Task<LearningPathResponse> CreateLearningPathStageAsync(int siteId, string learningPathKey, LearningPathStageAdminRequest request)
+    {
+        var path = await FindLearningPathAsync(siteId, learningPathKey);
+        var key = NormalizeCatalogKey(request.Key);
+        if (await _academicContext.Topics.AnyAsync(topic => topic.TopicKey == key)) throw new ArgumentException("Stage key already exists.");
+        if (await HasStageWithOrderAsync(path.LearningPathId, request.Order)) throw new ArgumentException("Stage order already exists in this learning path.");
+        await using var transaction = await _academicContext.Database.BeginTransactionAsync();
+        var stage = new DbAcademicTopic { TopicKey = key, Name = request.Name.Trim(), SortOrder = request.Order, UnlockedByDefault = request.UnlockedByDefault };
+        await _academicContext.Topics.AddAsync(stage);
+        await _academicContext.SaveChangesAsync();
+        await _academicContext.LearningPathTopics.AddAsync(new DbLearningPathTopic { LearningPathId = path.LearningPathId, TopicId = stage.TopicId });
+        await _academicContext.SaveChangesAsync();
+        await transaction.CommitAsync();
+        return await GetLearningPathAsync(siteId, path.LearningPathKey);
+    }
+
+    public async Task<LearningPathResponse> LinkLearningPathStageAsync(int siteId, string learningPathKey, long stageId)
+    {
+        var path = await FindLearningPathAsync(siteId, learningPathKey);
+        var stage = await _academicContext.Topics.FirstOrDefaultAsync(item => item.TopicId == stageId)
+            ?? throw new ArgumentException("Stage not found.");
+        if (await _academicContext.LearningPathTopics.AnyAsync(link => link.LearningPathId == path.LearningPathId && link.TopicId == stageId))
+            throw new ArgumentException("Stage is already linked to this learning path.");
+        if (await HasStageWithOrderAsync(path.LearningPathId, stage.SortOrder))
+            throw new ArgumentException("Stage order already exists in this learning path.");
+
+        await _academicContext.LearningPathTopics.AddAsync(new DbLearningPathTopic
+        {
+            LearningPathId = path.LearningPathId,
+            TopicId = stageId
+        });
+        await _academicContext.SaveChangesAsync();
+        return await GetLearningPathAsync(siteId, path.LearningPathKey);
+    }
+
+    public async Task UnlinkLearningPathStageAsync(int siteId, string learningPathKey, long stageId)
+    {
+        var path = await FindLearningPathAsync(siteId, learningPathKey);
+        await EnsureStageLinkedAsync(path.LearningPathId, stageId);
+        await RemoveStageLinkAndProgressAsync(path.LearningPathId, stageId);
+        await _academicContext.SaveChangesAsync();
+    }
+
+    public async Task<LearningPathResponse> UpdateLearningPathStageAsync(int siteId, string learningPathKey, long stageId, LearningPathStageAdminRequest request)
+    {
+        var path = await FindLearningPathAsync(siteId, learningPathKey);
+        await EnsureStageLinkedAsync(path.LearningPathId, stageId);
+        await EnsureStageIsExclusiveAsync(path.LearningPathId, stageId);
+        var stage = await _academicContext.Topics.FirstAsync(item => item.TopicId == stageId);
+        var key = NormalizeCatalogKey(request.Key);
+        if (await _academicContext.Topics.AnyAsync(item => item.TopicId != stageId && item.TopicKey == key)) throw new ArgumentException("Stage key already exists.");
+        if (await HasStageWithOrderAsync(path.LearningPathId, request.Order, stageId)) throw new ArgumentException("Stage order already exists in this learning path.");
+        stage.TopicKey = key; stage.Name = request.Name.Trim(); stage.SortOrder = request.Order; stage.UnlockedByDefault = request.UnlockedByDefault;
+        await _academicContext.SaveChangesAsync();
+        return await GetLearningPathAsync(siteId, path.LearningPathKey);
+    }
+
+    public async Task DeleteLearningPathStageAsync(int siteId, string learningPathKey, long stageId)
+    {
+        var path = await FindLearningPathAsync(siteId, learningPathKey);
+        await EnsureStageLinkedAsync(path.LearningPathId, stageId);
+        await EnsureStageIsExclusiveAsync(path.LearningPathId, stageId);
+        await DeleteStageDataAsync(path.LearningPathId, stageId);
+        await _academicContext.SaveChangesAsync();
+    }
+
+    public async Task<LearningPathResponse> CreateLearningPathTopicAsync(int siteId, string learningPathKey, long stageId, LearningPathTopicAdminRequest request)
+    {
+        var path = await FindLearningPathAsync(siteId, learningPathKey);
+        await EnsureStageLinkedAsync(path.LearningPathId, stageId);
+        await EnsureStageIsExclusiveAsync(path.LearningPathId, stageId);
+        var key = NormalizeCatalogKey(request.Key);
+        if (await _academicContext.Subtopics.AnyAsync(item => item.TopicId == stageId && item.SubtopicKey == key)) throw new ArgumentException("Topic key already exists in this stage.");
+        var validProblemIds = await ValidateProblemIdsAsync(siteId, request.ProblemIds);
+        await using var transaction = await _academicContext.Database.BeginTransactionAsync();
+        var topic = new DbSubtopic { TopicId = stageId, SubtopicKey = key };
+        ApplyTopic(topic, request);
+        await _academicContext.Subtopics.AddAsync(topic);
+        await _academicContext.SaveChangesAsync();
+        await ReplaceTopicProblemsAsync(topic.SubtopicId, validProblemIds);
+        await transaction.CommitAsync();
+        return await GetLearningPathAsync(siteId, path.LearningPathKey);
+    }
+
+    public async Task<LearningPathResponse> UpdateLearningPathTopicAsync(int siteId, string learningPathKey, long stageId, long topicId, LearningPathTopicAdminRequest request)
+    {
+        var path = await FindLearningPathAsync(siteId, learningPathKey);
+        await EnsureStageLinkedAsync(path.LearningPathId, stageId);
+        await EnsureStageIsExclusiveAsync(path.LearningPathId, stageId);
+        var topic = await _academicContext.Subtopics.FirstOrDefaultAsync(item => item.SubtopicId == topicId && item.TopicId == stageId) ?? throw new ArgumentException("Topic not found.");
+        var key = NormalizeCatalogKey(request.Key);
+        if (await _academicContext.Subtopics.AnyAsync(item => item.SubtopicId != topicId && item.TopicId == stageId && item.SubtopicKey == key)) throw new ArgumentException("Topic key already exists in this stage.");
+        var previousKey = topic.SubtopicKey;
+        topic.SubtopicKey = key; ApplyTopic(topic, request);
+        if (!string.Equals(previousKey, key, StringComparison.OrdinalIgnoreCase))
+        {
+            var topicProgress = await _academicContext.LearningPathTopicProgresses.Where(item => item.LearningPathId == path.LearningPathId && item.TopicId == previousKey).ToListAsync();
+            topicProgress.ForEach(item => item.TopicId = key);
+            var pathProgress = await _academicContext.LearningPathProgresses.Where(item => item.LearningPathId == path.LearningPathId && item.LastTopicId == previousKey).ToListAsync();
+            pathProgress.ForEach(item => item.LastTopicId = key);
+        }
+        var validProblemIds = await ValidateProblemIdsAsync(siteId, request.ProblemIds);
+        await ReplaceTopicProblemsAsync(topic.SubtopicId, validProblemIds);
+        return await GetLearningPathAsync(siteId, path.LearningPathKey);
+    }
+
+    public async Task DeleteLearningPathTopicAsync(int siteId, string learningPathKey, long stageId, long topicId)
+    {
+        var path = await FindLearningPathAsync(siteId, learningPathKey);
+        await EnsureStageLinkedAsync(path.LearningPathId, stageId);
+        await EnsureStageIsExclusiveAsync(path.LearningPathId, stageId);
+        var topic = await _academicContext.Subtopics.FirstOrDefaultAsync(item => item.SubtopicId == topicId && item.TopicId == stageId) ?? throw new ArgumentException("Topic not found.");
+        _academicContext.SubtopicProblems.RemoveRange(_academicContext.SubtopicProblems.Where(item => item.SubtopicId == topicId));
+        _academicContext.SubtopicTags.RemoveRange(_academicContext.SubtopicTags.Where(item => item.SubtopicId == topicId));
+        _academicContext.LearningPathTopicProgresses.RemoveRange(_academicContext.LearningPathTopicProgresses.Where(item => item.LearningPathId == path.LearningPathId && item.TopicId == topic.SubtopicKey));
+        var pathProgress = await _academicContext.LearningPathProgresses.Where(item => item.LearningPathId == path.LearningPathId && item.LastTopicId == topic.SubtopicKey).ToListAsync();
+        pathProgress.ForEach(item => item.LastTopicId = null);
+        _academicContext.Subtopics.Remove(topic);
+        await _academicContext.SaveChangesAsync();
+    }
+
+    private async Task<DbLearningPath> FindLearningPathAsync(int siteId, string key) =>
+        await _academicContext.LearningPaths.FirstOrDefaultAsync(path => path.SiteId == siteId && path.LearningPathKey == key) ?? throw new ArgumentException("Learning path not found.");
+
+    private async Task EnsureStageLinkedAsync(long pathId, long stageId)
+    {
+        if (!await _academicContext.LearningPathTopics.AnyAsync(link => link.LearningPathId == pathId && link.TopicId == stageId)) throw new ArgumentException("Stage not found in learning path.");
+    }
+
+    private async Task EnsureStageIsExclusiveAsync(long pathId, long stageId)
+    {
+        if (await _academicContext.LearningPathTopics.AnyAsync(link => link.TopicId == stageId && link.LearningPathId != pathId))
+            throw new InvalidOperationException("Shared stages cannot be modified. Remove the stage from the other learning paths first.");
+    }
+
+    private Task<bool> HasStageWithOrderAsync(long pathId, int order, long? excludedStageId = null) =>
+        (from link in _academicContext.LearningPathTopics
+         join stage in _academicContext.Topics on link.TopicId equals stage.TopicId
+         where link.LearningPathId == pathId
+            && stage.SortOrder == order
+            && (!excludedStageId.HasValue || stage.TopicId != excludedStageId.Value)
+         select stage.TopicId).AnyAsync();
+
+    private async Task DeleteStageDataAsync(long pathId, long stageId)
+    {
+        var isShared = await _academicContext.LearningPathTopics
+            .AnyAsync(link => link.TopicId == stageId && link.LearningPathId != pathId);
+        await RemoveStageLinkAndProgressAsync(pathId, stageId);
+        if (isShared) return;
+
+        var topicIds = await _academicContext.Subtopics.Where(item => item.TopicId == stageId).Select(item => item.SubtopicId).ToListAsync();
+        _academicContext.SubtopicProblems.RemoveRange(_academicContext.SubtopicProblems.Where(item => topicIds.Contains(item.SubtopicId)));
+        _academicContext.SubtopicTags.RemoveRange(_academicContext.SubtopicTags.Where(item => topicIds.Contains(item.SubtopicId)));
+        _academicContext.Subtopics.RemoveRange(_academicContext.Subtopics.Where(item => item.TopicId == stageId));
+        var stage = await _academicContext.Topics.FirstOrDefaultAsync(item => item.TopicId == stageId);
+        if (stage != null) _academicContext.Topics.Remove(stage);
+    }
+
+    private async Task RemoveStageLinkAndProgressAsync(long pathId, long stageId)
+    {
+        var topicKeys = await _academicContext.Subtopics
+            .Where(item => item.TopicId == stageId)
+            .Select(item => item.SubtopicKey)
+            .ToListAsync();
+        _academicContext.LearningPathTopics.RemoveRange(_academicContext.LearningPathTopics
+            .Where(item => item.LearningPathId == pathId && item.TopicId == stageId));
+        _academicContext.LearningPathTopicProgresses.RemoveRange(_academicContext.LearningPathTopicProgresses
+            .Where(item => item.LearningPathId == pathId && topicKeys.Contains(item.TopicId)));
+        var pathProgress = await _academicContext.LearningPathProgresses
+            .Where(item => item.LearningPathId == pathId && item.LastTopicId != null && topicKeys.Contains(item.LastTopicId))
+            .ToListAsync();
+        pathProgress.ForEach(item => item.LastTopicId = null);
+    }
+
+    private async Task<List<int>> ValidateProblemIdsAsync(int siteId, IEnumerable<int> problemIds)
+    {
+        var ids = problemIds.Where(id => id > 0).Distinct().ToList();
+        var validIds = await _context.ProblemSites.Where(item => item.SiteId == siteId && item.IsActive && ids.Contains(item.problemId)).Select(item => item.problemId).ToListAsync();
+        if (validIds.Count != ids.Count) throw new ArgumentException("One or more problems are not active in this site.");
+        return ids;
+    }
+
+    private async Task ReplaceTopicProblemsAsync(long topicId, IReadOnlyList<int> problemIds)
+    {
+        _academicContext.SubtopicProblems.RemoveRange(_academicContext.SubtopicProblems.Where(item => item.SubtopicId == topicId));
+        await _academicContext.SubtopicProblems.AddRangeAsync(problemIds.Select((id, index) => new DbSubtopicProblem { SubtopicId = topicId, ProblemId = id, RoleInTopic = "core", SortOrder = index + 1 }));
+        await _academicContext.SaveChangesAsync();
+    }
+
+    private static void ApplyTopic(DbSubtopic topic, LearningPathTopicAdminRequest request)
+    {
+        topic.Title = request.Title.Trim(); topic.Summary = request.Summary?.Trim(); topic.Theory = request.Theory;
+        topic.LearningObjectives = string.Join('|', request.LearningObjectives.Where(item => !string.IsNullOrWhiteSpace(item)).Select(item => item.Trim()).Distinct(StringComparer.OrdinalIgnoreCase));
+        topic.DifficultyBand = request.Difficulty?.Trim(); topic.SortOrder = request.Order;
+    }
+
+    private static string NormalizeCatalogKey(string value)
+    {
+        var normalized = Regex.Replace(value.Trim().ToLowerInvariant(), @"[^a-z0-9_]+", "_").Trim('_');
+        if (string.IsNullOrWhiteSpace(normalized)) throw new ArgumentException("Key contains no valid characters.");
+        return normalized;
+    }
+
     public async Task<LearningPathProgressResponse> GetLearningPathProgressAsync(int siteId, string learningPathKey, string userId)
     {
-        _ = siteId;
-
-        var progressContext = await BuildLearningPathProgressContextAsync(learningPathKey);
+        var progressContext = await BuildLearningPathProgressContextAsync(siteId, learningPathKey);
 
         var progress = await _academicContext.LearningPathProgresses
             .AsNoTracking()
@@ -1272,9 +1526,7 @@ public class AcademicRepository : IAcademicRepository
         string userId,
         LearningPathProgressUpdateRequest request)
     {
-        _ = siteId;
-
-        var progressContext = await BuildLearningPathProgressContextAsync(learningPathKey);
+        var progressContext = await BuildLearningPathProgressContextAsync(siteId, learningPathKey);
         var normalizedCompletedTopicIds = NormalizeLearningPathTopicIds(request.CompletedTopicIds, progressContext.OrderedTopicIds);
         var normalizedCompletedTopicIdSet = normalizedCompletedTopicIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var normalizedLastTopicId = ResolveCanonicalLearningPathTopicId(request.LastTopicId, progressContext.OrderedTopicIds);
@@ -1933,9 +2185,10 @@ public class AcademicRepository : IAcademicRepository
         }
     }
 
-    private async Task<long> ResolveDefaultLearningPathIdAsync()
+    private async Task<long> ResolveDefaultLearningPathIdAsync(int siteId)
     {
         var learningPathId = await _academicContext.LearningPaths
+            .Where(path => path.SiteId == siteId)
             .OrderBy(path => path.LearningPathId)
             .Select(path => (long?)path.LearningPathId)
             .FirstOrDefaultAsync();
@@ -1948,11 +2201,11 @@ public class AcademicRepository : IAcademicRepository
         return learningPathId.Value;
     }
 
-    private async Task<LearningPathProgressContext> BuildLearningPathProgressContextAsync(string learningPathKey)
+    private async Task<LearningPathProgressContext> BuildLearningPathProgressContextAsync(int siteId, string learningPathKey)
     {
         var learningPath = await _academicContext.LearningPaths
             .AsNoTracking()
-            .FirstOrDefaultAsync(path => path.LearningPathKey == learningPathKey);
+            .FirstOrDefaultAsync(path => path.SiteId == siteId && path.LearningPathKey == learningPathKey);
 
         if (learningPath == null)
         {
