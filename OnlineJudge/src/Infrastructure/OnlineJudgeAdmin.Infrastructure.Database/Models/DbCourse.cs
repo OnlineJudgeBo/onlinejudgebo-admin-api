@@ -17,9 +17,6 @@ public class DbCourse
     [Column("invite_code")]
     public string InviteCode { get; set; } = string.Empty;
 
-    [Column("learning_path_id")]
-    public long LearningPathId { get; set; }
-
     [Column("name")]
     public string Name { get; set; } = string.Empty;
 

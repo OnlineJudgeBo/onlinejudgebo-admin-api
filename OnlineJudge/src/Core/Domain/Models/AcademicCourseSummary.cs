@@ -14,7 +14,5 @@ public class AcademicCourseSummary
 
     public int AssignmentCount { get; set; }
 
-    public int UnlockedStages { get; set; }
-
     public string InviteCode { get; set; } = string.Empty;
 }

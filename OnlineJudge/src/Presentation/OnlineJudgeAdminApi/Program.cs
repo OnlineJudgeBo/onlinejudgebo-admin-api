@@ -150,6 +150,12 @@ using (var scope = app.Services.CreateScope())
     academicContext.Database.ExecuteSqlRaw("""
         CREATE UNIQUE INDEX IF NOT EXISTS site_learning_path_key ON learning_path (site_id, learning_path_key);
         """);
+    academicContext.Database.ExecuteSqlRaw("""
+        ALTER TABLE course DROP FOREIGN KEY IF EXISTS fk_course_path;
+        """);
+    academicContext.Database.ExecuteSqlRaw("""
+        ALTER TABLE course DROP COLUMN IF EXISTS learning_path_id;
+        """);
 }
 
 // Configure the HTTP request pipeline.

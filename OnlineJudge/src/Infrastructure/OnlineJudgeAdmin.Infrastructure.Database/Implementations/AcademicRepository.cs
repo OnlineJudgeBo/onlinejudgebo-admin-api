@@ -117,7 +117,6 @@ public class AcademicRepository : IAcademicRepository
 
     public async Task<AcademicCourseDetail> CreateCourseAsync(int siteId, string userId, AcademicCourseCreationRequest request)
     {
-        var learningPathId = await ResolveDefaultLearningPathIdAsync(siteId);
         var courseKey = await GenerateUniqueCourseKeyAsync(request.Name);
         var inviteCode = await GenerateUniqueInviteCodeAsync();
 
@@ -125,7 +124,6 @@ public class AcademicRepository : IAcademicRepository
         {
             CourseKey = courseKey,
             InviteCode = inviteCode,
-            LearningPathId = learningPathId,
             Name = request.Name.Trim(),
             Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
             CreatedByUserId = userId
@@ -202,8 +200,6 @@ public class AcademicRepository : IAcademicRepository
             .OrderBy(courseMember => courseMember.UserId)
             .Select(courseMember => courseMember.UserId)
             .FirstOrDefaultAsync();
-        var learningPath = await _academicContext.LearningPaths
-            .FirstOrDefaultAsync(path => path.LearningPathId == course.LearningPathId);
 
         var studentCount = await _academicContext.CourseUsers
             .Where(courseMember => courseMember.CourseId == courseId
@@ -249,7 +245,6 @@ public class AcademicRepository : IAcademicRepository
             });
             nextPosition += 10;
         }
-        var stages = await BuildCourseStagesAsync(course.LearningPathId, teacher ?? course.CreatedByUserId ?? userId);
         var effectiveMemberRole = member?.Role ?? (allowAdminAccess ? CourseRoleNames.Admin : string.Empty);
         var canManage = string.Equals(effectiveMemberRole, CourseRoleNames.Teacher, StringComparison.OrdinalIgnoreCase)
             || string.Equals(effectiveMemberRole, CourseRoleNames.Assistant, StringComparison.OrdinalIgnoreCase)
@@ -264,8 +259,6 @@ public class AcademicRepository : IAcademicRepository
             Name = course.Name,
             Description = course.Description,
             InstitutionId = null,
-            LearningPathKey = learningPath?.LearningPathKey ?? string.Empty,
-            LearningPathTitle = learningPath?.Title ?? string.Empty,
             InviteCode = canSeeInviteCode ? course.InviteCode : string.Empty,
             OwnerUserId = ownerUserId,
             CreatedAt = DateTime.UtcNow,
@@ -276,8 +269,7 @@ public class AcademicRepository : IAcademicRepository
             AssignmentCount = assignments.Count,
             CanManage = canManage,
             Assignments = assignments,
-            Content = content.OrderBy(item => item.Position).ToList(),
-            Stages = stages
+            Content = content.OrderBy(item => item.Position).ToList()
         };
     }
 
@@ -1282,8 +1274,6 @@ public class AcademicRepository : IAcademicRepository
     public async Task DeleteLearningPathAsync(int siteId, string learningPathKey)
     {
         var path = await FindLearningPathAsync(siteId, learningPathKey);
-        if (await _academicContext.Courses.AnyAsync(course => course.LearningPathId == path.LearningPathId))
-            throw new InvalidOperationException("Learning path is used by one or more courses.");
 
         var stageIds = await _academicContext.LearningPathTopics.Where(link => link.LearningPathId == path.LearningPathId).Select(link => link.TopicId).ToListAsync();
         foreach (var stageId in stageIds) await DeleteStageDataAsync(path.LearningPathId, stageId);
@@ -2085,25 +2075,12 @@ public class AcademicRepository : IAcademicRepository
             .Where(course => courseIds.Contains(course.CourseId))
             .ToListAsync();
 
-        var learningPathIds = courses
-            .Select(course => course.LearningPathId)
-            .Distinct()
-            .ToList();
-
         var studentCounts = await _academicContext.CourseUsers
             .Where(member => member.Role == CourseRoleNames.Student
                 && courseIds.Contains(member.CourseId))
             .GroupBy(member => member.CourseId)
             .Select(group => new { CourseId = group.Key, Count = group.Count() })
             .ToDictionaryAsync(item => item.CourseId, item => item.Count);
-
-        var stageCountsByLearningPath = learningPathIds.Count == 0
-            ? new Dictionary<long, int>()
-            : await _academicContext.LearningPathTopics
-                .Where(link => learningPathIds.Contains(link.LearningPathId))
-                .GroupBy(link => link.LearningPathId)
-                .Select(group => new { LearningPathId = group.Key, Count = group.Select(link => link.TopicId).Distinct().Count() })
-                .ToDictionaryAsync(item => item.LearningPathId, item => item.Count);
 
         var assignmentCounts = await _academicContext.CourseAssignments
             .Where(assignment => courseIds.Contains(assignment.CourseId))
@@ -2140,7 +2117,6 @@ public class AcademicRepository : IAcademicRepository
                     Role = membershipRolesByCourse.TryGetValue(course.CourseId, out var role) ? role : fallbackRole,
                     StudentCount = studentCounts.TryGetValue(course.CourseId, out var students) ? students : 0,
                     AssignmentCount = assignmentCounts.TryGetValue(course.CourseId, out var assignments) ? assignments : 0,
-                    UnlockedStages = stageCountsByLearningPath.TryGetValue(course.LearningPathId, out var stages) ? stages : 0,
                     InviteCode = canSeeInviteCode ? course.InviteCode : string.Empty
                 };
             })
@@ -2183,22 +2159,6 @@ public class AcademicRepository : IAcademicRepository
             case "finished":
                 throw new InvalidOperationException("Esta tarea ya finalizó y no acepta envíos.");
         }
-    }
-
-    private async Task<long> ResolveDefaultLearningPathIdAsync(int siteId)
-    {
-        var learningPathId = await _academicContext.LearningPaths
-            .Where(path => path.SiteId == siteId)
-            .OrderBy(path => path.LearningPathId)
-            .Select(path => (long?)path.LearningPathId)
-            .FirstOrDefaultAsync();
-
-        if (!learningPathId.HasValue)
-        {
-            throw new ArgumentException("No learning path configured in academic database.");
-        }
-
-        return learningPathId.Value;
     }
 
     private async Task<LearningPathProgressContext> BuildLearningPathProgressContextAsync(int siteId, string learningPathKey)
@@ -2270,43 +2230,6 @@ public class AcademicRepository : IAcademicRepository
             OrderedTopicIds = orderedTopicIds,
             ValidTopicIdSet = orderedTopicIds.ToHashSet(StringComparer.OrdinalIgnoreCase)
         };
-    }
-
-    private async Task<List<AcademicStageAccess>> BuildCourseStagesAsync(long learningPathId, string updatedBy)
-    {
-        var linkedTopicIds = await _academicContext.LearningPathTopics
-            .Where(link => link.LearningPathId == learningPathId)
-            .Select(link => link.TopicId)
-            .ToListAsync();
-
-        if (linkedTopicIds.Count == 0)
-        {
-            return new List<AcademicStageAccess>();
-        }
-
-        var topics = await _academicContext.Topics
-            .Where(topic => linkedTopicIds.Contains(topic.TopicId))
-            .OrderBy(topic => topic.SortOrder)
-            .ThenBy(topic => topic.TopicId)
-            .Select(topic => new
-            {
-                topic.TopicId,
-                topic.Name,
-                topic.SortOrder
-            })
-            .ToListAsync();
-
-        var now = DateTime.UtcNow;
-
-        return topics
-            .Select((topic, index) => new AcademicStageAccess
-            {
-                StageId = topic.SortOrder > 0 ? topic.SortOrder : ExtractStageOrder(topic.Name, index + 1),
-                IsUnlocked = true,
-                UpdatedBy = updatedBy,
-                UpdatedAt = now
-            })
-            .ToList();
     }
 
     private async Task<string> GenerateUniqueInviteCodeAsync()
