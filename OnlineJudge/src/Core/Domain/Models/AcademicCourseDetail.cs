@@ -12,10 +12,6 @@ public class AcademicCourseDetail
 
     public long? InstitutionId { get; set; }
 
-    public string LearningPathKey { get; set; } = string.Empty;
-
-    public string LearningPathTitle { get; set; } = string.Empty;
-
     public string InviteCode { get; set; } = string.Empty;
 
     public string OwnerUserId { get; set; } = string.Empty;
@@ -37,6 +33,4 @@ public class AcademicCourseDetail
     public List<AcademicCourseAssignment> Assignments { get; set; } = new();
 
     public List<AcademicCourseContentItem> Content { get; set; } = new();
-
-    public List<AcademicStageAccess> Stages { get; set; } = new();
 }

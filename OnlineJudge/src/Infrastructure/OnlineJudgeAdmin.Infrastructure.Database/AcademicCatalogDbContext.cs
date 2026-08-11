@@ -101,7 +101,6 @@ public partial class AcademicCatalogDbContext : DbContext
             entity.HasKey(e => e.CourseId);
             entity.HasIndex(e => e.CourseKey, "course_key").IsUnique();
             entity.HasIndex(e => e.InviteCode, "uk_course_invite_code").IsUnique();
-            entity.HasIndex(e => e.LearningPathId, "fk_course_path");
         });
 
         modelBuilder.Entity<DbCourseUser>(entity =>
