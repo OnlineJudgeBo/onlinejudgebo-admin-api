@@ -5,6 +5,15 @@ namespace OnlineJudgeAdminApi.Helpers;
 
 public class UserClaimsHelper
 {
+    // Higher-privilege roles
+    private static readonly UserRolesEnum[] RolePriorityOrder =
+    {
+        UserRolesEnum.Administrador,
+        UserRolesEnum.Docente,
+        UserRolesEnum.Auxiliar,
+        UserRolesEnum.Invitado
+    };
+
     private readonly IHttpContextAccessor _httpContextAccessor;
 
     public UserClaimsHelper(IHttpContextAccessor httpContextAccessor)
@@ -25,20 +34,6 @@ public class UserClaimsHelper
             "nameid",
             "sub",
             "user_id");
-    }
-
-    private string? GetUserRole()
-    {
-        var user = _httpContextAccessor.HttpContext?.User;
-        if (user == null)
-        {
-            return null;
-        }
-
-        return GetClaimValue(user,
-            ClaimTypes.Role,
-            "role",
-            "roles");
     }
 
     private int GetSiteId()
@@ -62,15 +57,15 @@ public class UserClaimsHelper
             throw new UnauthorizedAccessException("Authenticated user context is required.");
 
         var userId = GetUserId();
-        var roleString = GetUserRole();
         var siteId = GetSiteId();
-        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(roleString) || siteId <= 0)
+        var role = GetHighestPriorityRole();
+        if (string.IsNullOrWhiteSpace(userId) || role == null || siteId <= 0)
             throw new UnauthorizedAccessException("The authentication token is missing required user, role or site claims.");
 
         return new CurrentUser
         {
             UserId = userId,
-            Role = ParseRole(roleString),
+            Role = role.Value,
             SiteId = siteId
         };
     }
@@ -99,14 +94,59 @@ public class UserClaimsHelper
         return null;
     }
 
-    private static UserRolesEnum ParseRole(string? roleString)
+    /// <summary>
+    /// Collects every role found across the role-ish claim types (a token may carry
+    /// several roles as either separate claims or one comma-separated claim value,
+    /// e.g. "Administrador,Docente") and returns the highest-privilege one.
+    /// </summary>
+    private UserRolesEnum? GetHighestPriorityRole()
     {
-        if (string.IsNullOrWhiteSpace(roleString))
+        var user = _httpContextAccessor.HttpContext?.User;
+        if (user == null)
         {
-            return UserRolesEnum.Invitado;
+            return null;
         }
 
+        var roles = new HashSet<UserRolesEnum>();
+        foreach (var claimType in new[] { ClaimTypes.Role, "role", "roles" })
+        {
+            foreach (var claim in user.Claims.Where(c => c.Type == claimType))
+            {
+                foreach (var value in claim.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                {
+                    var role = TryParseRole(value);
+                    if (role.HasValue)
+                    {
+                        roles.Add(role.Value);
+                    }
+                }
+            }
+        }
+
+        if (roles.Count == 0)
+        {
+            return null;
+        }
+
+        foreach (var role in RolePriorityOrder)
+        {
+            if (roles.Contains(role))
+            {
+                return role;
+            }
+        }
+
+        return roles.First();
+    }
+
+    private static UserRolesEnum? TryParseRole(string roleString)
+    {
         var normalizedRole = roleString.Trim();
+        if (normalizedRole.Length == 0)
+        {
+            return null;
+        }
+
         if (Enum.TryParse<UserRolesEnum>(normalizedRole, ignoreCase: true, out var parsedRole))
         {
             return parsedRole;
@@ -122,7 +162,7 @@ public class UserClaimsHelper
             "auxiliar" => UserRolesEnum.Auxiliar,
             "guest" => UserRolesEnum.Invitado,
             "invitado" => UserRolesEnum.Invitado,
-            _ => throw new UnauthorizedAccessException("The authentication token contains an unsupported role claim.")
+            _ => null
         };
     }
 }
