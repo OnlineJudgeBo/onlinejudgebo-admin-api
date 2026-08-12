@@ -1279,6 +1279,7 @@ public class AcademicRepository : IAcademicRepository
         foreach (var stageId in stageIds) await DeleteStageDataAsync(path.LearningPathId, stageId);
         _academicContext.LearningPathProgresses.RemoveRange(_academicContext.LearningPathProgresses.Where(item => item.LearningPathId == path.LearningPathId));
         _academicContext.LearningPathTopicProgresses.RemoveRange(_academicContext.LearningPathTopicProgresses.Where(item => item.LearningPathId == path.LearningPathId));
+        await _academicContext.SaveChangesAsync();
         _academicContext.LearningPaths.Remove(path);
         await _academicContext.SaveChangesAsync();
     }
@@ -1431,14 +1432,23 @@ public class AcademicRepository : IAcademicRepository
         var isShared = await _academicContext.LearningPathTopics
             .AnyAsync(link => link.TopicId == stageId && link.LearningPathId != pathId);
         await RemoveStageLinkAndProgressAsync(pathId, stageId);
+        await _academicContext.SaveChangesAsync();
         if (isShared) return;
 
         var topicIds = await _academicContext.Subtopics.Where(item => item.TopicId == stageId).Select(item => item.SubtopicId).ToListAsync();
         _academicContext.SubtopicProblems.RemoveRange(_academicContext.SubtopicProblems.Where(item => topicIds.Contains(item.SubtopicId)));
         _academicContext.SubtopicTags.RemoveRange(_academicContext.SubtopicTags.Where(item => topicIds.Contains(item.SubtopicId)));
+        await _academicContext.SaveChangesAsync();
+
         _academicContext.Subtopics.RemoveRange(_academicContext.Subtopics.Where(item => item.TopicId == stageId));
+        await _academicContext.SaveChangesAsync();
+
         var stage = await _academicContext.Topics.FirstOrDefaultAsync(item => item.TopicId == stageId);
-        if (stage != null) _academicContext.Topics.Remove(stage);
+        if (stage != null)
+        {
+            _academicContext.Topics.Remove(stage);
+            await _academicContext.SaveChangesAsync();
+        }
     }
 
     private async Task RemoveStageLinkAndProgressAsync(long pathId, long stageId)
