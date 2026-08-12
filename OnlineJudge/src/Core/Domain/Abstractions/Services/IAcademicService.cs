@@ -28,6 +28,10 @@ public interface IAcademicService
 
     Task<AcademicCourseContentItem> CreateCourseMaterialAsync(int siteId, long courseId, CurrentUser currentUser, AcademicCourseMaterialCreationRequest request);
 
+    Task<AcademicCourseContentItem> UpdateCourseMaterialAsync(int siteId, long courseId, long materialId, CurrentUser currentUser, AcademicCourseMaterialCreationRequest request);
+
+    Task DeleteCourseMaterialAsync(int siteId, long courseId, long materialId, CurrentUser currentUser);
+
     Task ReorderCourseContentAsync(int siteId, long courseId, CurrentUser currentUser, IReadOnlyList<long> itemIds);
 
     Task<AcademicCourseAssignment> UpdateCourseAssignmentAsync(int siteId, long courseId, long assignmentId, CurrentUser currentUser, AcademicCourseAssignmentCreationRequest request);

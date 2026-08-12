@@ -148,6 +148,28 @@ public class AcademicController : ControllerBase
         }));
     }
 
+    [HttpPut("sites/{siteId:int}/courses/{courseId:long}/materials/{materialId:long}")]
+    public async Task<IActionResult> UpdateCourseMaterialAsync(int siteId, long courseId, long materialId, AcademicCourseMaterialForCreation material)
+    {
+        var currentUser = _userClaimsHelper.GetUserContextRole();
+        return Ok(await _academicService.UpdateCourseMaterialAsync(siteId, courseId, materialId, currentUser, new AcademicCourseMaterialCreationRequest
+        {
+            Title = material.Title,
+            Description = material.Description,
+            ContentUrl = material.ContentUrl,
+            ContentBody = material.ContentBody,
+            IsPublished = material.IsPublished
+        }));
+    }
+
+    [HttpDelete("sites/{siteId:int}/courses/{courseId:long}/materials/{materialId:long}")]
+    public async Task<IActionResult> DeleteCourseMaterialAsync(int siteId, long courseId, long materialId)
+    {
+        var currentUser = _userClaimsHelper.GetUserContextRole();
+        await _academicService.DeleteCourseMaterialAsync(siteId, courseId, materialId, currentUser);
+        return NoContent();
+    }
+
     [HttpPut("sites/{siteId:int}/courses/{courseId:long}/content-order")]
     public async Task<IActionResult> ReorderCourseContentAsync(int siteId, long courseId, AcademicCourseContentOrderForUpdate orderForUpdate)
     {
