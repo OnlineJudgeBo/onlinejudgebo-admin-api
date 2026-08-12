@@ -158,21 +158,42 @@ public class AcademicService : IAcademicService
     {
         var course = await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
         EnsureCourseManager(course, currentUser, "create course materials");
+        EnsureValidMaterialRequest(request);
+        return await _academicRepository.CreateCourseMaterialAsync(courseId, currentUser.UserId, request);
+    }
+
+    private static void EnsureValidMaterialRequest(AcademicCourseMaterialCreationRequest request)
+    {
         if (string.IsNullOrWhiteSpace(request.Title))
-        {
             throw new ArgumentException("Material title is required.");
-        }
         if (string.IsNullOrWhiteSpace(request.ContentBody) && string.IsNullOrWhiteSpace(request.ContentUrl))
-        {
             throw new ArgumentException("Add material content or a resource link.");
-        }
         if (!string.IsNullOrWhiteSpace(request.ContentUrl)
             && (!Uri.TryCreate(request.ContentUrl, UriKind.Absolute, out var uri)
                 || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)))
-        {
             throw new ArgumentException("Material URL must be a valid HTTP or HTTPS address.");
-        }
-        return await _academicRepository.CreateCourseMaterialAsync(courseId, currentUser.UserId, request);
+    }
+
+    public async Task<AcademicCourseContentItem> UpdateCourseMaterialAsync(
+        int siteId,
+        long courseId,
+        long materialId,
+        CurrentUser currentUser,
+        AcademicCourseMaterialCreationRequest request)
+    {
+        if (materialId <= 0) throw new ArgumentException("Material id is required.");
+        var course = await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
+        EnsureCourseManager(course, currentUser, "update course materials");
+        EnsureValidMaterialRequest(request);
+        return await _academicRepository.UpdateCourseMaterialAsync(courseId, materialId, request);
+    }
+
+    public async Task DeleteCourseMaterialAsync(int siteId, long courseId, long materialId, CurrentUser currentUser)
+    {
+        if (materialId <= 0) throw new ArgumentException("Material id is required.");
+        var course = await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
+        EnsureCourseManager(course, currentUser, "delete course materials");
+        await _academicRepository.DeleteCourseMaterialAsync(courseId, materialId);
     }
 
     public async Task ReorderCourseContentAsync(int siteId, long courseId, CurrentUser currentUser, IReadOnlyList<long> itemIds)

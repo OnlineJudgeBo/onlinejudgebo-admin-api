@@ -508,6 +508,37 @@ public class AcademicRepository : IAcademicRepository
         };
     }
 
+    public async Task<AcademicCourseContentItem> UpdateCourseMaterialAsync(
+        long courseId,
+        long materialId,
+        AcademicCourseMaterialCreationRequest request)
+    {
+        var material = await _academicContext.CourseContentItems
+            .FirstOrDefaultAsync(item => item.CourseId == courseId && item.ItemId == materialId && item.ItemType == "material")
+            ?? throw new KeyNotFoundException("Course material was not found.");
+        material.Title = request.Title.Trim();
+        material.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+        material.ContentUrl = string.IsNullOrWhiteSpace(request.ContentUrl) ? null : request.ContentUrl.Trim();
+        material.ContentBody = string.IsNullOrWhiteSpace(request.ContentBody) ? null : request.ContentBody.Trim();
+        material.IsPublished = request.IsPublished;
+        await _academicContext.SaveChangesAsync();
+        return new AcademicCourseContentItem
+        {
+            ItemId = material.ItemId, CourseId = courseId, Type = material.ItemType,
+            Title = material.Title, Description = material.Description, ContentUrl = material.ContentUrl,
+            ContentBody = material.ContentBody, Position = material.Position, IsPublished = material.IsPublished
+        };
+    }
+
+    public async Task DeleteCourseMaterialAsync(long courseId, long materialId)
+    {
+        var material = await _academicContext.CourseContentItems
+            .FirstOrDefaultAsync(item => item.CourseId == courseId && item.ItemId == materialId && item.ItemType == "material")
+            ?? throw new KeyNotFoundException("Course material was not found.");
+        _academicContext.CourseContentItems.Remove(material);
+        await _academicContext.SaveChangesAsync();
+    }
+
     public async Task ReorderCourseContentAsync(long courseId, IReadOnlyList<long> itemIds)
     {
         var items = await _academicContext.CourseContentItems
