@@ -5,4 +5,6 @@ namespace OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
 public interface IIdeLaunchTokenValidator
 {
     IdeLaunchClaims Validate(string? token);
+
+    string Issue(IdeLaunchClaims claims);
 }

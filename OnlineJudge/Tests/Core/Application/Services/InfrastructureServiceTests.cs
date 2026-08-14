@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
+using OnlineJudgeAdmin.Core.Domain.Models.IdeIntegration;
 using OnlineJudgeAdmin.Infrastructure.FileSystemLocalManager;
 using OnlineJudgeAdmin.Infrastructure.IdeIntegration.Implementations;
 
@@ -89,6 +90,26 @@ public class InfrastructureServiceTests
         var error = Assert.Throws<InvalidOperationException>(() => validator.Validate(token));
 
         Assert.Equal("PATITO_IDE_TOKEN_SECRET must be configured with at least 32 characters.", error.Message);
+    }
+
+    [Fact]
+    public void IdeLaunchTokenValidator_IssuesTokenThatItThenValidates()
+    {
+        var secret = new string('s', 32);
+        var validator = new IdeLaunchTokenValidator(CreateConfiguration(new Dictionary<string, string?>
+        {
+            ["PatitoIde:TokenSecret"] = secret
+        }));
+
+        var issued = validator.Issue(new IdeLaunchClaims("student1", 1, 1000, 3040, 0, new[] { 2, 3 }));
+        var claims = validator.Validate(issued);
+
+        Assert.Equal("student1", claims.UserId);
+        Assert.Equal(1, claims.SiteId);
+        Assert.Equal(1000, claims.ProblemId);
+        Assert.Equal(3040, claims.ContestId);
+        Assert.Equal(0, claims.Num);
+        Assert.Equal(new[] { 2, 3 }, claims.AllowedLanguages);
     }
 
     [Fact]

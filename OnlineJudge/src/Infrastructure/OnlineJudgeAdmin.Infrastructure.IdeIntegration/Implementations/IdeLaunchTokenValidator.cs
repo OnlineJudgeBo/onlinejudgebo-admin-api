@@ -61,6 +61,35 @@ public sealed class IdeLaunchTokenValidator : IIdeLaunchTokenValidator
             GetIntArray(root, "allowed_languages"));
     }
 
+    public string Issue(IdeLaunchClaims claims)
+    {
+        var header = Base64UrlEncode(JsonSerializer.SerializeToUtf8Bytes(new { alg = "HS256", typ = "JWT" }));
+        var expiresAt = DateTimeOffset.UtcNow.AddSeconds(TokenTtlSeconds()).ToUnixTimeSeconds();
+        var payload = Base64UrlEncode(JsonSerializer.SerializeToUtf8Bytes(new
+        {
+            iss = TokenIssuer(),
+            aud = TokenAudience(),
+            sub = claims.UserId,
+            site_id = claims.SiteId,
+            problem_id = claims.ProblemId,
+            contest_id = claims.ContestId,
+            num = claims.Num,
+            allowed_languages = claims.AllowedLanguages,
+            exp = expiresAt
+        }));
+
+        var unsignedToken = $"{header}.{payload}";
+        var signature = Base64UrlEncode(HMACSHA256.HashData(Encoding.UTF8.GetBytes(TokenSecret()), Encoding.UTF8.GetBytes(unsignedToken)));
+        return $"{unsignedToken}.{signature}";
+    }
+
+    private int TokenTtlSeconds()
+    {
+        var raw = Environment.GetEnvironmentVariable("PATITO_IDE_TOKEN_TTL_SECONDS")
+            ?? _configuration["PatitoIde:TokenTtlSeconds"];
+        return int.TryParse(raw, out var seconds) && seconds > 0 ? seconds : 7200;
+    }
+
     private void ValidateSignature(IReadOnlyList<string> tokenParts)
     {
         var unsignedToken = $"{tokenParts[0]}.{tokenParts[1]}";
