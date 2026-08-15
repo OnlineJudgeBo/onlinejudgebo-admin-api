@@ -1,6 +1,7 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 namespace OnlineJudgeAdminApi.Controllers;
 
@@ -12,11 +13,17 @@ public class FileManagerController : ControllerBase
 {
     private readonly IFileManagerService _fileManagerService;
     private readonly IMapper _mapper;
-    private readonly string baseDirectory = @"/tmp/zas";
-    public FileManagerController(IFileManagerService fileManagerService, IMapper mapper)
+    private readonly string baseDirectory;
+
+    public FileManagerController(IFileManagerService fileManagerService, IMapper mapper, IConfiguration configuration)
     {
         _fileManagerService = fileManagerService ?? throw new ArgumentNullException(nameof(fileManagerService));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+        // Same location IFileSystemLocalManagerManager (and this file's own writes) use —
+        // this used to be hardcoded to /tmp/zas, disconnected from where problem files
+        // (including test data) actually live, so this page always showed empty.
+        baseDirectory = configuration["FileSettings:ProblemsFilePath"]
+            ?? throw new InvalidOperationException("FileSettings:ProblemsFilePath must be configured.");
     }
 
     [HttpPost("cloud-storage")]
