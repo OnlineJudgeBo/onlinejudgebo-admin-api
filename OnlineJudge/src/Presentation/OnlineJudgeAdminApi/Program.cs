@@ -17,6 +17,9 @@ using OnlineJudgeAdminApi.Helpers;
 using OnlineJudgeAdmin.Infrastructure.Database.Models;
 
 
+const string IdeAnonymousRoutePrefix = "/api/patito-ide";
+const string IdeLaunchTokenRoute = $"{IdeAnonymousRoutePrefix}/launch-token";
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -37,7 +40,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             OnMessageReceived = context =>
             {
-                if (context.HttpContext.Request.Path.StartsWithSegments("/api/patito-ide"))
+                var path = context.HttpContext.Request.Path;
+
+                if (path.StartsWithSegments(IdeAnonymousRoutePrefix) && !path.StartsWithSegments(IdeLaunchTokenRoute))
                 {
                     context.NoResult();
                 }

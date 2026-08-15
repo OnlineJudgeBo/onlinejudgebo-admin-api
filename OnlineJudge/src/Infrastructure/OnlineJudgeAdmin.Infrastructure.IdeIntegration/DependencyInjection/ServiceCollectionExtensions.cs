@@ -10,6 +10,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddIdeIntegrationInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IIdeLaunchTokenValidator, IdeLaunchTokenValidator>();
+        services.AddScoped<IIdeLaunchTokenIssuer, IdeLaunchTokenIssuer>();
         return services;
     }
 }
