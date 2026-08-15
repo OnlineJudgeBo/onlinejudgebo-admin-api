@@ -17,7 +17,7 @@ namespace OnlineJudgeAdminApi.Controllers;
 // folder for the ids the admin picked and actually creates the problems.
 [ApiController]
 [Route("/api/boca-import")]
-[Authorize]
+[Authorize(Roles = AuthorizationRoles.AdministradorDocenteAuxiliar)]
 public sealed class BocaImportController : ControllerBase
 {
     private static readonly string StagingRoot = Path.Combine(Path.GetTempPath(), "boca-import");

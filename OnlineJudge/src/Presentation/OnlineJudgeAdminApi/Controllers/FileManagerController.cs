@@ -3,11 +3,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
+using OnlineJudgeAdminApi.Helpers;
 namespace OnlineJudgeAdminApi.Controllers;
 
 [Route("/api/[controller]")]
 [ApiController]
-[Authorize]
+[Authorize(Roles = AuthorizationRoles.AdministradorDocenteAuxiliar)]
 
 public class FileManagerController : ControllerBase
 {
