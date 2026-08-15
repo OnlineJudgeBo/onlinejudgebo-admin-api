@@ -2,11 +2,45 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
+using OnlineJudgeAdmin.Core.Domain.Models.IdeIntegration;
 using OnlineJudgeAdmin.Infrastructure.FileSystemLocalManager;
 using OnlineJudgeAdmin.Infrastructure.IdeIntegration.Implementations;
 
 public class InfrastructureServiceTests
 {
+    [Fact]
+    public void IdeLaunchTokenIssuer_IssuesTokenThatValidatorAccepts()
+    {
+        var secret = new string('s', 32);
+        var configuration = CreateConfiguration(new Dictionary<string, string?>
+        {
+            ["PatitoIde:TokenSecret"] = secret
+        });
+        var issuer = new IdeLaunchTokenIssuer(configuration);
+        var validator = new IdeLaunchTokenValidator(configuration);
+
+        var token = issuer.Issue(new IdeLaunchClaims("student1", 1, 1000, 3040, 0, new[] { 2, 3 }));
+        var claims = validator.Validate(token);
+
+        Assert.Equal("student1", claims.UserId);
+        Assert.Equal(1, claims.SiteId);
+        Assert.Equal(1000, claims.ProblemId);
+        Assert.Equal(3040, claims.ContestId);
+        Assert.Equal(0, claims.Num);
+        Assert.Equal(new[] { 2, 3 }, claims.AllowedLanguages);
+    }
+
+    [Fact]
+    public void IdeLaunchTokenIssuer_RequiresUserId()
+    {
+        var issuer = new IdeLaunchTokenIssuer(CreateConfiguration(new Dictionary<string, string?>
+        {
+            ["PatitoIde:TokenSecret"] = new string('s', 32)
+        }));
+
+        Assert.Throws<ArgumentException>(() => issuer.Issue(new IdeLaunchClaims("", 1, 1000, null, null, Array.Empty<int>())));
+    }
+
     [Fact]
     public void IdeLaunchTokenValidator_ValidatesSignedTokenAndReturnsClaims()
     {
