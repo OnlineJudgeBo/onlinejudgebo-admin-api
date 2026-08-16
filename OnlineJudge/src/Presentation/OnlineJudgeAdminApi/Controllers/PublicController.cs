@@ -72,7 +72,8 @@ public class PublicController : ControllerBase
     [HttpGet("contests/{contestId:int}/problems/{contestProblemId}")]
     public async Task<IActionResult> GetContestProblemDetailAsync(int contestId, string contestProblemId, [FromQuery] int siteId = 1)
     {
-        return Ok(await _publicService.GetContestProblemDetailAsync(siteId, contestId, contestProblemId));
+        var currentUser = _userClaimsHelper.TryGetUserContextRole();
+        return Ok(await _publicService.GetContestProblemDetailAsync(siteId, contestId, contestProblemId, currentUser));
     }
 
     [AllowAnonymous]
@@ -148,7 +149,8 @@ public class PublicController : ControllerBase
         [FromQuery] int? languageId = null,
         [FromQuery] string? statusKey = null)
     {
-        return Ok(await _publicService.GetSubmissionsAsync(siteId, page, pageSize, contestId, problemId, userId, languageId, statusKey));
+        var currentUser = _userClaimsHelper.TryGetUserContextRole();
+        return Ok(await _publicService.GetSubmissionsAsync(siteId, page, pageSize, contestId, problemId, userId, languageId, statusKey, currentUser));
     }
 
     [Authorize]
@@ -190,7 +192,8 @@ public class PublicController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 25)
     {
-        return Ok(await _publicService.GetRecentSubmissionsAsync(siteId, page, pageSize, contestId, null));
+        var currentUser = _userClaimsHelper.TryGetUserContextRole();
+        return Ok(await _publicService.GetRecentSubmissionsAsync(siteId, page, pageSize, contestId, null, currentUser));
     }
 
     [Authorize]

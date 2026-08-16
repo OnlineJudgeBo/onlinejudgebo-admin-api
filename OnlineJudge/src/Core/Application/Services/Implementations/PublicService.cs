@@ -58,7 +58,7 @@ public class PublicService : IPublicService
         return _publicRepository.GetProblemDetailAsync(siteId, problemId);
     }
 
-    public Task<PublicProblemDetailResponse> GetContestProblemDetailAsync(int siteId, int contestId, string contestProblemId)
+    public Task<PublicProblemDetailResponse> GetContestProblemDetailAsync(int siteId, int contestId, string contestProblemId, CurrentUser? currentUser = null)
     {
         ValidateSite(siteId);
         ValidatePositiveId(contestId, "ContestId");
@@ -68,7 +68,7 @@ public class PublicService : IPublicService
             throw new ArgumentException("ContestProblemId inválido.");
         }
 
-        return _publicRepository.GetContestProblemDetailAsync(siteId, contestId, contestProblemId);
+        return _publicRepository.GetContestProblemDetailAsync(siteId, contestId, contestProblemId, currentUser);
     }
 
     public Task<PublicProblemStatisticsResponse> GetProblemStatisticsAsync(int siteId, int problemId)
@@ -125,7 +125,7 @@ public class PublicService : IPublicService
         return _publicRepository.GetLanguagesAsync();
     }
 
-    public Task<PublicSubmissionsResponse> GetSubmissionsAsync(int siteId, int page, int pageSize, int? contestId, int? problemId, string? userId, int? languageId, string? statusKey)
+    public Task<PublicSubmissionsResponse> GetSubmissionsAsync(int siteId, int page, int pageSize, int? contestId, int? problemId, string? userId, int? languageId, string? statusKey, CurrentUser? currentUser = null)
     {
         ValidateSite(siteId);
         ValidateOptionalPositiveId(contestId, "ContestId");
@@ -139,7 +139,8 @@ public class PublicService : IPublicService
             problemId,
             string.IsNullOrWhiteSpace(userId) ? null : userId.Trim(),
             languageId,
-            statusKey);
+            statusKey,
+            currentUser);
     }
 
     public Task<PublicSubmissionsResponse> GetOwnSubmissionsAsync(CurrentUser currentUser, int page, int pageSize)
@@ -148,7 +149,7 @@ public class PublicService : IPublicService
         return _publicRepository.GetOwnSubmissionsAsync(currentUser, Math.Max(page, 1), Clamp(pageSize, 1, 500));
     }
 
-    public Task<PublicSubmissionsResponse> GetRecentSubmissionsAsync(int siteId, int page, int pageSize, int? contestId, long? courseId)
+    public Task<PublicSubmissionsResponse> GetRecentSubmissionsAsync(int siteId, int page, int pageSize, int? contestId, long? courseId, CurrentUser? currentUser = null)
     {
         ValidateSite(siteId);
         ValidateOptionalPositiveId(contestId, "ContestId");
@@ -158,7 +159,7 @@ public class PublicService : IPublicService
             throw new ArgumentException("CourseId inválido.");
         }
 
-        return _publicRepository.GetRecentSubmissionsAsync(siteId, Math.Max(page, 1), Clamp(pageSize, 1, 100), contestId, courseId);
+        return _publicRepository.GetRecentSubmissionsAsync(siteId, Math.Max(page, 1), Clamp(pageSize, 1, 100), contestId, courseId, currentUser);
     }
 
     public Task<PublicOnlineUsersResponse> GetOnlineUsersAsync(int siteId, int windowMinutes)
