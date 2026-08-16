@@ -20,6 +20,8 @@ public class PublicContestItem
 
     public bool Obi { get; set; }
 
+    public bool IsPromoted { get; set; }
+
     public int DurationMinutes { get; set; }
 
     public int ProblemCount { get; set; }
@@ -66,6 +68,8 @@ public class ContestReportItem
 
     public decimal Accuracy { get; set; }
 
+    public bool IsVirtualParticipant { get; set; }
+
     public DateTime? FirstSubmitUtc { get; set; }
 
     public DateTime? LastSubmitUtc { get; set; }
@@ -94,6 +98,8 @@ public class ContestReportResponse
     public int DurationMinutes { get; set; }
 
     public bool IsPrivate { get; set; }
+
+    public bool IsPromoted { get; set; }
 
     public int ProblemCount { get; set; }
 

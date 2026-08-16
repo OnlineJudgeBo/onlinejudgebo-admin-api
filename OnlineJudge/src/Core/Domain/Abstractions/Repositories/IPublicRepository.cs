@@ -26,6 +26,8 @@ public interface IPublicRepository
 
     Task<bool> CanDownloadContestReportCsvAsync(CurrentUser currentUser, int siteId, int contestId);
 
+    Task RegisterForContestAsync(CurrentUser currentUser, int siteId, int contestId);
+
     Task<IReadOnlyCollection<PublicLanguageItem>> GetLanguagesAsync();
 
     Task<PublicSubmissionsResponse> GetSubmissionsAsync(int siteId, int page, int pageSize, int? contestId, int? problemId, string? userId, int? languageId, string? statusKey, CurrentUser? currentUser = null);

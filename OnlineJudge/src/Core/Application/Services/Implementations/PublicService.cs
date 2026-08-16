@@ -120,6 +120,15 @@ public class PublicService : IPublicService
         return _publicRepository.CanDownloadContestReportCsvAsync(currentUser, siteId, contestId);
     }
 
+    public Task RegisterForContestAsync(CurrentUser currentUser, int siteId, int contestId)
+    {
+        ValidateCurrentUser(currentUser);
+        ValidateSite(siteId);
+        ValidatePositiveId(contestId, "ContestId");
+
+        return _publicRepository.RegisterForContestAsync(currentUser, siteId, contestId);
+    }
+
     public Task<IReadOnlyCollection<PublicLanguageItem>> GetLanguagesAsync()
     {
         return _publicRepository.GetLanguagesAsync();

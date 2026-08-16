@@ -148,7 +148,7 @@ public class PublicRepository : IPublicRepository
                 && problem.ProblemSites!.Any(problemSite => problemSite.SiteId == siteId && problemSite.IsActive)
                 && (!contestId.HasValue || _context.ContestProblems.Any(contestProblem =>
                     contestProblem.ContestId == contestId.Value && contestProblem.ProblemId == problem.ProblemId))
-                && (problem.Defunct == "N" || problem.Defunct == "Y" || (contestId.HasValue && problem.Defunct == "O")))
+                && (problem.Defunct == "N" || problem.Defunct == "Y" || problem.Defunct == "O"))
             .Select(problem => new ProblemListProjection
             {
                 ProblemId = problem.ProblemId!.Value,
@@ -332,7 +332,7 @@ public class PublicRepository : IPublicRepository
         var problem = await _context.Problems
             .FirstOrDefaultAsync(item => item.ProblemId == problemId
                 && item.ProblemSites!.Any(problemSite => problemSite.SiteId == siteId && problemSite.IsActive)
-                && (item.Defunct == "N" || item.Defunct == "Y"));
+                && (item.Defunct == "N" || item.Defunct == "Y" || item.Defunct == "O"));
 
         if (problem == null)
         {
@@ -698,6 +698,7 @@ public class PublicRepository : IPublicRepository
             "active" => "ACTIVE",
             "upcoming" => "UPCOMING",
             "past" => "FINISHED",
+            "gym" => "GYM",
             _ => "ALL"
         };
         var normalizedLevel = (level?.Trim().ToLowerInvariant() ?? "all") switch
@@ -714,7 +715,7 @@ public class PublicRepository : IPublicRepository
         var contests = await (
             from contestSite in _context.ContestSites
             join contest in _context.Contests on contestSite.ContestId equals contest.ContestId
-            where contestSite.SiteId == siteId && contest.Defunct == "N"
+            where contestSite.SiteId == siteId && (contest.Defunct == "N" || contest.Defunct == "O")
             select new ContestProjection
             {
                 ContestId = contest.ContestId,
@@ -723,9 +724,14 @@ public class PublicRepository : IPublicRepository
                 EndTimeUtc = contest.EndTime,
                 IsPrivate = contest.Private != 0,
                 Track = contest.Track,
-                Level = contest.Level
+                Level = contest.Level,
+                IsPromoted = contest.Defunct == "O"
             }
         ).ToListAsync();
+
+        contests = normalizedStatus == "GYM"
+            ? contests.Where(item => item.IsPromoted).ToList()
+            : contests.Where(item => !item.IsPromoted).ToList();
 
         var contestIds = contests.Select(item => item.ContestId).ToList();
         var problemCounts = await _context.ContestProblems
@@ -760,6 +766,7 @@ public class PublicRepository : IPublicRepository
                     Level = computedLevel,
                     IsPrivate = contest.IsPrivate,
                     Obi = computedTrack == "OBI",
+                    IsPromoted = contest.IsPromoted,
                     DurationMinutes = Math.Max(1, (int)Math.Round((contest.EndTimeUtc - contest.StartTimeUtc).TotalMinutes)),
                     ProblemCount = problemCounts.TryGetValue(contest.ContestId, out var problemCount) ? problemCount : 0,
                     ParticipantCount = participantCounts.TryGetValue(contest.ContestId, out var participantCount) ? participantCount : 0
@@ -767,7 +774,7 @@ public class PublicRepository : IPublicRepository
             })
             .Where(item =>
             {
-                if (normalizedStatus != "ALL" && item.Status != normalizedStatus)
+                if (normalizedStatus != "ALL" && normalizedStatus != "GYM" && item.Status != normalizedStatus)
                 {
                     return false;
                 }
@@ -827,6 +834,8 @@ public class PublicRepository : IPublicRepository
             .Select(item => item.UserId)
             .Distinct()
             .ToListAsync();
+        var participantIdSet = participantIds.ToHashSet(StringComparer.Ordinal);
+        var isPromotedContest = contest.Defunct == "O";
 
         var submissionStats = await OfficialSolutions()
             .Where(solution => solution.SiteId == siteId && solution.ContestId == contestId)
@@ -879,6 +888,7 @@ public class PublicRepository : IPublicRepository
                     Submissions = submissions,
                     Accepted = accepted,
                     Accuracy = submissions == 0 ? 0 : Math.Round((decimal)accepted * 100m / submissions, 2),
+                    IsVirtualParticipant = isPromotedContest && participantIdSet.Contains(userId),
                     FirstSubmitUtc = stats?.FirstSubmitUtc,
                     LastSubmitUtc = stats?.LastSubmitUtc
                 };
@@ -917,6 +927,7 @@ public class PublicRepository : IPublicRepository
             GeneratedAtUtc = generatedAtUtc,
             DurationMinutes = Math.Max(1, (int)Math.Round((contest.EndTime - contest.StartTime).TotalMinutes)),
             IsPrivate = contest.Private != 0,
+            IsPromoted = contest.Defunct == "O",
             ProblemCount = problemCount,
             ParticipantCount = participantIds.Count,
             TotalSubmissions = submissionStats.Sum(item => item.Submissions),
@@ -944,6 +955,30 @@ public class PublicRepository : IPublicRepository
         }
 
         return false;
+    }
+
+    public async Task RegisterForContestAsync(CurrentUser currentUser, int siteId, int contestId)
+    {
+        var contest = await GetContestAsync(siteId, contestId);
+        await CheckContestAccessAsync(siteId, contest, currentUser);
+
+        var alreadyRegistered = await _context.ContestUsers
+            .AnyAsync(item => item.SiteId == siteId && item.ContestId == contestId && item.UserId == currentUser.UserId);
+
+        if (alreadyRegistered)
+        {
+            return;
+        }
+
+        _context.ContestUsers.Add(new DbContestUser
+        {
+            ContestId = contestId,
+            UserId = currentUser.UserId,
+            SiteId = siteId,
+            IsOwner = false
+        });
+
+        await _context.SaveChangesAsync();
     }
 
     public async Task<IReadOnlyCollection<PublicLanguageItem>> GetLanguagesAsync()
@@ -2015,7 +2050,7 @@ public class PublicRepository : IPublicRepository
         var contest = await (
             from contestSite in _context.ContestSites
             join item in _context.Contests on contestSite.ContestId equals item.ContestId
-            where contestSite.SiteId == siteId && item.ContestId == contestId && item.Defunct == "N"
+            where contestSite.SiteId == siteId && item.ContestId == contestId && (item.Defunct == "N" || item.Defunct == "O")
             select item
         ).FirstOrDefaultAsync();
 
@@ -2114,6 +2149,11 @@ public class PublicRepository : IPublicRepository
 
     private static void CheckContestOpen(DbContest contest)
     {
+        if (contest.Defunct == "O")
+        {
+            return;
+        }
+
         var now = GetContestClockNow();
 
         if (contest.StartTime > now)
@@ -2464,6 +2504,8 @@ public class PublicRepository : IPublicRepository
         public string Track { get; set; } = "GENERAL";
 
         public string Level { get; set; } = "PRACTICE";
+
+        public bool IsPromoted { get; set; }
     }
 
     private sealed class ContestProblemReference

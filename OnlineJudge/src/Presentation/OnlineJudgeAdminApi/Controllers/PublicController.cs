@@ -113,6 +113,16 @@ public class PublicController : ControllerBase
     }
 
     [Authorize]
+    [HttpPost("contests/{contestId:int}/register")]
+    public async Task<IActionResult> RegisterForContestAsync(int contestId, [FromQuery] int siteId = 1)
+    {
+        var currentUser = _userClaimsHelper.GetUserContextRole();
+        var effectiveSiteId = currentUser.SiteId > 0 ? currentUser.SiteId : siteId;
+        await _publicService.RegisterForContestAsync(currentUser, effectiveSiteId, contestId);
+        return Ok();
+    }
+
+    [Authorize]
     [HttpGet("contests/{contestId:int}/report.csv")]
     public async Task<IActionResult> GetContestReportCsvAsync(int contestId, [FromQuery] int siteId = 1)
     {
