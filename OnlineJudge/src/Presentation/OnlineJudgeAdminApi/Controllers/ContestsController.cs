@@ -11,7 +11,7 @@ namespace OnlineJudgeAdminApi.Controllers;
 
 [ApiController]
 [Route("/api/[controller]")]
-[Authorize]
+[Authorize(Roles = AuthorizationRoles.AdministradorDocenteAuxiliar)]
 public class ContestsController : ControllerBase
 {
     private readonly IContestService _contestService;

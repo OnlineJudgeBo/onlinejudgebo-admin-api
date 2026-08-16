@@ -135,7 +135,8 @@ public class PublicRepository : IPublicRepository
 
         if (contestId.HasValue)
         {
-            await EnsureContestExistsAsync(siteId, contestId.Value);
+            var contest = await GetContestAsync(siteId, contestId.Value);
+            await CheckContestAccessAsync(siteId, contest, currentUser);
         }
 
         var contestProblemMap = contestId.HasValue
@@ -147,7 +148,7 @@ public class PublicRepository : IPublicRepository
                 && problem.ProblemSites!.Any(problemSite => problemSite.SiteId == siteId && problemSite.IsActive)
                 && (!contestId.HasValue || _context.ContestProblems.Any(contestProblem =>
                     contestProblem.ContestId == contestId.Value && contestProblem.ProblemId == problem.ProblemId))
-                && (problem.Defunct == "N" || problem.Defunct == "Y"))
+                && (problem.Defunct == "N" || problem.Defunct == "Y" || (contestId.HasValue && problem.Defunct == "O")))
             .Select(problem => new ProblemListProjection
             {
                 ProblemId = problem.ProblemId!.Value,
@@ -341,13 +342,13 @@ public class PublicRepository : IPublicRepository
         return await BuildProblemDetailResponseAsync(siteId, problem, problemId);
     }
 
-    public async Task<PublicProblemDetailResponse> GetContestProblemDetailAsync(int siteId, int contestId, string contestProblemId)
+    public async Task<PublicProblemDetailResponse> GetContestProblemDetailAsync(int siteId, int contestId, string contestProblemId, CurrentUser? currentUser = null)
     {
-        var contestProblem = await ResolveContestProblemReferenceAsync(siteId, contestId, contestProblemId);
+        var contestProblem = await ResolveContestProblemReferenceAsync(siteId, contestId, contestProblemId, currentUser);
         var problem = await _context.Problems
             .FirstOrDefaultAsync(item => item.ProblemId == contestProblem.ProblemId
                 && item.ProblemSites!.Any(problemSite => problemSite.SiteId == siteId && problemSite.IsActive)
-                && (item.Defunct == "N" || item.Defunct == "Y"));
+                && (item.Defunct == "N" || item.Defunct == "Y" || item.Defunct == "O"));
 
         if (problem == null)
         {
@@ -812,7 +813,8 @@ public class PublicRepository : IPublicRepository
 
     public async Task<ContestReportResponse> GetContestReportAsync(int siteId, int contestId, CurrentUser? currentUser = null)
     {
-        var contest = await EnsureContestExistsAsync(siteId, contestId);
+        var contest = await GetContestAsync(siteId, contestId);
+        await CheckContestAccessAsync(siteId, contest, currentUser);
         var generatedAtUtc = DateTime.Now;
         var contestNow = GetContestClockNow();
 
@@ -843,8 +845,8 @@ public class PublicRepository : IPublicRepository
             })
             .ToListAsync();
 
-        var userIds = participantIds
-            .Union(submissionStats.Select(item => item.UserId))
+        var userIds = submissionStats
+            .Select(item => item.UserId)
             .Distinct()
             .ToList();
 
@@ -927,7 +929,7 @@ public class PublicRepository : IPublicRepository
 
     public async Task<bool> CanDownloadContestReportCsvAsync(CurrentUser currentUser, int siteId, int contestId)
     {
-        await EnsureContestExistsAsync(siteId, contestId);
+        await GetContestAsync(siteId, contestId);
 
         if (currentUser.SiteId != siteId)
         {
@@ -957,14 +959,15 @@ public class PublicRepository : IPublicRepository
             .ToListAsync();
     }
 
-    public async Task<PublicSubmissionsResponse> GetSubmissionsAsync(int siteId, int page, int pageSize, int? contestId, int? problemId, string? userId, int? languageId, string? statusKey)
+    public async Task<PublicSubmissionsResponse> GetSubmissionsAsync(int siteId, int page, int pageSize, int? contestId, int? problemId, string? userId, int? languageId, string? statusKey, CurrentUser? currentUser = null)
     {
         var baseQuery = OfficialSolutions()
             .Where(solution => solution.SiteId == siteId);
 
         if (contestId.HasValue)
         {
-            await EnsureContestExistsAsync(siteId, contestId.Value);
+            var contest = await GetContestAsync(siteId, contestId.Value);
+            await CheckContestAccessAsync(siteId, contest, currentUser);
             baseQuery = baseQuery.Where(solution => solution.ContestId == contestId.Value);
         }
 
@@ -1165,7 +1168,7 @@ public class PublicRepository : IPublicRepository
         };
     }
 
-    public async Task<PublicSubmissionsResponse> GetRecentSubmissionsAsync(int siteId, int page, int pageSize, int? contestId, long? courseId)
+    public async Task<PublicSubmissionsResponse> GetRecentSubmissionsAsync(int siteId, int page, int pageSize, int? contestId, long? courseId, CurrentUser? currentUser = null)
     {
         if (courseId.HasValue)
         {
@@ -1200,7 +1203,8 @@ public class PublicRepository : IPublicRepository
 
         if (contestId.HasValue)
         {
-            await EnsureContestExistsAsync(siteId, contestId.Value);
+            var contest = await GetContestAsync(siteId, contestId.Value);
+            await CheckContestAccessAsync(siteId, contest, currentUser);
             baseQuery = baseQuery.Where(solution => solution.ContestId == contestId.Value);
         }
 
@@ -1314,7 +1318,7 @@ public class PublicRepository : IPublicRepository
             ? request.ContestId.Value
             : null;
         ContestProblemReference? contestProblem = contestId.HasValue
-            ? await ResolveContestProblemAsync(currentUser.SiteId, contestId.Value, request)
+            ? await ResolveContestProblemAsync(currentUser.SiteId, contestId.Value, request, currentUser)
             : null;
         int resolvedProblemId = contestProblem?.ProblemId ?? request.ProblemId ?? 0;
 
@@ -1341,8 +1345,9 @@ public class PublicRepository : IPublicRepository
 
         if (contestId.HasValue)
         {
-            DbContest contest = await EnsureContestExistsAsync(currentUser.SiteId, contestId.Value);
-            EnsureContestAcceptsSubmissions(contest);
+            DbContest contest = await GetContestAsync(currentUser.SiteId, contestId.Value);
+            await CheckContestAccessAsync(currentUser.SiteId, contest, currentUser);
+            CheckContestOpen(contest);
         }
 
         bool requiresContestProblem = contestId.HasValue
@@ -1398,11 +1403,11 @@ public class PublicRepository : IPublicRepository
         };
     }
 
-    private async Task<ContestProblemReference?> ResolveContestProblemAsync(int siteId, int contestId, PublicSubmissionRequest request)
+    private async Task<ContestProblemReference?> ResolveContestProblemAsync(int siteId, int contestId, PublicSubmissionRequest request, CurrentUser? currentUser = null)
     {
         if (!string.IsNullOrWhiteSpace(request.ContestProblemId))
         {
-            return await ResolveContestProblemReferenceAsync(siteId, contestId, request.ContestProblemId);
+            return await ResolveContestProblemReferenceAsync(siteId, contestId, request.ContestProblemId, currentUser);
         }
 
         IQueryable<DbContestProblem> query = _context.ContestProblems
@@ -1827,9 +1832,10 @@ public class PublicRepository : IPublicRepository
             .ToDictionaryAsync(item => item.ProblemId);
     }
 
-    private async Task<ContestProblemReference> ResolveContestProblemReferenceAsync(int siteId, int contestId, string contestProblemId)
+    private async Task<ContestProblemReference> ResolveContestProblemReferenceAsync(int siteId, int contestId, string contestProblemId, CurrentUser? currentUser = null)
     {
-        await EnsureContestExistsAsync(siteId, contestId);
+        var contest = await GetContestAsync(siteId, contestId);
+        await CheckContestAccessAsync(siteId, contest, currentUser);
 
         if (!ContestProblemCode.TryParse(contestProblemId, out var contestProblemNum))
         {
@@ -1844,7 +1850,7 @@ public class PublicRepository : IPublicRepository
                 && item.Num.HasValue
                 && item.Num.Value == contestProblemNum
                 && problem.ProblemSites!.Any(problemSite => problemSite.SiteId == siteId && problemSite.IsActive)
-                && (problem.Defunct == "N" || problem.Defunct == "Y")
+                && (problem.Defunct == "N" || problem.Defunct == "Y" || problem.Defunct == "O")
             select new ContestProblemReference
             {
                 ContestId = contestId,
@@ -2004,7 +2010,7 @@ public class PublicRepository : IPublicRepository
         return nameof(UserRolesEnum.Invitado);
     }
 
-    private async Task<DbContest> EnsureContestExistsAsync(int siteId, int contestId)
+    private async Task<DbContest> GetContestAsync(int siteId, int contestId)
     {
         var contest = await (
             from contestSite in _context.ContestSites
@@ -2019,6 +2025,40 @@ public class PublicRepository : IPublicRepository
         }
 
         return contest;
+    }
+
+    private async Task CheckContestAccessAsync(int siteId, DbContest contest, CurrentUser? currentUser)
+    {
+        if (contest.Private == 0)
+        {
+            return;
+        }
+
+        if (!await CanAccessPrivateContestAsync(siteId, contest.ContestId, currentUser))
+        {
+            throw new UnauthorizedAccessException("Este concurso es privado.");
+        }
+    }
+
+    private async Task<bool> CanAccessPrivateContestAsync(int siteId, int contestId, CurrentUser? currentUser)
+    {
+        if (currentUser == null || currentUser.SiteId != siteId)
+        {
+            return false;
+        }
+
+        if (currentUser.Role == UserRolesEnum.Administrador
+            || currentUser.Role == UserRolesEnum.Docente
+            || currentUser.Role == UserRolesEnum.Auxiliar)
+        {
+            return true;
+        }
+
+        return await _context.ContestUsers
+            .AnyAsync(item =>
+                item.SiteId == siteId
+                && item.ContestId == contestId
+                && item.UserId == currentUser.UserId);
     }
 
     private async Task<bool> IsContestOwnerAsync(int siteId, int contestId, string? userId)
@@ -2072,7 +2112,7 @@ public class PublicRepository : IPublicRepository
         return "FINISHED";
     }
 
-    private static void EnsureContestAcceptsSubmissions(DbContest contest)
+    private static void CheckContestOpen(DbContest contest)
     {
         var now = GetContestClockNow();
 
