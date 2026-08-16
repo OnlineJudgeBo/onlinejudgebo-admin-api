@@ -348,7 +348,7 @@ public class PublicRepository : IPublicRepository
         var problem = await _context.Problems
             .FirstOrDefaultAsync(item => item.ProblemId == contestProblem.ProblemId
                 && item.ProblemSites!.Any(problemSite => problemSite.SiteId == siteId && problemSite.IsActive)
-                && (item.Defunct == "N" || item.Defunct == "Y"));
+                && (item.Defunct == "N" || item.Defunct == "Y" || item.Defunct == "O"));
 
         if (problem == null)
         {
