@@ -29,11 +29,9 @@ public class ContestService : IContestService
 
     public async Task<IEnumerable<Contest>> GetAllContestAsync(CurrentUser userContextRole)
     {
-        bool showAllContest = false;
-        if (userContextRole.Role == UserRolesEnum.Administrador)
+        if (userContextRole.Role is UserRolesEnum.Administrador or UserRolesEnum.Docente)
         {
-            showAllContest = true;
-            return await _contestRepository.GetContestsByUserIdDocenteRoleAsync(userContextRole.UserId, showAllContest, userContextRole.SiteId);
+            return await _contestRepository.GetContestsByUserIdDocenteRoleAsync(userContextRole.UserId, showAllContest: true, userContextRole.SiteId);
         }
 
         if (userContextRole.Role == UserRolesEnum.Auxiliar)
@@ -41,12 +39,12 @@ public class ContestService : IContestService
             return await _contestRepository.GetContestsByAuxiliarRoleAsync(userContextRole.UserId, userContextRole.SiteId);
         }
 
-        return await _contestRepository.GetContestsByUserIdDocenteRoleAsync(userContextRole.UserId, showAllContest, userContextRole.SiteId);
+        return await _contestRepository.GetContestsByUserIdDocenteRoleAsync(userContextRole.UserId, showAllContest: false, userContextRole.SiteId);
     }
 
-    public async Task<Contest> GetContestById(int contestId)
+    public async Task<Contest> GetContestById(int contestId, int siteId)
     {
-        return await _contestRepository.GetContestByIdAsync(contestId);
+        return await _contestRepository.GetContestByIdAsync(contestId, siteId);
     }
 
     public async Task<Contest> CreateContestAsync(string userIdCreator, Contest contest, string manualUserList, int siteId)
@@ -86,12 +84,12 @@ public class ContestService : IContestService
         }
 
         Contest contestCreated = await _contestRepository.CreateContestAsync(contest, siteId);
-        return await _contestRepository.GetContestByIdAsync(contestCreated.ContestId);
+        return await _contestRepository.GetContestByIdAsync(contestCreated.ContestId, siteId);
     }
 
     public async Task<Contest> UpdateContestAsync(int contestId, Contest contest, string manualUserList, int siteId)
     {
-        var existingContest = await _contestRepository.GetContestByIdAsync(contestId);
+        var existingContest = await _contestRepository.GetContestByIdAsync(contestId, siteId);
 
         if (contestId == 0)
         {
@@ -139,7 +137,7 @@ public class ContestService : IContestService
 
     public async Task PromoteContestAsync(int contestId, int siteId)
     {
-        var existingContest = await _contestRepository.GetContestByIdAsync(contestId);
+        var existingContest = await _contestRepository.GetContestByIdAsync(contestId, siteId);
 
         if (contestId == 0)
         {

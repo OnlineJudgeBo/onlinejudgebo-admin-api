@@ -37,7 +37,7 @@ public class ContestsController : ControllerBase
     [HttpGet("{contestId:int}")]
     public async Task<IActionResult> GetContestById(int contestId)
     {
-        return Ok(await _contestService.GetContestById(contestId));
+        return Ok(await _contestService.GetContestById(contestId, _currentUser.SiteId));
     }
 
     [HttpPost]

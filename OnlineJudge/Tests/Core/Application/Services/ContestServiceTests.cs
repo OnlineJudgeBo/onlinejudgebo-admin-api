@@ -7,7 +7,7 @@ public class ContestServiceTests
 {
     [Theory]
     [InlineData(UserRolesEnum.Administrador, true)]
-    [InlineData(UserRolesEnum.Docente, false)]
+    [InlineData(UserRolesEnum.Docente, true)]
     public async Task GetAllContestAsync_UsesDocenteRepositoryWithExpectedShowAllFlag(UserRolesEnum role, bool showAll)
     {
         var contestRepository = new Mock<IContestsRepository>();
@@ -44,7 +44,7 @@ public class ContestServiceTests
             .Setup(item => item.CreateContestAsync(It.IsAny<Contest>(), 1))
             .Callback<Contest, int>((contest, _) => capturedContest = contest)
             .ReturnsAsync(new Contest { ContestId = 10 });
-        contestRepository.Setup(item => item.GetContestByIdAsync(10)).ReturnsAsync(new Contest { ContestId = 10 });
+        contestRepository.Setup(item => item.GetContestByIdAsync(10, 1)).ReturnsAsync(new Contest { ContestId = 10 });
 
         var userRepository = new Mock<IUserRepository>();
         userRepository.Setup(item => item.GetUserById("owner", 1)).ReturnsAsync(new User { UserId = "owner" });
@@ -94,12 +94,38 @@ public class ContestServiceTests
     public async Task UpdateContestAsync_ThrowsWhenExistingContestDoesNotExist()
     {
         var contestRepository = new Mock<IContestsRepository>();
-        contestRepository.Setup(item => item.GetContestByIdAsync(10)).ReturnsAsync((Contest)null!);
+        contestRepository.Setup(item => item.GetContestByIdAsync(10, 1)).ReturnsAsync((Contest)null!);
         var service = CreateService(contestRepository.Object);
 
         var error = await Assert.ThrowsAsync<ApplicationException>(() => service.UpdateContestAsync(10, new Contest(), string.Empty, 1));
 
         Assert.Equal("Contest does not exist.", error.Message);
+    }
+
+    [Fact]
+    public async Task GetContestById_PassesCallersSiteIdToRepository()
+    {
+        var contestRepository = new Mock<IContestsRepository>();
+        contestRepository.Setup(item => item.GetContestByIdAsync(10, 2)).ReturnsAsync((Contest)null!);
+        var service = CreateService(contestRepository.Object);
+
+        var result = await service.GetContestById(10, 2);
+
+        Assert.Null(result);
+        contestRepository.Verify(item => item.GetContestByIdAsync(10, 2), Times.Once);
+    }
+
+    [Fact]
+    public async Task PromoteContestAsync_RejectsContestFromAnotherSite()
+    {
+        var contestRepository = new Mock<IContestsRepository>();
+        contestRepository.Setup(item => item.GetContestByIdAsync(10, 2)).ReturnsAsync((Contest)null!);
+        var service = CreateService(contestRepository.Object);
+
+        await Assert.ThrowsAsync<ApplicationException>(() => service.PromoteContestAsync(10, 2));
+
+        contestRepository.Verify(item => item.GetContestByIdAsync(10, 2), Times.Once);
+        contestRepository.Verify(item => item.PromoteContestAsync(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
     }
 
 
@@ -108,7 +134,7 @@ public class ContestServiceTests
     {
         Contest? capturedContest = null;
         var contestRepository = new Mock<IContestsRepository>();
-        contestRepository.Setup(item => item.GetContestByIdAsync(10)).ReturnsAsync(new Contest { ContestId = 10 });
+        contestRepository.Setup(item => item.GetContestByIdAsync(10, 1)).ReturnsAsync(new Contest { ContestId = 10 });
         contestRepository
             .Setup(item => item.UpdateContestAsync(10, It.IsAny<Contest>(), 1))
             .Callback<int, Contest, int>((_, contest, _) => capturedContest = contest)
@@ -143,7 +169,7 @@ public class ContestServiceTests
     public async Task PromoteContestAsync_PromotesContestAndItsProblems()
     {
         var contestRepository = new Mock<IContestsRepository>();
-        contestRepository.Setup(item => item.GetContestByIdAsync(10)).ReturnsAsync(new Contest
+        contestRepository.Setup(item => item.GetContestByIdAsync(10, 1)).ReturnsAsync(new Contest
         {
             ContestId = 10,
             ContestProblems = new List<ContestProblem>
