@@ -110,7 +110,7 @@ public class JudgeService : IJudgeService
     public async Task RemoteExecutionAsync(RemoteExecutionRequest request, string userId, int siteId)
     {
 
-        Problem problem = await _problemService.GetProblemByIdAsync(request.JudgeProblemId);
+        Problem problem = await _problemService.GetProblemByIdAsync(request.JudgeProblemId, siteId);
         if (problem == null)
         {
             throw new Exception($"The problem with ID {request.JudgeProblemId} is not a valid id.");

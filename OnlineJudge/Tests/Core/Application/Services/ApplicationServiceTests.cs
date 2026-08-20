@@ -243,7 +243,7 @@ public class ApplicationServiceTests
     public async Task JudgeService_RemoteExecutionAsync_SavesSolutionSourceAndRemoteLink()
     {
         var problemService = new Mock<IProblemService>();
-        problemService.Setup(item => item.GetProblemByIdAsync(1000, null)).ReturnsAsync(new Problem { ProblemId = 1000 });
+        problemService.Setup(item => item.GetProblemByIdAsync(1000, 1)).ReturnsAsync(new Problem { ProblemId = 1000 });
         var userRepository = new Mock<IUserRepository>();
         userRepository.Setup(item => item.GetUserById("student", 1)).ReturnsAsync(new User { UserId = "student" });
         var solutionService = new Mock<ISolutionService>();
