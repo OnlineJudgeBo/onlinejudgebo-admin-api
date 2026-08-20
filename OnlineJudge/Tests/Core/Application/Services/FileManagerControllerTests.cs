@@ -72,6 +72,30 @@ public class FileManagerControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task S3UploadFileContentAsync_StripsPathFromMaliciousFileName()
+    {
+        var fileManagerService = new Mock<IFileManagerService>();
+        fileManagerService.Setup(item => item.S3UploadFileAsync(It.IsAny<string>())).ReturnsAsync("uploaded");
+        var controller = CreateController(fileManagerService: fileManagerService.Object);
+        var file = BuildFormFile("../../../evil.txt", "malicious content");
+        var expectedPath = Path.Combine(Path.GetTempPath(), "evil.txt");
+
+        try
+        {
+            await controller.S3UploadFileContentAsync(file);
+
+            fileManagerService.Verify(item => item.S3UploadFileAsync(expectedPath), Times.Once);
+        }
+        finally
+        {
+            if (File.Exists(expectedPath))
+            {
+                File.Delete(expectedPath);
+            }
+        }
+    }
+
+    [Fact]
     public async Task GetFiles_RejectsProblemThatBelongsToAnotherSite()
     {
         var controller = CreateController(siteId: 1, problemService: ProblemServiceReturning(1000, 1, exists: false));

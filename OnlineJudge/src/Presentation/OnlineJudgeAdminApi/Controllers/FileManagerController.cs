@@ -45,7 +45,7 @@ public class FileManagerController : ControllerBase
             return Content("No file uploaded.");
         }
 
-        var path = Path.Combine(Path.GetTempPath(), "", file.FileName);
+        var path = Path.Combine(Path.GetTempPath(), Path.GetFileName(file.FileName));
 
         using (var stream = new FileStream(path, FileMode.Create))
         {
