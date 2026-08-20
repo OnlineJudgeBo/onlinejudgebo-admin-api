@@ -109,6 +109,15 @@ public sealed class BocaImportController : ControllerBase
 
         foreach (var stagingId in request.StagingIds)
         {
+            // stagingId comes straight from the request body and is used to build a filesystem
+            // path that later gets recursively deleted — only ever accept the "N"-format GUID
+            // /preview hands out, never a path fragment (e.g. "../../etc") from an untrusted caller.
+            if (!Guid.TryParseExact(stagingId, "N", out _))
+            {
+                results.Add(new BocaImportConfirmResult { StagingId = stagingId, Success = false, Error = "Invalid staging id." });
+                continue;
+            }
+
             var stagingDir = Path.Combine(StagingRoot, stagingId);
             var extractDir = Path.Combine(stagingDir, "extracted");
 
