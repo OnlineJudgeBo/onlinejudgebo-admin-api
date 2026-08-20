@@ -243,9 +243,11 @@ public class ProblemRepository : IProblemRepository
         return lastProblemWithDetails;
     }
 
-    public async Task<Problem> UpdateProblemAsync(string userId, int problemId, Problem problemToUpdate)
+    public async Task<Problem> UpdateProblemAsync(string userId, int problemId, Problem problemToUpdate, int siteId)
     {
-        var existingProblem = _context.Problems.FirstOrDefault(p => p.ProblemId == problemId);
+        var existingProblem = _context.Problems
+            .Where(p => p.ProblemSites.Any(site => site.SiteId == siteId && site.IsActive))
+            .FirstOrDefault(p => p.ProblemId == problemId);
         if (existingProblem != null)
         {
             if (string.IsNullOrWhiteSpace(problemToUpdate.Defunct))
@@ -256,7 +258,7 @@ public class ProblemRepository : IProblemRepository
             DbUpdateProblem dbProblem = _mapper.Map<DbUpdateProblem>(problemToUpdate);
             _context.Entry(existingProblem).CurrentValues.SetValues(dbProblem);
             _context.SaveChanges();
-            return await GetProblemByIdAsync(problemId);
+            return await GetProblemByIdAsync(problemId, siteId);
         }
         else
         {
@@ -281,9 +283,10 @@ public class ProblemRepository : IProblemRepository
         await _context.SaveChangesAsync();
     }
 
-    public async Task ChangeProblemVisibilityAsync(int problemId)
+    public async Task ChangeProblemVisibilityAsync(int problemId, int siteId)
     {
         var existingProblem = _context.Problems
+            .Where(p => p.ProblemSites.Any(site => site.SiteId == siteId && site.IsActive))
             .FirstOrDefault(p => p.ProblemId == problemId);
 
         if (existingProblem == null)

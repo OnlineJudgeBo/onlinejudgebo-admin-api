@@ -56,7 +56,7 @@ public class ProblemsController : ControllerBase
         var claimsIdentity = User.Identity as ClaimsIdentity;
         var userIdClaim = claimsIdentity?.FindFirst(ClaimTypes.NameIdentifier);
         string userId = userIdClaim?.Value;
-        return Ok(await _problemService.UpdateProblemAsync(userId, problemId, problem));
+        return Ok(await _problemService.UpdateProblemAsync(userId, problemId, problem, _currentUser.SiteId));
     }
 
     [HttpPost]
@@ -72,7 +72,7 @@ public class ProblemsController : ControllerBase
     [HttpPut("{problemId:int}/visibility")]
     public async Task<IActionResult> ChangeProblemVisibilityAsync(int problemId)
     {
-        await _problemService.ChangeProblemVisibilityAsync(problemId);
+        await _problemService.ChangeProblemVisibilityAsync(problemId, _currentUser.SiteId);
         return Ok();
     }
 

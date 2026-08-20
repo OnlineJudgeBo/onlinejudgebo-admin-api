@@ -85,9 +85,9 @@ public class ProblemService : IProblemService
         return newProblem;
     }
 
-    public async Task<Problem> UpdateProblemAsync(string userId, int problemId, Problem problem)
+    public async Task<Problem> UpdateProblemAsync(string userId, int problemId, Problem problem, int siteId)
     {
-        var existingProblem = await _problemRepository.GetProblemByIdAsync(problemId);
+        var existingProblem = await _problemRepository.GetProblemByIdAsync(problemId, siteId);
         //ValidateUser(user);
 
         if (userId == string.Empty)
@@ -107,7 +107,7 @@ public class ProblemService : IProblemService
         IEnumerable<Classification>? newTopic = problem.Classifications;
         problem.Classifications = null;
 
-        var updateProblem = await _problemRepository.UpdateProblemAsync(userId, problemId, problem);
+        var updateProblem = await _problemRepository.UpdateProblemAsync(userId, problemId, problem, siteId);
         if (updateProblem != null)
         {
             await _topicRepository.AddClassificationsToProblemAsync(updateProblem.ProblemId.Value, newTopic);
@@ -121,9 +121,9 @@ public class ProblemService : IProblemService
         return updateProblem;
     }
 
-    public async Task ChangeProblemVisibilityAsync(int problemId)
+    public async Task ChangeProblemVisibilityAsync(int problemId, int siteId)
     {
-        await _problemRepository.ChangeProblemVisibilityAsync(problemId);
+        await _problemRepository.ChangeProblemVisibilityAsync(problemId, siteId);
     }
 
     public async Task DeleteProblemAsync(int problemId, int siteId)
