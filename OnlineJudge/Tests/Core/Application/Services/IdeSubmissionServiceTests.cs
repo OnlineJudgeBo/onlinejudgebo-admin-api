@@ -8,6 +8,28 @@ using OnlineJudgeAdmin.Core.Domain.Models.IdeIntegration;
 public class IdeSubmissionServiceTests
 {
     [Fact]
+    public async Task SubmitAsync_PreservesAcademicClaims()
+    {
+        var validator = CreateValidator(new IdeLaunchClaims(
+            "student1", 1, 1000, null, null, new[] { 2 }, CourseId: 12, AssignmentId: 34));
+        PublicSubmissionRequest? capturedRequest = null;
+        var publicService = new Mock<IPublicService>();
+        publicService
+            .Setup(item => item.SubmitAsync(It.IsAny<CurrentUser>(), It.IsAny<PublicSubmissionRequest>()))
+            .Callback<CurrentUser, PublicSubmissionRequest>((_, request) => capturedRequest = request)
+            .ReturnsAsync(new PublicSubmissionResponse { SolutionId = 123, LanguageId = 2 });
+        var service = new IdeSubmissionService(validator.Object, publicService.Object, Mock.Of<IIdeCustomInputRepository>());
+
+        await service.SubmitAsync("launch-token", new IdeSubmissionRequest
+        {
+            ProblemId = "1000", SourceCode = "print(42)", LanguageId = 2
+        });
+
+        Assert.Equal(12, capturedRequest!.CourseId);
+        Assert.Equal(34, capturedRequest.AssignmentId);
+    }
+
+    [Fact]
     public async Task SubmitAsync_PreservesContestClaimsForContestProblemA()
     {
         var validator = CreateValidator(new IdeLaunchClaims(

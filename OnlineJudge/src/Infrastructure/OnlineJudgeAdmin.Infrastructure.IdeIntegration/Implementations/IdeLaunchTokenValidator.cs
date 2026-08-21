@@ -58,7 +58,9 @@ public sealed class IdeLaunchTokenValidator : IIdeLaunchTokenValidator
             GetInt32(root, "problem_id"),
             GetNullableInt32(root, "contest_id"),
             GetNullableInt32(root, "num"),
-            GetIntArray(root, "allowed_languages"));
+            GetIntArray(root, "allowed_languages"),
+            GetNullableInt64(root, "course_id"),
+            GetNullableInt64(root, "assignment_id"));
     }
 
     private void ValidateSignature(IReadOnlyList<string> tokenParts)
@@ -118,6 +120,13 @@ public sealed class IdeLaunchTokenValidator : IIdeLaunchTokenValidator
     private static long GetInt64(JsonElement root, string propertyName)
     {
         return root.TryGetProperty(propertyName, out var value) && value.TryGetInt64(out var result) ? result : 0;
+    }
+
+    private static long? GetNullableInt64(JsonElement root, string propertyName)
+    {
+        return root.TryGetProperty(propertyName, out var value) && value.ValueKind != JsonValueKind.Null && value.TryGetInt64(out var result)
+            ? result
+            : null;
     }
 
     private static int[] GetIntArray(JsonElement root, string propertyName)

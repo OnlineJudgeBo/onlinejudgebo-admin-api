@@ -6,4 +6,6 @@ public sealed record IdeLaunchClaims(
     int ProblemId,
     int? ContestId,
     int? Num,
-    int[] AllowedLanguages);
+    int[] AllowedLanguages,
+    long? CourseId = null,
+    long? AssignmentId = null);

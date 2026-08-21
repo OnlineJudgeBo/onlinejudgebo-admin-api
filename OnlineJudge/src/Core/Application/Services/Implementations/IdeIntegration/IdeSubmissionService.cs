@@ -121,6 +121,8 @@ public sealed class IdeSubmissionService : IIdeSubmissionService
             ContestId = contestId,
             Num = claims.Num ?? submission.Num,
             ContestProblemId = ResolveContestProblemId(claims, submission, contestId),
+            CourseId = claims.CourseId,
+            AssignmentId = claims.AssignmentId,
             SourceCode = submission.SourceCode,
             LanguageId = ResolveLanguageId(claims, submission),
             ClientIp = submission.ClientIp
