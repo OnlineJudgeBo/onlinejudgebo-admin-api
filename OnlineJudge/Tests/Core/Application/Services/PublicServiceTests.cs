@@ -314,6 +314,20 @@ public class PublicServiceTests
     }
 
     [Fact]
+    public async Task RequestPasswordRecoveryAsync_CompletesSilentlyWhenEmailIsNotRegistered()
+    {
+        var repository = new Mock<IPublicRepository>();
+        repository.Setup(item => item.GetPasswordRecoveryTargetAsync("nobody@example.com", 1)).ReturnsAsync((PublicPasswordRecoveryTarget?)null);
+        var emailService = new Mock<IPasswordRecoveryEmailService>();
+        var service = CreateService(repository.Object, passwordRecoveryEmailService: emailService.Object);
+
+        await service.RequestPasswordRecoveryAsync("nobody@example.com", 1);
+
+        repository.Verify(item => item.SavePasswordRecoveryTokenAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<DateTime>()), Times.Never);
+        emailService.Verify(item => item.SendRecoveryCodeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()), Times.Never);
+    }
+
+    [Fact]
     public async Task ResetPasswordWithRecoveryCodeAsync_RejectsInvalidOrExpiredCode()
     {
         var repository = new Mock<IPublicRepository>();

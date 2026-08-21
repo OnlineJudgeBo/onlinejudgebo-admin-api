@@ -82,10 +82,6 @@ public class PublicAuthController : ControllerBase
             await _publicService.RequestPasswordRecoveryAsync(request.Email, request.SiteId);
             return Ok(new { message = "Revisa tu correo. Te enviamos un código de recuperación." });
         }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(new ErrorDetails { StatusCode = 404, Message = ex.Message });
-        }
         catch (ArgumentException ex)
         {
             return BadRequest(new ErrorDetails { StatusCode = 400, Message = ex.Message });
