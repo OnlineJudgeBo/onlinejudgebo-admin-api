@@ -2,12 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdminApi.DataTransferObjects;
+using OnlineJudgeAdminApi.Helpers;
 
 namespace OnlineJudgeAdminApi.Controllers;
 
 [Route("/api/schedule-management/teachers")]
 [ApiController]
-[Authorize]
+[Authorize(Roles = AuthorizationRoles.AdministradorDocenteAuxiliar)]
 public class TeachersController : ControllerBase
 {
     private readonly IScheduleService _scheduleService;

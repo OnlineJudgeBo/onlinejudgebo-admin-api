@@ -2,12 +2,13 @@ using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
+using OnlineJudgeAdminApi.Helpers;
 
 namespace OnlineJudgeAdminApi.Controllers;
 
 [ApiController]
 [Route("/api/[controller]")]
-[Authorize]
+[Authorize(Roles = AuthorizationRoles.AdministradorDocenteAuxiliar)]
 public class ProgrammingLanguagesController : ControllerBase
 {
     private readonly IProgrammingLanguageService _programmingLanguageService;
