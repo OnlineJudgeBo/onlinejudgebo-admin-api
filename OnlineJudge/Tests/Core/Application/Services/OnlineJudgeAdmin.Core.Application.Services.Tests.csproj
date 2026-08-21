@@ -29,6 +29,7 @@
     <ProjectReference Include="..\..\..\..\src\Core\Application\Validators\OnlineJudgeAdmin.Core.Application.Validators.csproj" />
     <ProjectReference Include="..\..\..\..\src\Infrastructure\OnlineJudgeAdmin.Infrastructure.IdeIntegration\OnlineJudgeAdmin.Infrastructure.IdeIntegration.csproj" />
     <ProjectReference Include="..\..\..\..\src\Infrastructure\OnlineJudgeAdmin.Infrastructure.FileSystemLocalManager\OnlineJudgeAdmin.Infrastructure.FileSystemLocalManager.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Presentation\OnlineJudgeAdminApi\OnlineJudgeAdminApi.csproj" />
   </ItemGroup>
 
 </Project>

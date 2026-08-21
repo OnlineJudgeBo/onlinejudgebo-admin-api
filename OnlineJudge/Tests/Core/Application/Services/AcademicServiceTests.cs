@@ -58,7 +58,7 @@ public class AcademicServiceTests
     {
         AcademicCourseMemberCreationRequest? capturedRequest = null;
         var repository = new Mock<IAcademicRepository>();
-        repository.Setup(item => item.GetCourseAsync(1, 10, "teacher", false)).ReturnsAsync(new AcademicCourseDetail { CourseId = 10 });
+        repository.Setup(item => item.GetCourseAsync(1, 10, "teacher", false)).ReturnsAsync(new AcademicCourseDetail { CourseId = 10, CanManage = true });
         repository
             .Setup(item => item.AddCourseMemberAsync(1, 10, It.IsAny<AcademicCourseMemberCreationRequest>()))
             .Callback<int, long, AcademicCourseMemberCreationRequest>((_, _, request) => capturedRequest = request)
@@ -81,7 +81,7 @@ public class AcademicServiceTests
     {
         AcademicCourseAssignmentCreationRequest? capturedRequest = null;
         var repository = new Mock<IAcademicRepository>();
-        repository.Setup(item => item.GetCourseAsync(1, 10, "teacher", false)).ReturnsAsync(new AcademicCourseDetail { CourseId = 10 });
+        repository.Setup(item => item.GetCourseAsync(1, 10, "teacher", false)).ReturnsAsync(new AcademicCourseDetail { CourseId = 10, CanManage = true });
         repository
             .Setup(item => item.CreateCourseAssignmentAsync(1, 10, "teacher", It.IsAny<AcademicCourseAssignmentCreationRequest>()))
             .Callback<int, long, string, AcademicCourseAssignmentCreationRequest>((_, _, _, request) => capturedRequest = request)
@@ -106,7 +106,7 @@ public class AcademicServiceTests
     public async Task CreateCourseAssignmentAsync_RejectsDueDateBeforeOpenDate()
     {
         var repository = new Mock<IAcademicRepository>();
-        repository.Setup(item => item.GetCourseAsync(1, 10, "teacher", false)).ReturnsAsync(new AcademicCourseDetail { CourseId = 10 });
+        repository.Setup(item => item.GetCourseAsync(1, 10, "teacher", false)).ReturnsAsync(new AcademicCourseDetail { CourseId = 10, CanManage = true });
         var service = new AcademicService(repository.Object);
 
         var error = await Assert.ThrowsAsync<ArgumentException>(() => service.CreateCourseAssignmentAsync(1, 10, CurrentUser(UserRolesEnum.Docente, "teacher"), new AcademicCourseAssignmentCreationRequest
@@ -135,6 +135,21 @@ public class AcademicServiceTests
     }
 
     [Fact]
+    public async Task AddCourseMemberAsync_RejectsTeacherWhoDoesNotOwnTheCourse()
+    {
+        var repository = new Mock<IAcademicRepository>();
+        repository.Setup(item => item.GetCourseAsync(1, 10, "other-teacher", false)).ReturnsAsync(new AcademicCourseDetail { CourseId = 10, CanManage = false });
+        var service = new AcademicService(repository.Object);
+
+        var error = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.AddCourseMemberAsync(1, 10, CurrentUser(UserRolesEnum.Docente, "other-teacher"), new AcademicCourseMemberCreationRequest
+        {
+            UserId = "student"
+        }));
+
+        Assert.Equal("Only the course's teachers, assistants or site administrators can add course members.", error.Message);
+    }
+
+    [Fact]
     public async Task GetStudentProgressAsync_RejectsOtherStudentWhenCurrentUserIsNotManager()
     {
         var repository = new Mock<IAcademicRepository>();
@@ -142,6 +157,18 @@ public class AcademicServiceTests
         var service = new AcademicService(repository.Object);
 
         var error = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.GetStudentProgressAsync(1, 10, "other", CurrentUser(UserRolesEnum.Invitado, "student")));
+
+        Assert.Equal("Only teachers, assistants or owner student can view this progress.", error.Message);
+    }
+
+    [Fact]
+    public async Task GetStudentProgressAsync_RejectsTeacherWhoDoesNotOwnTheCourse()
+    {
+        var repository = new Mock<IAcademicRepository>();
+        repository.Setup(item => item.GetCourseAsync(1, 10, "other-teacher", false)).ReturnsAsync(new AcademicCourseDetail { CourseId = 10, CanManage = false });
+        var service = new AcademicService(repository.Object);
+
+        var error = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.GetStudentProgressAsync(1, 10, "other", CurrentUser(UserRolesEnum.Docente, "other-teacher")));
 
         Assert.Equal("Only teachers, assistants or owner student can view this progress.", error.Message);
     }

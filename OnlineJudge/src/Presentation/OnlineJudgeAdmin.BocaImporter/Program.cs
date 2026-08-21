@@ -11,7 +11,7 @@ using OnlineJudgeAdmin.Infrastructure.Database.DependencyInjection;
 using OnlineJudgeAdmin.Infrastructure.FileSystemLocalManager.DependencyInjection;
 
 const string TemplateFolderName = "problemtemplate";
-// Matches the volume added to the patito-api service in docker-compose.yml — same
+// Matches the volume added to the patito-api service in docker-compose.yml - same
 // destination the admin UI's /boca-import/confirm archives into.
 const string ArchiveRoot = "/boca-archive";
 

@@ -28,6 +28,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet()]
+    [Authorize(Roles = AuthorizationRoles.AdministradorDocenteAuxiliar)]
     public async Task<IActionResult> GetAllUserProfilesAsync([FromQuery] string? searchTerm)
     {
         if (string.IsNullOrWhiteSpace(searchTerm))

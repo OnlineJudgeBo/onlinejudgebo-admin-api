@@ -102,8 +102,8 @@ public class UserService : IUserService
     private static void EnsureUserManager(CurrentUser currentUser, int siteId)
     {
         EnsureSameSite(currentUser, siteId);
-        if (currentUser.Role is not UserRolesEnum.Administrador and not UserRolesEnum.Auxiliar)
-            throw new UnauthorizedAccessException("Solo los administradores o auxiliares pueden consultar usuarios.");
+        if (currentUser.Role is not UserRolesEnum.Administrador and not UserRolesEnum.Auxiliar and not UserRolesEnum.Docente)
+            throw new UnauthorizedAccessException("Only administrators, assistants, or teachers can view users.");
     }
 
     private static string GeneratePasswordHash(string password)

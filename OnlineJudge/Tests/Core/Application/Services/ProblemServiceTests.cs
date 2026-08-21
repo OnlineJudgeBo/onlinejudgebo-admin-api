@@ -89,31 +89,55 @@ public class ProblemServiceTests
     public async Task UpdateProblemAsync_ThrowsWhenUserIdIsEmpty()
     {
         var repository = new Mock<IProblemRepository>();
-        repository.Setup(item => item.GetProblemByIdAsync(1000, null)).ReturnsAsync(new Problem { ProblemId = 1000 });
+        repository.Setup(item => item.GetProblemByIdAsync(1000, 1)).ReturnsAsync(new Problem { ProblemId = 1000 });
         var service = CreateService(repository.Object);
 
-        await Assert.ThrowsAsync<ArgumentNullException>(() => service.UpdateProblemAsync(string.Empty, 1000, new Problem()));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => service.UpdateProblemAsync(string.Empty, 1000, new Problem(), 1));
     }
 
     [Fact]
     public async Task UpdateProblemAsync_ThrowsWhenProblemDoesNotExist()
     {
         var repository = new Mock<IProblemRepository>();
-        repository.Setup(item => item.GetProblemByIdAsync(1000, null)).ReturnsAsync((Problem)null!);
+        repository.Setup(item => item.GetProblemByIdAsync(1000, 1)).ReturnsAsync((Problem)null!);
         var service = CreateService(repository.Object);
 
-        var error = await Assert.ThrowsAsync<ApplicationException>(() => service.UpdateProblemAsync("teacher", 1000, new Problem()));
+        var error = await Assert.ThrowsAsync<ApplicationException>(() => service.UpdateProblemAsync("teacher", 1000, new Problem(), 1));
 
         Assert.Equal("Problem does not exist.", error.Message);
+    }
+
+    [Fact]
+    public async Task UpdateProblemAsync_PassesCallersSiteIdToRepository()
+    {
+        var repository = new Mock<IProblemRepository>();
+        repository.Setup(item => item.GetProblemByIdAsync(1000, 2)).ReturnsAsync((Problem)null!);
+        var service = CreateService(repository.Object);
+
+        await Assert.ThrowsAsync<ApplicationException>(() => service.UpdateProblemAsync("teacher", 1000, new Problem(), 2));
+
+        repository.Verify(item => item.GetProblemByIdAsync(1000, 2), Times.Once);
+        repository.Verify(item => item.UpdateProblemAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<Problem>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ChangeProblemVisibilityAsync_PassesCallersSiteIdToRepository()
+    {
+        var repository = new Mock<IProblemRepository>();
+        var service = CreateService(repository.Object);
+
+        await service.ChangeProblemVisibilityAsync(1000, 2);
+
+        repository.Verify(item => item.ChangeProblemVisibilityAsync(1000, 2), Times.Once);
     }
 
     [Fact]
     public async Task UpdateProblemAsync_ReplacesClassificationsAndSampleFiles()
     {
         var repository = new Mock<IProblemRepository>();
-        repository.Setup(item => item.GetProblemByIdAsync(1000, null)).ReturnsAsync(new Problem { ProblemId = 1000 });
-        repository.Setup(item => item.UpdateProblemAsync("teacher", 1000, It.IsAny<Problem>()))
-            .ReturnsAsync((string _, int _, Problem problem) =>
+        repository.Setup(item => item.GetProblemByIdAsync(1000, 1)).ReturnsAsync(new Problem { ProblemId = 1000 });
+        repository.Setup(item => item.UpdateProblemAsync("teacher", 1000, It.IsAny<Problem>(), 1))
+            .ReturnsAsync((string _, int _, Problem problem, int _) =>
             {
                 problem.ProblemId = 1000;
                 return problem;
@@ -130,7 +154,7 @@ public class ProblemServiceTests
             SampleInput = "in",
             SampleOutput = "out",
             Classifications = classifications
-        });
+        }, 1);
 
         Assert.Equal("General", result.OriginSource);
         topicRepository.Verify(item => item.RemoveAllClassificationsFromProblemAsync(1000), Times.Once);

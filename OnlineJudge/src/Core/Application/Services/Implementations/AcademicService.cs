@@ -251,7 +251,7 @@ public class AcademicService : IAcademicService
 
         var assignment = await _academicRepository.GetCourseAssignmentAsync(siteId, courseId, assignmentId, currentUser.UserId);
         assignment.MemberRole = course.MemberRole;
-        assignment.CanManage = course.CanManage || IsAcademicManager(currentUser);
+        assignment.CanManage = course.CanManage;
         return assignment;
     }
 
@@ -284,7 +284,7 @@ public class AcademicService : IAcademicService
     {
         var course = await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
         var report = await _academicRepository.GetCourseReportAsync(siteId, courseId);
-        report.CanDownloadCsv = course.CanManage || IsAcademicManager(currentUser);
+        report.CanDownloadCsv = course.CanManage;
         return report;
     }
 
@@ -292,7 +292,6 @@ public class AcademicService : IAcademicService
     {
         var course = await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
         if (!course.CanManage
-            && !IsAcademicManager(currentUser)
             && !string.Equals(studentUserId, currentUser.UserId, StringComparison.OrdinalIgnoreCase))
         {
             throw new UnauthorizedAccessException("Only teachers, assistants or owner student can view this progress.");
@@ -498,7 +497,7 @@ public class AcademicService : IAcademicService
 
     private static void EnsureCourseManager(AcademicCourseDetail course, CurrentUser currentUser, string action)
     {
-        if (course.CanManage || IsAcademicManager(currentUser))
+        if (course.CanManage)
         {
             return;
         }

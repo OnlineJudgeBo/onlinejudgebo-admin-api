@@ -4,12 +4,13 @@ using Microsoft.AspNetCore.Mvc;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
 using OnlineJudgeAdminApi.DataTransferObjects;
+using OnlineJudgeAdminApi.Helpers;
 
 namespace OnlineJudgeAdminApi.Controllers;
 
 [ApiController]
 [Route("/api/[controller]")]
-[Authorize]
+[Authorize(Roles = AuthorizationRoles.AdministradorDocenteAuxiliar)]
 public class TopicsController : ControllerBase
 {
     private readonly ITopicService _topicService;

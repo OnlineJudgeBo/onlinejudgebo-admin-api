@@ -90,6 +90,27 @@ public class UserServiceTests
         Assert.Equal("Solo los administradores pueden eliminar usuarios.", error.Message);
     }
 
+    [Fact]
+    public async Task SearchUserProfilesAsync_AllowsTeacher()
+    {
+        var userRepository = new Mock<IUserRepository>();
+        var service = CreateService(userRepository.Object);
+
+        await service.SearchUserProfilesAsync(User("teacher", UserRolesEnum.Docente), "stu", 1);
+
+        userRepository.Verify(item => item.SearchUserProfilesAsync("stu", 1), Times.Once);
+    }
+
+    [Fact]
+    public async Task SearchUserProfilesAsync_RejectsNonPrivilegedRole()
+    {
+        var service = CreateService();
+
+        var error = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.SearchUserProfilesAsync(User("student", UserRolesEnum.Invitado), "stu", 1));
+
+        Assert.Equal("Only administrators, assistants, or teachers can view users.", error.Message);
+    }
+
     private static CurrentUser User(string userId, UserRolesEnum role) =>
         new() { UserId = userId, SiteId = 1, Role = role };
 
