@@ -197,7 +197,13 @@ jobs:
       ${{
         success() &&
         github.event_name != 'pull_request' &&
-        inputs.run_selenium == true
+        (
+          github.event_name == 'push' ||
+          (
+            github.event_name == 'workflow_dispatch' &&
+            inputs.run_selenium == true
+          )
+        )
       }}
 
     timeout-minutes: 180
@@ -208,9 +214,15 @@ jobs:
           GH_TOKEN: ${{ secrets.PATITO_AUTOMATION_TOKEN }}
           WORKFLOW_FILE: selenium-tests.yml
           AUTOMATION_REPO: OnlineJudgeBo/patito-automation-test
-          ENV_NAME: ${{ inputs.env || 'dev' }}
-          TAGS: ${{ inputs.tags || '' }}
-          RESET_DB: ${{ inputs.reset_db || 'true' }}
+
+          ENV_NAME: >-
+            ${{ github.event_name == 'workflow_dispatch' && inputs.env || 'dev' }}
+
+          TAGS: >-
+            ${{ github.event_name == 'workflow_dispatch' && inputs.tags || '' }}
+
+          RESET_DB: >-
+            ${{ github.event_name == 'workflow_dispatch' && inputs.reset_db || true }}
 
         run: |
           set -euo pipefail
@@ -221,7 +233,7 @@ jobs:
             gh run list \
               --repo "$AUTOMATION_REPO" \
               --workflow "$WORKFLOW_FILE" \
-              --limit 20 \
+              --limit 30 \
               --json databaseId \
               --jq '.[].databaseId'
           )"
@@ -239,14 +251,14 @@ jobs:
 
           RUN_ID=""
 
-          for attempt in $(seq 1 20); do
+          for attempt in $(seq 1 30); do
             sleep 10
 
             CURRENT_IDS="$(
               gh run list \
                 --repo "$AUTOMATION_REPO" \
                 --workflow "$WORKFLOW_FILE" \
-                --limit 20 \
+                --limit 30 \
                 --json databaseId \
                 --jq '.[].databaseId'
             )"
@@ -276,6 +288,7 @@ jobs:
   publish-image:
     name: Publish approved backend image
     runs-on: ubuntu-24.04
+
     needs:
       - deploy-backend
       - run-automation-tests
@@ -285,7 +298,14 @@ jobs:
         always() &&
         github.event_name != 'pull_request' &&
         needs.deploy-backend.result == 'success' &&
-        (needs.run-automation-tests.result == 'success' || needs.run-automation-tests.result == 'skipped')
+        (
+          needs.run-automation-tests.result == 'success' ||
+          (
+            github.event_name == 'workflow_dispatch' &&
+            inputs.run_selenium == false &&
+            needs.run-automation-tests.result == 'skipped'
+          )
+        )
       }}
 
     env:
@@ -339,4 +359,5 @@ jobs:
           owner: OnlineJudgeBo
           package-name: onlinejudgebo-admin-api
           package-type: container
-          min-versions-to-keep: ${{ inputs.keep_image_versions || '3' }}
+          min-versions-to-keep: ${{ github.event_name == 'workflow_dispatch' && inputs.keep_image_versions || '3' }}
+          
