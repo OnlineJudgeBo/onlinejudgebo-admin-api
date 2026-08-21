@@ -108,7 +108,7 @@ public class UserServiceTests
 
         var error = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.SearchUserProfilesAsync(User("student", UserRolesEnum.Invitado), "stu", 1));
 
-        Assert.Equal("Solo los administradores, auxiliares o docentes pueden consultar usuarios.", error.Message);
+        Assert.Equal("Only administrators, assistants, or teachers can view users.", error.Message);
     }
 
     private static CurrentUser User(string userId, UserRolesEnum role) =>
