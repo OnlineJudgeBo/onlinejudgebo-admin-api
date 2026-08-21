@@ -31,6 +31,12 @@ on:
         type: boolean
         default: true
 
+      run_selenium:
+        description: 'Ejecutar pruebas Selenium antes de publicar la imagen'
+        required: false
+        type: boolean
+        default: false
+
       keep_image_versions:
         description: 'Cantidad de versiones Docker a conservar en GHCR'
         required: false
@@ -190,7 +196,8 @@ jobs:
     if: >-
       ${{
         success() &&
-        github.event_name != 'pull_request'
+        github.event_name != 'pull_request' &&
+        inputs.run_selenium == true
       }}
 
     timeout-minutes: 180
@@ -270,12 +277,15 @@ jobs:
     name: Publish approved backend image
     runs-on: ubuntu-24.04
     needs:
+      - deploy-backend
       - run-automation-tests
 
     if: >-
       ${{
-        success() &&
-        github.event_name != 'pull_request'
+        always() &&
+        github.event_name != 'pull_request' &&
+        needs.deploy-backend.result == 'success' &&
+        (needs.run-automation-tests.result == 'success' || needs.run-automation-tests.result == 'skipped')
       }}
 
     env:
