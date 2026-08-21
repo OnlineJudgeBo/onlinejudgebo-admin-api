@@ -19,7 +19,7 @@ public class InfrastructureServiceTests
         var issuer = new IdeLaunchTokenIssuer(configuration);
         var validator = new IdeLaunchTokenValidator(configuration);
 
-        var token = issuer.Issue(new IdeLaunchClaims("student1", 1, 1000, 3040, 0, new[] { 2, 3 }));
+        var token = issuer.Issue(new IdeLaunchClaims("student1", 1, 1000, 3040, 0, new[] { 2, 3 }, 12, 34));
         var claims = validator.Validate(token);
 
         Assert.Equal("student1", claims.UserId);
@@ -28,6 +28,8 @@ public class InfrastructureServiceTests
         Assert.Equal(3040, claims.ContestId);
         Assert.Equal(0, claims.Num);
         Assert.Equal(new[] { 2, 3 }, claims.AllowedLanguages);
+        Assert.Equal(12, claims.CourseId);
+        Assert.Equal(34, claims.AssignmentId);
     }
 
     [Fact]

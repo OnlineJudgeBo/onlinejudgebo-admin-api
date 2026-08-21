@@ -42,6 +42,8 @@ public sealed class IdeLaunchTokenIssuer : IIdeLaunchTokenIssuer
             ["problem_id"] = claims.ProblemId,
             ["contest_id"] = claims.ContestId,
             ["num"] = claims.Num,
+            ["course_id"] = claims.CourseId,
+            ["assignment_id"] = claims.AssignmentId,
             ["allowed_languages"] = claims.AllowedLanguages,
             ["exp"] = DateTimeOffset.UtcNow.Add(TokenTtl()).ToUnixTimeSeconds(),
         };
