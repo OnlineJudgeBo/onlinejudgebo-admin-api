@@ -27,19 +27,19 @@ public class ContestService : IContestService
         _userValidation = ProblemValidation ?? throw new ArgumentNullException(nameof(ProblemValidation));
     }
 
-    public async Task<IEnumerable<Contest>> GetAllContestAsync(CurrentUser userContextRole)
+    public async Task<IEnumerable<Contest>> GetAllContestAsync(CurrentUser userContextRole, bool includePromoted = false)
     {
         if (userContextRole.Role is UserRolesEnum.Administrador or UserRolesEnum.Docente)
         {
-            return await _contestRepository.GetContestsByUserIdDocenteRoleAsync(userContextRole.UserId, showAllContest: true, userContextRole.SiteId);
+            return await _contestRepository.GetContestsByUserIdDocenteRoleAsync(userContextRole.UserId, showAllContest: true, userContextRole.SiteId, includePromoted);
         }
 
         if (userContextRole.Role == UserRolesEnum.Auxiliar)
         {
-            return await _contestRepository.GetContestsByAuxiliarRoleAsync(userContextRole.UserId, userContextRole.SiteId);
+            return await _contestRepository.GetContestsByAuxiliarRoleAsync(userContextRole.UserId, userContextRole.SiteId, includePromoted);
         }
 
-        return await _contestRepository.GetContestsByUserIdDocenteRoleAsync(userContextRole.UserId, showAllContest: false, userContextRole.SiteId);
+        return await _contestRepository.GetContestsByUserIdDocenteRoleAsync(userContextRole.UserId, showAllContest: false, userContextRole.SiteId, includePromoted);
     }
 
     public async Task<Contest> GetContestById(int contestId, int siteId)

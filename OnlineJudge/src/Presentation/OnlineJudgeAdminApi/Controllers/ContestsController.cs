@@ -28,10 +28,9 @@ public class ContestsController : ControllerBase
     }
 
     [HttpGet()]
-    public async Task<IActionResult> GetAllContestAsync()
+    public async Task<IActionResult> GetAllContestAsync([FromQuery] bool includePromoted = false)
     {
-
-        return Ok(await _contestService.GetAllContestAsync(_currentUser));
+        return Ok(await _contestService.GetAllContestAsync(_currentUser, includePromoted));
     }
 
     [HttpGet("{contestId:int}")]
