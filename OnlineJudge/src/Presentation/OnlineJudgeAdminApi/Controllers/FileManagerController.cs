@@ -30,7 +30,7 @@ public class FileManagerController : ControllerBase
         _problemService = problemService ?? throw new ArgumentNullException(nameof(problemService));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         _currentUser = (userClaimsHelper ?? throw new ArgumentNullException(nameof(userClaimsHelper))).GetUserContextRole();
-        // Same location IFileSystemLocalManagerManager (and this file's own writes) use —
+        // Same location IFileSystemLocalManagerManager (and this file's own writes) use -
         // this used to be hardcoded to /tmp/zas, disconnected from where problem files
         // (including test data) actually live, so this page always showed empty.
         baseDirectory = configuration["FileSettings:ProblemsFilePath"]
@@ -85,7 +85,7 @@ public class FileManagerController : ControllerBase
         return Path.Combine(baseDirectory, problemId.ToString());
     }
 
-    // Rejects any fileName that would resolve outside problemDirectory (e.g. "../../etc/passwd") —
+    // Rejects any fileName that would resolve outside problemDirectory (e.g. "../../etc/passwd") -
     // Path.Combine alone does not stop ".." segments from escaping the intended directory.
     private static string ResolveFilePath(string problemDirectory, string fileName)
     {

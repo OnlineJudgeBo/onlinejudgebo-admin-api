@@ -326,7 +326,7 @@ public class PublicService : IPublicService
             throw new ArgumentException("Correo electrónico inválido.");
         }
 
-        // Always respond the same way whether or not the email is registered — a distinguishable
+        // Always respond the same way whether or not the email is registered - a distinguishable
         // response here lets an attacker enumerate valid accounts one request at a time.
         var target = await _publicRepository.GetPasswordRecoveryTargetAsync(normalizedEmail, siteId);
         if (target == null)

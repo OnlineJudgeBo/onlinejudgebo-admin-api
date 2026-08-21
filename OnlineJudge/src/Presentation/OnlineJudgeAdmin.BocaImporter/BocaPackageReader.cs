@@ -17,7 +17,7 @@ public sealed record BocaLimits(int TimeLimitSeconds, int MemoryLimitMb);
 // Reads a single BOCA problem package (see boca_problems/problemtemplate for the format).
 // Scope, confirmed with the team before writing this: no test-data import (only the first
 // input/output pair becomes the sample), no special judge (every import is spj="N"
-// regardless of what compare/* does), and description/desc.txt|pdf is copied as-is —
+// regardless of what compare/* does), and description/desc.txt|pdf is copied as-is -
 // a human is expected to refine formatting/math afterwards.
 public static class BocaPackageReader
 {
@@ -39,7 +39,7 @@ public static class BocaPackageReader
             throw new InvalidOperationException($"description/problem.info is missing fullname in {problemDir}");
         }
 
-        // Matches DbProblem's Title column (HasMaxLength(200)) — better a clear error
+        // Matches DbProblem's Title column (HasMaxLength(200)) - better a clear error
         // naming the offending package than a raw MySQL "Data too long" exception.
         if (fullName.Length > 200)
         {
@@ -47,7 +47,7 @@ public static class BocaPackageReader
         }
 
         // The template declares descfile= explicitly, but real BOCA exports we've seen
-        // omit that key — fall back to whatever single non-problem.info file sits in
+        // omit that key - fall back to whatever single non-problem.info file sits in
         // description/ (there's normally exactly one).
         values.TryGetValue("descfile", out var descFile);
         descFile ??= Directory.GetFiles(Path.Combine(problemDir, "description"))
@@ -84,7 +84,7 @@ public static class BocaPackageReader
     // Well under MySQL's 65,535-byte TEXT column limit, generous for an actual sample.
     private const int MaxSampleChars = 20_000;
 
-    // input/<name> paired with output/<name> — a BOCA package doesn't mark which pair is
+    // input/<name> paired with output/<name> - a BOCA package doesn't mark which pair is
     // "the sample", every pair is just a judge test case.
     private static IReadOnlyList<string> GetPairedTestCaseNames(string problemDir)
     {
@@ -111,7 +111,7 @@ public static class BocaPackageReader
             throw new InvalidOperationException($"No matching input/output pair found in {problemDir}");
         }
 
-        // Some are multi-megabyte stress tests — the smallest pair is the best available
+        // Some are multi-megabyte stress tests - the smallest pair is the best available
         // guess at something short and illustrative for the problem statement.
         var sampleName = pairedNames
             .OrderBy(name => new FileInfo(Path.Combine(inputDir, name)).Length)
@@ -126,7 +126,7 @@ public static class BocaPackageReader
                 TruncateSample(input),
                 TruncateSample(output),
                 true,
-                $"every test case is larger than {MaxSampleChars} chars — sample was truncated, replace it with a real example");
+                $"every test case is larger than {MaxSampleChars} chars - sample was truncated, replace it with a real example");
         }
 
         return new BocaSample(input, output, false, null);
@@ -135,7 +135,7 @@ public static class BocaPackageReader
     private static string TruncateSample(string value) =>
         value.Length <= MaxSampleChars ? value : value[..MaxSampleChars] + "\n...(truncated by importer)";
 
-    // All input/output pairs, for writing as the judge's real N.in/N.out test data —
+    // All input/output pairs, for writing as the judge's real N.in/N.out test data -
     // unlike ReadSamplePair, nothing here is truncated or size-limited.
     public static IReadOnlyList<BocaTestCase> ReadAllTestCases(string problemDir)
     {
@@ -149,7 +149,7 @@ public static class BocaPackageReader
             .ToList();
     }
 
-    // Runs every limits/<lang> script (trusted content — these are the problem author's own
+    // Runs every limits/<lang> script (trusted content - these are the problem author's own
     // files, not untrusted user code) and collapses the per-language values to a single
     // time/memory limit via max().
     public static BocaLimits CollectLimits(string problemDir)
