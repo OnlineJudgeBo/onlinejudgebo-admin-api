@@ -77,7 +77,7 @@ public class AcademicRepository : IAcademicRepository
         var membershipRolesByCourse = myMemberships
             .ToDictionary(item => item.CourseId, item => item.Role);
 
-        return await BuildCourseSummariesAsync(courseIds, membershipRolesByCourse, CourseRoleNames.Student, userId);
+        return await BuildCourseSummariesAsync(courseIds, membershipRolesByCourse, CourseRoleNames.Student, userId, canManage: false);
     }
 
     public async Task<IEnumerable<AcademicCourseSummary>> GetManageableCoursesAsync(int siteId, string userId, bool includeAllCourses)
@@ -112,7 +112,7 @@ public class AcademicRepository : IAcademicRepository
             .GroupBy(member => member.CourseId)
             .ToDictionary(group => group.Key, group => group.First().Role);
 
-        return await BuildCourseSummariesAsync(courseIds, membershipRolesByCourse, includeAllCourses ? CourseRoleNames.Admin : CourseRoleNames.Teacher, userId);
+        return await BuildCourseSummariesAsync(courseIds, membershipRolesByCourse, includeAllCourses ? CourseRoleNames.Admin : CourseRoleNames.Teacher, userId, canManage: true);
     }
 
     public async Task<AcademicCourseDetail> CreateCourseAsync(int siteId, string userId, AcademicCourseCreationRequest request)
@@ -250,7 +250,7 @@ public class AcademicRepository : IAcademicRepository
             || string.Equals(effectiveMemberRole, CourseRoleNames.Assistant, StringComparison.OrdinalIgnoreCase)
             || string.Equals(effectiveMemberRole, CourseRoleNames.Admin, StringComparison.OrdinalIgnoreCase);
         var ownerUserId = teacher ?? course.CreatedByUserId ?? userId;
-        var canSeeInviteCode = string.Equals(ownerUserId, userId, StringComparison.OrdinalIgnoreCase);
+        var canSeeInviteCode = canManage || string.Equals(ownerUserId, userId, StringComparison.OrdinalIgnoreCase);
 
         return new AcademicCourseDetail
         {
@@ -2110,7 +2110,8 @@ public class AcademicRepository : IAcademicRepository
         IReadOnlyCollection<long> courseIds,
         IReadOnlyDictionary<long, string> membershipRolesByCourse,
         string fallbackRole,
-        string currentUserId)
+        string currentUserId,
+        bool canManage)
     {
         var courses = await _academicContext.Courses
             .Where(course => courseIds.Contains(course.CourseId))
@@ -2148,7 +2149,7 @@ public class AcademicRepository : IAcademicRepository
                 var ownerUserId = ownerByCourse.TryGetValue(course.CourseId, out var resolvedOwnerUserId)
                     ? resolvedOwnerUserId
                     : course.CreatedByUserId ?? string.Empty;
-                var canSeeInviteCode = string.Equals(ownerUserId, currentUserId, StringComparison.OrdinalIgnoreCase);
+                var canSeeInviteCode = canManage || string.Equals(ownerUserId, currentUserId, StringComparison.OrdinalIgnoreCase);
 
                 return new AcademicCourseSummary
                 {
