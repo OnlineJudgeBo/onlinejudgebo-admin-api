@@ -131,8 +131,6 @@ public class ContestsRepository : IContestsRepository
 
     public async Task<Contest> CreateContestAsync(Contest contest, int siteId)
     {
-        contest.Defunct = "N";
-
         DbContest newContest = _mapper.Map<DbContest>(contest);
 
         var dbContestProblems = new List<DbContestProblem>(newContest.ContestProblems);
@@ -198,7 +196,6 @@ public class ContestsRepository : IContestsRepository
 
     public async Task<Contest> UpdateContestAsync(int contestId, Contest contest, int siteId)
     {
-        contest.Defunct = "N";
         DbContest contestsToUpdate = _mapper.Map<DbContest>(contest);
 
         var existingContest = await _context.Contests

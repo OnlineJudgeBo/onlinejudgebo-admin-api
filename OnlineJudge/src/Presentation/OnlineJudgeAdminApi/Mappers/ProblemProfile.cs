@@ -26,6 +26,7 @@ public class ProblemProfile : Profile
         .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
         .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
         .ForMember(dest => dest.Private, opt => opt.MapFrom(src => src.IsPrivate))
+        .ForMember(dest => dest.Defunct, opt => opt.MapFrom(src => src.IsOfficial ? "O" : "N"))
         .ForMember(dest => dest.ProgrammingLanguages, opt => opt.MapFrom(src => src.selectedLanguages));
 
         CreateMap<ContestForUpdate, Contest>()
@@ -36,6 +37,7 @@ public class ProblemProfile : Profile
         .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
         .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
         .ForMember(dest => dest.Private, opt => opt.MapFrom(src => src.IsPrivate))
+        .ForMember(dest => dest.Defunct, opt => opt.MapFrom(src => src.IsOfficial ? "O" : "N"))
         .ForMember(dest => dest.ProgrammingLanguages, opt => opt.MapFrom(src => src.selectedLanguages));
 
         CreateMap<ProgrammingLanguageForContestCreation, ProgrammingLanguage>()
