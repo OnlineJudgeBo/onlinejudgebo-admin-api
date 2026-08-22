@@ -198,7 +198,7 @@ jobs:
         success() &&
         github.event_name != 'pull_request' &&
         (
-          github.event_name == 'push' ||
+          (github.event_name == 'push' && vars.RUN_SELENIUM_ON_PUSH == 'true') ||
           (
             github.event_name == 'workflow_dispatch' &&
             inputs.run_selenium == true
@@ -300,11 +300,7 @@ jobs:
         needs.deploy-backend.result == 'success' &&
         (
           needs.run-automation-tests.result == 'success' ||
-          (
-            github.event_name == 'workflow_dispatch' &&
-            inputs.run_selenium == false &&
-            needs.run-automation-tests.result == 'skipped'
-          )
+          needs.run-automation-tests.result == 'skipped'
         )
       }}
 
