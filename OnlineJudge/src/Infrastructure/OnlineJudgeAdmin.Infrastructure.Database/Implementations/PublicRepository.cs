@@ -10,7 +10,6 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.Implementations;
 public class PublicRepository : IPublicRepository
 {
     private const short AcceptedResultCode = 4;
-    private static readonly TimeZoneInfo ContestTimeZone = ResolveContestTimeZone();
 
     private readonly AppDbContext _context;
     private readonly AcademicCatalogDbContext _academicContext;
@@ -29,7 +28,7 @@ public class PublicRepository : IPublicRepository
     public async Task<PublicDashboardResponse> GetDashboardAsync(int siteId)
     {
         var generatedAtUtc = DateTime.Now;
-        var contestNow = GetContestClockNow();
+        var contestNow = DateTime.Now;
         var fromDate = generatedAtUtc.AddDays(-30);
 
         var problemCount = await _context.ProblemSites.CountAsync(problemSite => problemSite.SiteId == siteId && problemSite.IsActive);
@@ -692,7 +691,7 @@ public class PublicRepository : IPublicRepository
     public async Task<PublicContestsResponse> GetContestsAsync(int siteId, string? status, string? level, string? sortBy, int page, int pageSize, string? searchTerm)
     {
         var updatedAtUtc = DateTime.Now;
-        var contestNow = GetContestClockNow();
+        var contestNow = DateTime.Now;
         var normalizedStatus = (status?.Trim().ToLowerInvariant() ?? "all") switch
         {
             "active" => "ACTIVE",
@@ -749,7 +748,7 @@ public class PublicRepository : IPublicRepository
         var items = contests
             .Select(contest =>
             {
-                var computedStatus = ComputeContestStatus(contest.StartTimeUtc, contest.EndTimeUtc, contestNow);
+                var computedStatus = ComputeContestStatus(contest.StartTimeUtc, contest.EndTimeUtc, contestNow, contest.IsPromoted);
                 var computedTrack = string.IsNullOrWhiteSpace(contest.Track) ? "GENERAL" : contest.Track;
                 var computedLevel = string.IsNullOrWhiteSpace(contest.Level)
                     ? "PRACTICE"
@@ -823,7 +822,7 @@ public class PublicRepository : IPublicRepository
         var contest = await GetContestAsync(siteId, contestId);
         await CheckContestAccessAsync(siteId, contest, currentUser);
         var generatedAtUtc = DateTime.Now;
-        var contestNow = GetContestClockNow();
+        var contestNow = DateTime.Now;
 
         var problemCount = await _context.ContestProblems
             .Where(item => item.ContestId == contestId)
@@ -920,14 +919,14 @@ public class PublicRepository : IPublicRepository
             Title = string.IsNullOrWhiteSpace(contest.Title) ? $"Contest #{contest.ContestId}" : contest.Title,
             StartTimeUtc = contest.StartTime,
             EndTimeUtc = contest.EndTime,
-            Status = ComputeContestStatus(contest.StartTime, contest.EndTime, contestNow),
+            Status = ComputeContestStatus(contest.StartTime, contest.EndTime, contestNow, isPromotedContest),
             Track = contestTrack,
             Level = contestLevel,
             SiteId = siteId,
             GeneratedAtUtc = generatedAtUtc,
             DurationMinutes = Math.Max(1, (int)Math.Round((contest.EndTime - contest.StartTime).TotalMinutes)),
             IsPrivate = contest.Private != 0,
-            IsPromoted = contest.Defunct == "O",
+            IsPromoted = isPromotedContest,
             ProblemCount = problemCount,
             ParticipantCount = participantIds.Count,
             TotalSubmissions = submissionStats.Sum(item => item.Submissions),
@@ -2132,14 +2131,15 @@ public class PublicRepository : IPublicRepository
         return "HARD";
     }
 
-    private static string ComputeContestStatus(DateTime startTimeUtc, DateTime endTimeUtc, DateTime nowUtc)
+    private static string ComputeContestStatus(DateTime startTimeUtc, DateTime endTimeUtc, DateTime nowUtc, bool isPromoted = false)
     {
         if (startTimeUtc > nowUtc)
         {
             return "UPCOMING";
         }
 
-        if (endTimeUtc >= nowUtc)
+        // Un contest oficial/promovido (defunct == "O") es de práctica abierta: una vez que arranca, no vence.
+        if (isPromoted || endTimeUtc >= nowUtc)
         {
             return "ACTIVE";
         }
@@ -2154,7 +2154,7 @@ public class PublicRepository : IPublicRepository
             return;
         }
 
-        var now = GetContestClockNow();
+        var now = DateTime.Now;
 
         if (contest.StartTime > now)
         {
@@ -2165,30 +2165,6 @@ public class PublicRepository : IPublicRepository
         {
             throw new InvalidOperationException("Este concurso ya finalizó y no acepta envíos.");
         }
-    }
-
-    private static DateTime GetContestClockNow()
-    {
-        return TimeZoneInfo.ConvertTime(DateTime.Now, ContestTimeZone);
-    }
-
-    private static TimeZoneInfo ResolveContestTimeZone()
-    {
-        foreach (var timeZoneId in new[] { "America/La_Paz", "SA Western Standard Time" })
-        {
-            try
-            {
-                return TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-            }
-            catch (TimeZoneNotFoundException)
-            {
-            }
-            catch (InvalidTimeZoneException)
-            {
-            }
-        }
-
-        return TimeZoneInfo.Local;
     }
 
     private async Task<PublicSubmissionsResponse> BuildSubmissionsResponseAsync(
