@@ -196,7 +196,7 @@ public class ProblemPackageService : IProblemPackageService
                 if (comma > 0)
                 {
                     var header = src[5..comma]; // e.g. "image/png;base64"
-                    extension = header.Split(';')[0].Split('/').LastOrDefault() ?? "bin";
+                    extension = MimeTypeToExtension(header.Split(';')[0]);
                     try
                     {
                         bytes = Convert.FromBase64String(src[(comma + 1)..]);
@@ -211,11 +211,21 @@ public class ProblemPackageService : IProblemPackageService
             {
                 try
                 {
-                    bytes = await httpClient.GetByteArrayAsync(src);
-                    extension = Path.GetExtension(new Uri(src).AbsolutePath).TrimStart('.');
-                    if (string.IsNullOrWhiteSpace(extension))
+                    using var response = await httpClient.GetAsync(src);
+                    response.EnsureSuccessStatusCode();
+                    bytes = await response.Content.ReadAsByteArrayAsync();
+
+                    // Prefer the real Content-Type over guessing from the URL path - lots of
+                    // image-serving endpoints (uploads, S3, a custom /files/{id}) have no
+                    // extension in the path at all, which used to fall through to ".bin".
+                    extension = MimeTypeToExtension(response.Content.Headers.ContentType?.MediaType);
+                    if (extension == "bin")
                     {
-                        extension = "bin";
+                        var pathExtension = Path.GetExtension(new Uri(src).AbsolutePath).TrimStart('.');
+                        if (!string.IsNullOrWhiteSpace(pathExtension))
+                        {
+                            extension = pathExtension.ToLowerInvariant();
+                        }
                     }
                 }
                 catch (Exception)
@@ -236,6 +246,22 @@ public class ProblemPackageService : IProblemPackageService
         }
 
         return (html, images);
+    }
+
+    // Normalizes a MIME type's subtype into a file extension. Falls back to the subtype itself
+    // for anything not explicitly listed (e.g. "tiff" -> "tiff"), and only gives up to "bin"
+    // when there's truly no usable type at all.
+    private static string MimeTypeToExtension(string? mimeType)
+    {
+        var subtype = mimeType?.Trim().ToLowerInvariant().Split('/').LastOrDefault();
+        return subtype switch
+        {
+            null or "" or "octet-stream" => "bin",
+            "jpeg" => "jpg",
+            "svg+xml" => "svg",
+            "vnd.microsoft.icon" or "x-icon" => "ico",
+            _ => subtype,
+        };
     }
 
     private static readonly Regex TagPattern = new("<[^>]+>", RegexOptions.Compiled);

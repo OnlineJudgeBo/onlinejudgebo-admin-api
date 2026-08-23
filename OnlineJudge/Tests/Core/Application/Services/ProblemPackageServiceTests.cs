@@ -179,6 +179,36 @@ public class ProblemPackageServiceTests
         Assert.DoesNotContain(base64, html);
     }
 
+    [Theory]
+    [InlineData("image/png", "png")]
+    [InlineData("image/jpeg", "jpg")]
+    [InlineData("image/svg+xml", "svg")]
+    [InlineData("image/webp", "webp")]
+    public async Task ExportProblemPackageAsync_MapsCommonMimeTypesToConventionalExtensions(string mimeType, string expectedExtension)
+    {
+        var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes("bytes"));
+        var problem = BuildProblem(problemId: 5);
+        problem.Description = $"<img src=\"data:{mimeType};base64,{base64}\">";
+        var service = CreateService(StubProblemService(5, problem));
+
+        var zip = await service.ExportProblemPackageAsync(5, 1);
+
+        Assert.NotNull(FindEntry(zip, $"statement/es/img/1.{expectedExtension}"));
+    }
+
+    [Fact]
+    public async Task ExportProblemPackageAsync_FallsBackToBinOnlyWhenMimeTypeIsMissingOrGeneric()
+    {
+        var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes("bytes"));
+        var problem = BuildProblem(problemId: 5);
+        problem.Description = $"<img src=\"data:application/octet-stream;base64,{base64}\">";
+        var service = CreateService(StubProblemService(5, problem));
+
+        var zip = await service.ExportProblemPackageAsync(5, 1);
+
+        Assert.NotNull(FindEntry(zip, "statement/es/img/1.bin"));
+    }
+
     [Fact]
     public async Task ExportProblemPackageAsync_DeduplicatesRepeatedIdenticalImageSource()
     {
