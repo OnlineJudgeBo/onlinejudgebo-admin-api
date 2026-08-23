@@ -71,7 +71,7 @@ public class ProblemPackageService : IProblemPackageService
 
     private void CopySecretTestData(ZipArchive archive, int problemId)
     {
-        var files = _fileManager.ListFiles(problemId.ToString());
+        var files = _fileManager.ListFiles(problemId.ToString()) ?? Array.Empty<string>();
         foreach (var fileName in files)
         {
             if (fileName.Equals("sample.in", StringComparison.OrdinalIgnoreCase) ||
@@ -147,6 +147,7 @@ public class ProblemPackageService : IProblemPackageService
     private static async Task<(string Html, List<(string Name, byte[] Bytes)> Images)> ExtractImagesAsync(string html)
     {
         var images = new List<(string, byte[])>();
+        var seen = new HashSet<string>(); // avoid re-fetching/duplicating an identical src repeated in the same statement
         var index = 0;
         using var httpClient = new HttpClient();
 
@@ -154,6 +155,11 @@ public class ProblemPackageService : IProblemPackageService
         foreach (Match match in matches)
         {
             var src = match.Groups["src"].Value;
+            if (!seen.Add(src))
+            {
+                continue;
+            }
+
             byte[]? bytes = null;
             string extension = "bin";
 
@@ -333,7 +339,13 @@ public class ProblemPackageService : IProblemPackageService
         }
 
         var num = 1;
-        foreach (var inputFile in Directory.GetFiles(sampleDir, "*.in").OrderBy(f => f))
+        // ponytail: numeric-first ordering, not plain string sort - "10.in" must sort after
+        // "9.in", not between "1.in" and "2.in" (string sort would scramble 10+ sample cases,
+        // which is exactly what our own exporter's data/sample/{n}.in naming produces).
+        var orderedInputFiles = Directory.GetFiles(sampleDir, "*.in")
+            .OrderBy(f => int.TryParse(Path.GetFileNameWithoutExtension(f), out var n) ? n : int.MaxValue)
+            .ThenBy(f => f, StringComparer.Ordinal);
+        foreach (var inputFile in orderedInputFiles)
         {
             var answerFile = Path.ChangeExtension(inputFile, ".ans");
             samples.Add(new ProblemSample
