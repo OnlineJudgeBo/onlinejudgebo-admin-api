@@ -32,5 +32,25 @@ public class FileSystemLocalManagerManager : IFileSystemLocalManagerManager
             Directory.CreateDirectory(path);
         }
     }
+
+    public IReadOnlyList<string> ListFiles(string folderName)
+    {
+        string path = _path + Path.DirectorySeparatorChar + folderName;
+        if (!Directory.Exists(path))
+        {
+            return Array.Empty<string>();
+        }
+
+        return Directory.GetFiles(path, "*", SearchOption.TopDirectoryOnly)
+            .Select(Path.GetFileName)
+            .ToList()!;
+    }
+
+    public byte[] ReadFile(string folderName, string fileName)
+    {
+        string path = _path + Path.DirectorySeparatorChar
+                    + folderName + Path.DirectorySeparatorChar + fileName;
+        return File.ReadAllBytes(path);
+    }
 }
 
