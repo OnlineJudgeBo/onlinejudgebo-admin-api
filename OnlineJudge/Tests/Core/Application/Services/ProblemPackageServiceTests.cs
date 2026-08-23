@@ -93,6 +93,35 @@ public class ProblemPackageServiceTests
     }
 
     [Fact]
+    public async Task ExportProblemPackageAsync_FallsBackToLegacySampleInputOutputWhenNoSampleCasesRows()
+    {
+        var problem = BuildProblem(problemId: 5);
+        problem.SampleCases = new List<ProblemSample>(); // pre-existing problem, no problem_sample_case rows
+        problem.SampleInput = "legacy-in";
+        problem.SampleOutput = "legacy-out";
+        var service = CreateService(StubProblemService(5, problem));
+
+        var zip = await service.ExportProblemPackageAsync(5, 1);
+
+        Assert.Equal("legacy-in", ReadEntryText(zip, "data/sample/1.in"));
+        Assert.Equal("legacy-out", ReadEntryText(zip, "data/sample/1.ans"));
+    }
+
+    [Fact]
+    public async Task ExportProblemPackageAsync_WritesNoSampleFilesWhenNeitherSampleCasesNorLegacyFieldsExist()
+    {
+        var problem = BuildProblem(problemId: 5);
+        problem.SampleCases = new List<ProblemSample>();
+        problem.SampleInput = null;
+        problem.SampleOutput = null;
+        var service = CreateService(StubProblemService(5, problem));
+
+        var zip = await service.ExportProblemPackageAsync(5, 1);
+
+        Assert.Null(FindEntry(zip, "data/sample/1.in"));
+    }
+
+    [Fact]
     public async Task ExportProblemPackageAsync_CopiesSecretTestData_ExcludesSampleFiles_RenamesOutToAns()
     {
         var problem = BuildProblem(problemId: 5);

@@ -48,7 +48,7 @@ public class ProblemPackageService : IProblemPackageService
             WriteEntry(archive, "problem.yaml", BuildProblemYaml(problem));
             WriteEntry(archive, "metadata.json", BuildMetadataJson(problem));
 
-            foreach (var sample in problem.SampleCases.OrderBy(s => s.Num))
+            foreach (var sample in GetSampleCasesWithLegacyFallback(problem))
             {
                 WriteEntry(archive, $"data/sample/{sample.Num}.in", sample.Input ?? string.Empty);
                 WriteEntry(archive, $"data/sample/{sample.Num}.ans", sample.Output ?? string.Empty);
@@ -67,6 +67,28 @@ public class ProblemPackageService : IProblemPackageService
         }
 
         return stream.ToArray();
+    }
+
+    // Problems created before the problem_sample_case table existed only have the legacy flat
+    // sample_input/sample_output pair on `problem` - same fallback PublicRepository.GetProblemDetailAsync
+    // already applies for the public-facing statement, kept here so export doesn't silently drop
+    // the sample for every pre-existing problem.
+    private static IEnumerable<ProblemSample> GetSampleCasesWithLegacyFallback(Problem problem)
+    {
+        if (problem.SampleCases.Count > 0)
+        {
+            return problem.SampleCases.OrderBy(s => s.Num);
+        }
+
+        if (string.IsNullOrWhiteSpace(problem.SampleInput) && string.IsNullOrWhiteSpace(problem.SampleOutput))
+        {
+            return Enumerable.Empty<ProblemSample>();
+        }
+
+        return new[]
+        {
+            new ProblemSample { Num = 1, Input = problem.SampleInput ?? string.Empty, Output = problem.SampleOutput ?? string.Empty },
+        };
     }
 
     private void CopySecretTestData(ZipArchive archive, int problemId)
