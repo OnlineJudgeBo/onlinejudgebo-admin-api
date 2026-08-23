@@ -87,9 +87,9 @@ public class ProblemPackageServiceTests
         var zip = await service.ExportProblemPackageAsync(5, 1);
 
         Assert.Equal("in-1", ReadEntryText(zip, "data/sample/1.in"));
-        Assert.Equal("out-1", ReadEntryText(zip, "data/sample/1.ans"));
+        Assert.Equal("out-1", ReadEntryText(zip, "data/sample/1.out"));
         Assert.Equal("in-2", ReadEntryText(zip, "data/sample/2.in"));
-        Assert.Equal("out-2", ReadEntryText(zip, "data/sample/2.ans"));
+        Assert.Equal("out-2", ReadEntryText(zip, "data/sample/2.out"));
     }
 
     [Fact]
@@ -104,7 +104,7 @@ public class ProblemPackageServiceTests
         var zip = await service.ExportProblemPackageAsync(5, 1);
 
         Assert.Equal("legacy-in", ReadEntryText(zip, "data/sample/1.in"));
-        Assert.Equal("legacy-out", ReadEntryText(zip, "data/sample/1.ans"));
+        Assert.Equal("legacy-out", ReadEntryText(zip, "data/sample/1.out"));
     }
 
     [Fact]
@@ -122,7 +122,7 @@ public class ProblemPackageServiceTests
     }
 
     [Fact]
-    public async Task ExportProblemPackageAsync_CopiesSecretTestData_ExcludesSampleFiles_RenamesOutToAns()
+    public async Task ExportProblemPackageAsync_CopiesSecretTestData_ExcludesSampleFiles_KeepsJudgeNativeExtensions()
     {
         var problem = BuildProblem(problemId: 5);
         var fileManager = new Mock<IFileSystemLocalManagerManager>();
@@ -136,7 +136,7 @@ public class ProblemPackageServiceTests
         var zip = await service.ExportProblemPackageAsync(5, 1);
 
         Assert.Equal("secret-in", ReadEntryText(zip, "data/secret/1.in"));
-        Assert.Equal("secret-out", ReadEntryText(zip, "data/secret/1.ans"));
+        Assert.Equal("secret-out", ReadEntryText(zip, "data/secret/1.out"));
         Assert.Equal("notes", ReadEntryText(zip, "data/secret/checker-notes.txt"));
         Assert.Null(FindEntry(zip, "data/secret/sample.in"));
         Assert.Null(FindEntry(zip, "data/secret/sample.out"));
@@ -267,9 +267,9 @@ public class ProblemPackageServiceTests
                 ClassificationIds = new[] { 3 },
             });
             entries["data/sample/1.in"] = "sample-in";
-            entries["data/sample/1.ans"] = "sample-out";
+            entries["data/sample/1.out"] = "sample-out";
             entries["data/secret/1.in"] = "secret-in";
-            entries["data/secret/1.ans"] = "secret-out";
+            entries["data/secret/1.out"] = "secret-out";
         });
 
         using var stream = new MemoryStream(zipBytes);
@@ -340,11 +340,11 @@ public class ProblemPackageServiceTests
         var zipBytes = BuildZip(entries =>
         {
             entries["data/sample/1.in"] = "one";
-            entries["data/sample/1.ans"] = "one-a";
+            entries["data/sample/1.out"] = "one-a";
             entries["data/sample/2.in"] = "two";
-            entries["data/sample/2.ans"] = "two-a";
+            entries["data/sample/2.out"] = "two-a";
             entries["data/sample/10.in"] = "ten";
-            entries["data/sample/10.ans"] = "ten-a";
+            entries["data/sample/10.out"] = "ten-a";
         });
 
         using var stream = new MemoryStream(zipBytes);
@@ -356,6 +356,35 @@ public class ProblemPackageServiceTests
         Assert.Equal("one", samples[0].Input);
         Assert.Equal("two", samples[1].Input);
         Assert.Equal("ten", samples[2].Input);
+    }
+
+    [Fact]
+    public async Task ImportProblemPackageAsync_AcceptsAnsExtensionFromGenuineThirdPartyIcpcPackages()
+    {
+        var problemService = new Mock<IProblemService>();
+        Problem? captured = null;
+        problemService
+            .Setup(item => item.CreateProblemAsync(It.IsAny<string>(), It.IsAny<Problem>(), It.IsAny<int>()))
+            .Callback<string, Problem, int>((_, problem, _) => captured = problem)
+            .ReturnsAsync((string _, Problem problem, int _) => { problem.ProblemId = 13; return problem; });
+        var fileManager = new Mock<IFileSystemLocalManagerManager>();
+        var service = CreateService(problemService.Object, fileManager.Object);
+
+        var zipBytes = BuildZip(entries =>
+        {
+            entries["data/sample/1.in"] = "sample-in";
+            entries["data/sample/1.ans"] = "sample-out";
+            entries["data/secret/1.in"] = "secret-in";
+            entries["data/secret/1.ans"] = "secret-out";
+        });
+
+        using var stream = new MemoryStream(zipBytes);
+        await service.ImportProblemPackageAsync("teacher", stream, 1);
+
+        Assert.NotNull(captured);
+        var sample = Assert.Single(captured!.SampleCases);
+        Assert.Equal("sample-out", sample.Output);
+        fileManager.Verify(item => item.WriteToFile("13", "1.out", "secret-out"), Times.Once);
     }
 
     [Fact]

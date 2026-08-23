@@ -9,7 +9,7 @@ using OnlineJudgeAdmin.Core.Domain.Models;
 namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
 
 // Builds/reads an ICPC Problem Package (https://icpc.io/problem-package-format) zip.
-// Two deliberate deviations from the pure standard, both documented in ARCHITECTURE.md:
+// Three deliberate deviations from the pure standard, all documented in ARCHITECTURE.md:
 // - metadata.json (non-standard) carries every DB field verbatim, and is the actual
 //   round-trip source when re-importing into this same system - statement/<lang>/problem.md
 //   and problem.html are a best-effort, portable *rendition* for viewing elsewhere, not
@@ -17,6 +17,11 @@ namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
 // - Spj=='Y' problems can't be exported: onlinejudge-kernel's "spj" binary uses HUSTOJ's own
 //   ABI (spj input output user_output), not the ICPC output_validator interface, and shipping
 //   the raw binary with a `validation: default` lie would be worse than refusing.
+// - data/sample and data/secret keep the judge's own "<n>.in"/"<n>.out" names instead of
+//   ICPC's "<n>.ans" for the answer file: these files are meant to be reusable directly
+//   against onlinejudge-kernel's data/{problem_id}/ layout, by explicit request - not just
+//   against ICPC-compliant tooling. Import still accepts ".ans" too, for genuine third-party
+//   ICPC packages.
 public class ProblemPackageService : IProblemPackageService
 {
     private const string StatementLanguage = "es";
@@ -51,7 +56,7 @@ public class ProblemPackageService : IProblemPackageService
             foreach (var sample in GetSampleCasesWithLegacyFallback(problem))
             {
                 WriteEntry(archive, $"data/sample/{sample.Num}.in", sample.Input ?? string.Empty);
-                WriteEntry(archive, $"data/sample/{sample.Num}.ans", sample.Output ?? string.Empty);
+                WriteEntry(archive, $"data/sample/{sample.Num}.out", sample.Output ?? string.Empty);
             }
 
             CopySecretTestData(archive, problemId);
@@ -103,11 +108,11 @@ public class ProblemPackageService : IProblemPackageService
             }
 
             var bytes = _fileManager.ReadFile(problemId.ToString(), fileName);
-            var targetName = fileName.EndsWith(".out", StringComparison.OrdinalIgnoreCase)
-                ? Path.GetFileNameWithoutExtension(fileName) + ".ans"
-                : fileName;
 
-            WriteEntry(archive, $"data/secret/{targetName}", bytes);
+            // Keep the judge's own file name/extension (.in/.out) instead of ICPC's .ans -
+            // these files are meant to be reusable directly against onlinejudge-kernel's
+            // data/{problem_id}/ layout, not just against ICPC-compliant tooling.
+            WriteEntry(archive, $"data/secret/{fileName}", bytes);
         }
     }
 
@@ -369,7 +374,11 @@ public class ProblemPackageService : IProblemPackageService
             .ThenBy(f => f, StringComparer.Ordinal);
         foreach (var inputFile in orderedInputFiles)
         {
-            var answerFile = Path.ChangeExtension(inputFile, ".ans");
+            // Our own exports write "<n>.out" (the judge's native extension); a genuine
+            // third-party ICPC package uses "<n>.ans" instead - accept either.
+            var outFile = Path.ChangeExtension(inputFile, ".out");
+            var ansFile = Path.ChangeExtension(inputFile, ".ans");
+            var answerFile = File.Exists(outFile) ? outFile : ansFile;
             samples.Add(new ProblemSample
             {
                 Num = num++,
