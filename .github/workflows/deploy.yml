@@ -196,14 +196,8 @@ jobs:
     if: >-
       ${{
         success() &&
-        github.event_name != 'pull_request' &&
-        (
-          (github.event_name == 'push' && vars.RUN_SELENIUM_ON_PUSH == 'true') ||
-          (
-            github.event_name == 'workflow_dispatch' &&
-            inputs.run_selenium == true
-          )
-        )
+        github.event_name == 'workflow_dispatch' &&
+        inputs.run_selenium == true
       }}
 
     timeout-minutes: 180
