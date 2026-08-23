@@ -18,6 +18,8 @@ public class ProblemForCreation
 
     public string SampleOutput { get; set; } = String.Empty;
 
+    public virtual ICollection<ProblemSampleCaseForCreation>? SampleCases { get; set; }
+
     public string Spj { get; set; } = "N";
 
     public string Hint { get; set; } = String.Empty;

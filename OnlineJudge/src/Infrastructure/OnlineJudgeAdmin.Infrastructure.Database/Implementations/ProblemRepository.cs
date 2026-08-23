@@ -209,6 +209,13 @@ public class ProblemRepository : IProblemRepository
                         Title = c.Contest.Title,
                         EndTime = c.Contest.EndTime
                     }
+                }).ToList(),
+                SampleCases = p.SampleCases.OrderBy(s => s.Num).Select(s => new DbProblemSample
+                {
+                    ProblemId = s.ProblemId,
+                    Num = s.Num,
+                    Input = s.Input,
+                    Output = s.Output
                 }).ToList()
             }).FirstOrDefaultAsync();
         return _mapper.Map<Problem>(problem);
@@ -246,6 +253,7 @@ public class ProblemRepository : IProblemRepository
     public async Task<Problem> UpdateProblemAsync(string userId, int problemId, Problem problemToUpdate, int siteId)
     {
         var existingProblem = _context.Problems
+            .Include(p => p.SampleCases)
             .Where(p => p.ProblemSites.Any(site => site.SiteId == siteId && site.IsActive))
             .FirstOrDefault(p => p.ProblemId == problemId);
         if (existingProblem != null)
@@ -257,6 +265,19 @@ public class ProblemRepository : IProblemRepository
 
             DbUpdateProblem dbProblem = _mapper.Map<DbUpdateProblem>(problemToUpdate);
             _context.Entry(existingProblem).CurrentValues.SetValues(dbProblem);
+
+            existingProblem.SampleCases.Clear();
+            foreach (var sample in problemToUpdate.SampleCases)
+            {
+                existingProblem.SampleCases.Add(new DbProblemSample
+                {
+                    ProblemId = problemId,
+                    Num = sample.Num,
+                    Input = sample.Input,
+                    Output = sample.Output
+                });
+            }
+
             _context.SaveChanges();
             return await GetProblemByIdAsync(problemId, siteId);
         }

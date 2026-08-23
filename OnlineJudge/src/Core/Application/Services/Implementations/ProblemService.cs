@@ -67,6 +67,7 @@ public class ProblemService : IProblemService
             : string.Join(' ', problem.OriginSource.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
         IEnumerable<Classification>? newTopic = problem.Classifications;
         problem.Classifications = null;
+        NumberSampleCases(problem);
 
         Problem newProblem = await _problemRepository.CreateProblemAsync(problem, siteId);
         if (newTopic != null)
@@ -106,6 +107,7 @@ public class ProblemService : IProblemService
         await _topicRepository.RemoveAllClassificationsFromProblemAsync(existingProblem.ProblemId.Value);
         IEnumerable<Classification>? newTopic = problem.Classifications;
         problem.Classifications = null;
+        NumberSampleCases(problem);
 
         var updateProblem = await _problemRepository.UpdateProblemAsync(userId, problemId, problem, siteId);
         if (updateProblem != null)
@@ -119,6 +121,24 @@ public class ProblemService : IProblemService
         _FileSystemLocalManagerManager.WriteToFile(updateProblem.ProblemId.Value.ToString(), "sample.out", updateProblem.SampleOutput);
 
         return updateProblem;
+    }
+
+    private static void NumberSampleCases(Problem problem)
+    {
+        if (problem.SampleCases == null || problem.SampleCases.Count == 0)
+        {
+            return;
+        }
+
+        int num = 1;
+        foreach (var sample in problem.SampleCases)
+        {
+            sample.Num = num++;
+        }
+
+        var first = problem.SampleCases.First();
+        problem.SampleInput = first.Input;
+        problem.SampleOutput = first.Output;
     }
 
     public async Task ChangeProblemVisibilityAsync(int problemId, int siteId)

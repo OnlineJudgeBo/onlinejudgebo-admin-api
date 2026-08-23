@@ -67,4 +67,6 @@ public partial class DbProblem
     public virtual ICollection<DbClassification>? Classifications { get; set; }
 
     public virtual ICollection<DbProblemSite>? ProblemSites { get; set; }
+
+    public virtual ICollection<DbProblemSample> SampleCases { get; set; } = new List<DbProblemSample>();
 }

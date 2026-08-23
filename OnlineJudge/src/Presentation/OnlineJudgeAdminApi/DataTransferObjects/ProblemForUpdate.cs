@@ -14,6 +14,8 @@ public class ProblemForUpdate
 
     public string SampleOutput { get; set; } = string.Empty;
 
+    public virtual ICollection<ProblemSampleCaseForCreation>? SampleCases { get; set; }
+
     public string Hint { get; set; } = string.Empty;
 
     public string Source { get; set; } = string.Empty;

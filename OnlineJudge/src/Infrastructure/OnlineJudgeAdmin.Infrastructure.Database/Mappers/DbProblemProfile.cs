@@ -10,6 +10,9 @@ public class DbProblemProfile : Profile
         CreateMap<DbContestProblem, ContestProblem>();
         CreateMap<ContestProblem, DbContestProblem>();
 
+        CreateMap<DbProblemSample, ProblemSample>();
+        CreateMap<ProblemSample, DbProblemSample>();
+
         CreateMap<DbContestUser, ContestUser>()
         .ReverseMap()
         .ForMember(dest => dest.ContestId, opt => opt.MapFrom(src => src.ContestId))

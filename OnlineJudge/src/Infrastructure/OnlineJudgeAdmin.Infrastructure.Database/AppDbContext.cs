@@ -23,6 +23,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<DbLoginlog> Loginlogs { get; set; }
     public virtual DbSet<DbPrivilege> Privilege { get; set; }
     public virtual DbSet<DbProblem> Problems { get; set; }
+    public virtual DbSet<DbProblemSample> ProblemSampleCases { get; set; }
     public virtual DbSet<DbProgrammingLanguage> ProgrammingLanguages { get; set; }
     public virtual DbSet<DbRole> Roles { get; set; }
     public virtual DbSet<DbSolution> Solutions { get; set; }
@@ -192,6 +193,35 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.ProblemId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("contest_problem_ibfk_2");
+        });
+
+        modelBuilder.Entity<DbProblemSample>(entity =>
+        {
+            entity.HasKey(e => new { e.ProblemId, e.Num })
+                .HasName("PRIMARY");
+
+            entity
+                .ToTable("problem_sample_case")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_unicode_ci");
+
+            entity.Property(e => e.ProblemId)
+                .HasColumnType("int(11)")
+                .HasColumnName("problem_id");
+            entity.Property(e => e.Num)
+                .HasColumnType("int(11)")
+                .HasColumnName("num");
+            entity.Property(e => e.Input)
+                .HasColumnType("text")
+                .HasColumnName("input");
+            entity.Property(e => e.Output)
+                .HasColumnType("text")
+                .HasColumnName("output");
+
+            entity.HasOne(d => d.Problem).WithMany(p => p.SampleCases)
+                .HasForeignKey(d => d.ProblemId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("problem_sample_case_ibfk_1");
         });
 
         modelBuilder.Entity<DbSite>(entity =>

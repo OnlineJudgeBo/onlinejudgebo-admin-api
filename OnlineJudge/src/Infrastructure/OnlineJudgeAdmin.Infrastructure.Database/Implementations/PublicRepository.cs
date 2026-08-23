@@ -329,6 +329,7 @@ public class PublicRepository : IPublicRepository
     public async Task<PublicProblemDetailResponse> GetProblemDetailAsync(int siteId, int problemId)
     {
         var problem = await _context.Problems
+            .Include(item => item.SampleCases)
             .FirstOrDefaultAsync(item => item.ProblemId == problemId
                 && item.ProblemSites!.Any(problemSite => problemSite.SiteId == siteId && problemSite.IsActive)
                 && (item.Defunct == "N" || item.Defunct == "Y" || item.Defunct == "O"));
@@ -345,6 +346,7 @@ public class PublicRepository : IPublicRepository
     {
         var contestProblem = await ResolveContestProblemReferenceAsync(siteId, contestId, contestProblemId, currentUser);
         var problem = await _context.Problems
+            .Include(item => item.SampleCases)
             .FirstOrDefaultAsync(item => item.ProblemId == contestProblem.ProblemId
                 && item.ProblemSites!.Any(problemSite => problemSite.SiteId == siteId && problemSite.IsActive)
                 && (item.Defunct == "N" || item.Defunct == "Y" || item.Defunct == "O"));
@@ -469,8 +471,19 @@ public class PublicRepository : IPublicRepository
                 ? new List<int> { problem.InDate.Value.Year }
                 : new List<int>();
 
-        var samples = new List<ProblemSampleCase>();
-        if (!string.IsNullOrWhiteSpace(problem.SampleInput) || !string.IsNullOrWhiteSpace(problem.SampleOutput))
+        var samples = problem.SampleCases
+            .OrderBy(sample => sample.Num)
+            .Select(sample => new ProblemSampleCase
+            {
+                Index = sample.Num,
+                Input = sample.Input ?? string.Empty,
+                Output = sample.Output ?? string.Empty
+            })
+            .ToList();
+
+        // Problemas antiguos sólo tienen el par plano sample_input/sample_output;
+        // problem_sample_case queda vacía hasta que se re-editan con la lista nueva.
+        if (samples.Count == 0 && (!string.IsNullOrWhiteSpace(problem.SampleInput) || !string.IsNullOrWhiteSpace(problem.SampleOutput)))
         {
             samples.Add(new ProblemSampleCase
             {

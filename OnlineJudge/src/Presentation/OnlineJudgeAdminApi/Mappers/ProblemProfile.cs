@@ -11,6 +11,7 @@ public class ProblemProfile : Profile
     {
         CreateMap<ProblemForCreation, Problem>();
         CreateMap<ProblemForUpdate, Problem>();
+        CreateMap<ProblemSampleCaseForCreation, ProblemSample>();
         CreateMap<ProblemForContestCreation, ContestProblem>();
         CreateMap<DbContestProblem, Problem>();
         CreateMap<UserForContestCreation, ContestUser>();

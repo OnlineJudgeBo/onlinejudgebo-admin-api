@@ -43,4 +43,6 @@ public partial class Problem
     public virtual ICollection<Solution>? Solutions { get; set; }
 
     public virtual ICollection<Classification>? Classifications { get; set; }
+
+    public virtual ICollection<ProblemSample> SampleCases { get; set; } = new List<ProblemSample>();
 }
