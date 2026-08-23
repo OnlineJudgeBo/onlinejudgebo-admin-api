@@ -37,6 +37,12 @@ on:
         type: boolean
         default: false
 
+      run_deploy:
+        description: 'Desplegar el backend en el ambiente E2E'
+        required: false
+        type: boolean
+        default: false
+
       keep_image_versions:
         description: 'Cantidad de versiones Docker a conservar en GHCR'
         required: false
@@ -149,8 +155,11 @@ jobs:
     if: >-
       ${{
         success() &&
-        github.event_name != 'pull_request' &&
-        github.ref == 'refs/heads/develop'
+        github.ref == 'refs/heads/develop' &&
+        (
+          (github.event_name == 'push' && vars.RUN_E2E_DEPLOY_ON_PUSH == 'true') ||
+          (github.event_name == 'workflow_dispatch' && inputs.run_deploy == true)
+        )
       }}
 
     timeout-minutes: 20
@@ -284,6 +293,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     needs:
+      - unit-tests
       - deploy-backend
       - run-automation-tests
 
@@ -291,7 +301,11 @@ jobs:
       ${{
         always() &&
         github.event_name != 'pull_request' &&
-        needs.deploy-backend.result == 'success' &&
+        needs.unit-tests.result == 'success' &&
+        (
+          needs.deploy-backend.result == 'success' ||
+          needs.deploy-backend.result == 'skipped'
+        ) &&
         (
           needs.run-automation-tests.result == 'success' ||
           needs.run-automation-tests.result == 'skipped'
