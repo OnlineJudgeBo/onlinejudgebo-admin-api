@@ -11,6 +11,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IProblemService, ProblemService>();
+        services.AddScoped<IProblemPackageService, ProblemPackageService>();
         services.AddScoped<ITopicService, TopicService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IContestService, ContestService>();

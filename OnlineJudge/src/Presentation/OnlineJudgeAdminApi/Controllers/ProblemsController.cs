@@ -15,13 +15,19 @@ namespace OnlineJudgeAdminApi.Controllers;
 public class ProblemsController : ControllerBase
 {
     private readonly IProblemService _problemService;
+    private readonly IProblemPackageService _problemPackageService;
     private readonly UserClaimsHelper _userClaimsHelper;
     private readonly IMapper _mapper;
     private readonly CurrentUser _currentUser;
 
-    public ProblemsController(IProblemService problemService, UserClaimsHelper userClaimsHelper, IMapper mapper)
+    public ProblemsController(
+        IProblemService problemService,
+        IProblemPackageService problemPackageService,
+        UserClaimsHelper userClaimsHelper,
+        IMapper mapper)
     {
         _problemService = problemService ?? throw new ArgumentNullException(nameof(problemService));
+        _problemPackageService = problemPackageService ?? throw new ArgumentNullException(nameof(problemPackageService));
         _userClaimsHelper = userClaimsHelper ?? throw new ArgumentNullException(nameof(userClaimsHelper));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         _currentUser = _userClaimsHelper.GetUserContextRole();
@@ -81,5 +87,43 @@ public class ProblemsController : ControllerBase
     {
         await _problemService.DeleteProblemAsync(problemId, _currentUser.SiteId);
         return NoContent();
+    }
+
+    [Authorize(Roles = AuthorizationRoles.Administrador)]
+    [HttpGet("{problemId:int}/export")]
+    public async Task<IActionResult> ExportProblemAsync(int problemId)
+    {
+        try
+        {
+            var bytes = await _problemPackageService.ExportProblemPackageAsync(problemId, _currentUser.SiteId);
+            return File(bytes, "application/zip", $"problem-{problemId}.zip");
+        }
+        catch (KeyNotFoundException error)
+        {
+            return NotFound(new ErrorDetails { StatusCode = 404, Message = error.Message });
+        }
+        catch (InvalidOperationException error)
+        {
+            return BadRequest(new ErrorDetails { StatusCode = 400, Message = error.Message });
+        }
+    }
+
+    [Authorize(Roles = AuthorizationRoles.Administrador)]
+    [HttpPost("import")]
+    [RequestSizeLimit(200_000_000)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 200_000_000)]
+    public async Task<IActionResult> ImportProblemAsync(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(new ErrorDetails { StatusCode = 400, Message = "Sube un archivo .zip." });
+        }
+
+        var claimsIdentity = User.Identity as ClaimsIdentity;
+        var userId = claimsIdentity?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        using var stream = file.OpenReadStream();
+        var problem = await _problemPackageService.ImportProblemPackageAsync(userId, stream, _currentUser.SiteId);
+        return Ok(problem);
     }
 }
