@@ -187,8 +187,8 @@ public class ProblemServiceTests
 
         fileSystem.Verify(item => item.WriteToFile("1000", "sample.in", "one-in"), Times.Once);
         fileSystem.Verify(item => item.WriteToFile("1000", "sample.out", "one-out"), Times.Once);
-        fileSystem.Verify(item => item.WriteToFile("1000", "sample-2.in", "two-in"), Times.Once);
-        fileSystem.Verify(item => item.WriteToFile("1000", "sample-2.out", "two-out"), Times.Once);
+        fileSystem.Verify(item => item.WriteToFile("1000", "sample2.in", "two-in"), Times.Once);
+        fileSystem.Verify(item => item.WriteToFile("1000", "sample2.out", "two-out"), Times.Once);
     }
 
     [Fact]
@@ -201,7 +201,7 @@ public class ProblemServiceTests
 
         var fileSystem = new Mock<IFileSystemLocalManagerManager>();
         fileSystem.Setup(item => item.ListFiles("1000"))
-            .Returns(new List<string> { "sample.in", "sample.out", "sample-2.in", "sample-2.out", "sample-3.in", "sample-3.out", "1.in" });
+            .Returns(new List<string> { "sample.in", "sample.out", "sample2.in", "sample2.out", "sample3.in", "sample3.out", "1.in" });
         var service = CreateService(repository.Object, fileSystemLocalManager: fileSystem.Object);
 
         await service.UpdateProblemAsync("teacher", 1000, new Problem
@@ -209,10 +209,10 @@ public class ProblemServiceTests
             SampleCases = new List<ProblemSample> { new() { Input = "only-in", Output = "only-out" } }
         }, 1);
 
-        fileSystem.Verify(item => item.DeleteFile("1000", "sample-2.in"), Times.Once);
-        fileSystem.Verify(item => item.DeleteFile("1000", "sample-2.out"), Times.Once);
-        fileSystem.Verify(item => item.DeleteFile("1000", "sample-3.in"), Times.Once);
-        fileSystem.Verify(item => item.DeleteFile("1000", "sample-3.out"), Times.Once);
+        fileSystem.Verify(item => item.DeleteFile("1000", "sample2.in"), Times.Once);
+        fileSystem.Verify(item => item.DeleteFile("1000", "sample2.out"), Times.Once);
+        fileSystem.Verify(item => item.DeleteFile("1000", "sample3.in"), Times.Once);
+        fileSystem.Verify(item => item.DeleteFile("1000", "sample3.out"), Times.Once);
         fileSystem.Verify(item => item.DeleteFile("1000", "1.in"), Times.Never);
     }
 

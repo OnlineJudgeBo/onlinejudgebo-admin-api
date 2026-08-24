@@ -124,8 +124,8 @@ public class ProblemService : IProblemService
 
     // Writes one .in/.out pair per sample case so every case is visible/manageable from the
     // admin file explorer, not just the first one. "sample.in"/"sample.out" (no number) stays
-    // the first case's filename for backward compatibility; extra cases get "sample-N.in/out".
-    // Also deletes any leftover "sample-N.*" from a previously larger sample set.
+    // the first case's filename for backward compatibility; extra cases get "sampleN.in/out".
+    // Also deletes any leftover "sampleN.*" from a previously larger sample set.
     private void SyncSampleCaseFiles(string problemFolder, Problem problem)
     {
         var samples = (problem.SampleCases?.Count > 0
@@ -139,8 +139,8 @@ public class ProblemService : IProblemService
 
         foreach (var sample in samples.Skip(1))
         {
-            _FileSystemLocalManagerManager.WriteToFile(problemFolder, $"sample-{sample.Num}.in", sample.Input ?? string.Empty);
-            _FileSystemLocalManagerManager.WriteToFile(problemFolder, $"sample-{sample.Num}.out", sample.Output ?? string.Empty);
+            _FileSystemLocalManagerManager.WriteToFile(problemFolder, $"sample{sample.Num}.in", sample.Input ?? string.Empty);
+            _FileSystemLocalManagerManager.WriteToFile(problemFolder, $"sample{sample.Num}.out", sample.Output ?? string.Empty);
         }
 
         var existingFiles = _FileSystemLocalManagerManager.ListFiles(problemFolder) ?? Array.Empty<string>();
@@ -154,7 +154,7 @@ public class ProblemService : IProblemService
         }
     }
 
-    private static readonly Regex SampleFileNamePattern = new(@"^sample-(?<num>\d+)\.(in|out)$", RegexOptions.Compiled);
+    private static readonly Regex SampleFileNamePattern = new(@"^sample(?<num>\d+)\.(in|out)$", RegexOptions.Compiled);
 
     private static void NumberSampleCases(Problem problem)
     {

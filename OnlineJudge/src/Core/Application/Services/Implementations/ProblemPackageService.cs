@@ -97,9 +97,9 @@ public class ProblemPackageService : IProblemPackageService
     }
 
     // Matches "sample.in"/"sample.out" (first case, ProblemService.SyncSampleCaseFiles) and
-    // "sample-2.in"/"sample-2.out" etc. (every other case) - all already covered by data/sample
+    // "sample2.in"/"sample2.out" etc. (every other case) - all already covered by data/sample
     // built from the DB rows, never real secret test data.
-    private static readonly Regex SampleFileNamePattern = new(@"^sample(-\d+)?\.(in|out)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex SampleFileNamePattern = new(@"^sample\d*\.(in|out)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private void CopySecretTestData(ZipArchive archive, int problemId)
     {
