@@ -127,7 +127,7 @@ public class ProblemPackageServiceTests
         var problem = BuildProblem(problemId: 5);
         var fileManager = new Mock<IFileSystemLocalManagerManager>();
         fileManager.Setup(item => item.ListFiles("5"))
-            .Returns(new List<string> { "1.in", "1.out", "sample.in", "sample.out", "checker-notes.txt" });
+            .Returns(new List<string> { "1.in", "1.out", "sample.in", "sample.out", "sample-2.in", "sample-2.out", "checker-notes.txt" });
         fileManager.Setup(item => item.ReadFile("5", "1.in")).Returns(Encoding.UTF8.GetBytes("secret-in"));
         fileManager.Setup(item => item.ReadFile("5", "1.out")).Returns(Encoding.UTF8.GetBytes("secret-out"));
         fileManager.Setup(item => item.ReadFile("5", "checker-notes.txt")).Returns(Encoding.UTF8.GetBytes("notes"));
@@ -140,8 +140,12 @@ public class ProblemPackageServiceTests
         Assert.Equal("notes", ReadEntryText(zip, "data/secret/checker-notes.txt"));
         Assert.Null(FindEntry(zip, "data/secret/sample.in"));
         Assert.Null(FindEntry(zip, "data/secret/sample.out"));
+        Assert.Null(FindEntry(zip, "data/secret/sample-2.in"));
+        Assert.Null(FindEntry(zip, "data/secret/sample-2.out"));
         fileManager.Verify(item => item.ReadFile("5", "sample.in"), Times.Never);
         fileManager.Verify(item => item.ReadFile("5", "sample.out"), Times.Never);
+        fileManager.Verify(item => item.ReadFile("5", "sample-2.in"), Times.Never);
+        fileManager.Verify(item => item.ReadFile("5", "sample-2.out"), Times.Never);
     }
 
     [Fact]

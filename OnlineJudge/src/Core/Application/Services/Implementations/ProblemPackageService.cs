@@ -96,13 +96,17 @@ public class ProblemPackageService : IProblemPackageService
         };
     }
 
+    // Matches "sample.in"/"sample.out" (first case, ProblemService.SyncSampleCaseFiles) and
+    // "sample-2.in"/"sample-2.out" etc. (every other case) - all already covered by data/sample
+    // built from the DB rows, never real secret test data.
+    private static readonly Regex SampleFileNamePattern = new(@"^sample(-\d+)?\.(in|out)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
     private void CopySecretTestData(ZipArchive archive, int problemId)
     {
         var files = _fileManager.ListFiles(problemId.ToString()) ?? Array.Empty<string>();
         foreach (var fileName in files)
         {
-            if (fileName.Equals("sample.in", StringComparison.OrdinalIgnoreCase) ||
-                fileName.Equals("sample.out", StringComparison.OrdinalIgnoreCase))
+            if (SampleFileNamePattern.IsMatch(fileName))
             {
                 continue; // already covered by data/sample from ProblemSample rows.
             }

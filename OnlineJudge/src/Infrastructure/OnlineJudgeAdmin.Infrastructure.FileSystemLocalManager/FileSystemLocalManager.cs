@@ -52,5 +52,12 @@ public class FileSystemLocalManagerManager : IFileSystemLocalManagerManager
                     + folderName + Path.DirectorySeparatorChar + fileName;
         return File.ReadAllBytes(path);
     }
+
+    public void DeleteFile(string folderName, string fileName)
+    {
+        string path = _path + Path.DirectorySeparatorChar
+                    + folderName + Path.DirectorySeparatorChar + fileName;
+        File.Delete(path);
+    }
 }
 

@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using FluentValidation;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
@@ -76,8 +77,7 @@ public class ProblemService : IProblemService
         }
 
         _FileSystemLocalManagerManager.CreateFolder(newProblem.ProblemId.Value.ToString());
-        _FileSystemLocalManagerManager.WriteToFile(newProblem.ProblemId.Value.ToString(), "sample.in", problem.SampleInput);
-        _FileSystemLocalManagerManager.WriteToFile(newProblem.ProblemId.Value.ToString(), "sample.out", problem.SampleOutput);
+        SyncSampleCaseFiles(newProblem.ProblemId.Value.ToString(), problem);
 
         Privilege privilege = new Privilege();
         privilege.UserId = userId;
@@ -117,11 +117,44 @@ public class ProblemService : IProblemService
 
         _FileSystemLocalManagerManager.CreateFolder(updateProblem.ProblemId.Value.ToString());
         _FileSystemLocalManagerManager.CreateFolder(updateProblem.ProblemId.Value.ToString() + "/ac");
-        _FileSystemLocalManagerManager.WriteToFile(updateProblem.ProblemId.Value.ToString(), "sample.in", updateProblem.SampleInput);
-        _FileSystemLocalManagerManager.WriteToFile(updateProblem.ProblemId.Value.ToString(), "sample.out", updateProblem.SampleOutput);
+        SyncSampleCaseFiles(updateProblem.ProblemId.Value.ToString(), problem);
 
         return updateProblem;
     }
+
+    // Writes one .in/.out pair per sample case so every case is visible/manageable from the
+    // admin file explorer, not just the first one. "sample.in"/"sample.out" (no number) stays
+    // the first case's filename for backward compatibility; extra cases get "sample-N.in/out".
+    // Also deletes any leftover "sample-N.*" from a previously larger sample set.
+    private void SyncSampleCaseFiles(string problemFolder, Problem problem)
+    {
+        var samples = (problem.SampleCases?.Count > 0
+            ? problem.SampleCases.OrderBy(s => s.Num)
+            : Enumerable.Empty<ProblemSample>()).ToList();
+
+        var firstInput = samples.Count > 0 ? samples[0].Input : problem.SampleInput;
+        var firstOutput = samples.Count > 0 ? samples[0].Output : problem.SampleOutput;
+        _FileSystemLocalManagerManager.WriteToFile(problemFolder, "sample.in", firstInput ?? string.Empty);
+        _FileSystemLocalManagerManager.WriteToFile(problemFolder, "sample.out", firstOutput ?? string.Empty);
+
+        foreach (var sample in samples.Skip(1))
+        {
+            _FileSystemLocalManagerManager.WriteToFile(problemFolder, $"sample-{sample.Num}.in", sample.Input ?? string.Empty);
+            _FileSystemLocalManagerManager.WriteToFile(problemFolder, $"sample-{sample.Num}.out", sample.Output ?? string.Empty);
+        }
+
+        var existingFiles = _FileSystemLocalManagerManager.ListFiles(problemFolder) ?? Array.Empty<string>();
+        foreach (var fileName in existingFiles)
+        {
+            var match = SampleFileNamePattern.Match(fileName);
+            if (match.Success && int.Parse(match.Groups["num"].Value) > samples.Count)
+            {
+                _FileSystemLocalManagerManager.DeleteFile(problemFolder, fileName);
+            }
+        }
+    }
+
+    private static readonly Regex SampleFileNamePattern = new(@"^sample-(?<num>\d+)\.(in|out)$", RegexOptions.Compiled);
 
     private static void NumberSampleCases(Problem problem)
     {

@@ -10,4 +10,7 @@ public interface IFileSystemLocalManagerManager
     // every caller of ListFiles wants the real judge data set, never that cache.
     IReadOnlyList<string> ListFiles(string folderName);
     byte[] ReadFile(string folderName, string fileName);
+
+    // No-op if the file doesn't exist, matching File.Delete's own semantics.
+    void DeleteFile(string folderName, string fileName);
 }

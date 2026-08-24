@@ -165,6 +165,57 @@ public class ProblemServiceTests
         fileSystem.Verify(item => item.WriteToFile("1000", "sample.out", "out"), Times.Once);
     }
 
+    [Fact]
+    public async Task UpdateProblemAsync_WritesOneFilePairPerSampleCase()
+    {
+        var repository = new Mock<IProblemRepository>();
+        repository.Setup(item => item.GetProblemByIdAsync(1000, 1)).ReturnsAsync(new Problem { ProblemId = 1000 });
+        repository.Setup(item => item.UpdateProblemAsync("teacher", 1000, It.IsAny<Problem>(), 1))
+            .ReturnsAsync((string _, int _, Problem problem, int _) => { problem.ProblemId = 1000; return problem; });
+
+        var fileSystem = new Mock<IFileSystemLocalManagerManager>();
+        var service = CreateService(repository.Object, fileSystemLocalManager: fileSystem.Object);
+
+        await service.UpdateProblemAsync("teacher", 1000, new Problem
+        {
+            SampleCases = new List<ProblemSample>
+            {
+                new() { Input = "one-in", Output = "one-out" },
+                new() { Input = "two-in", Output = "two-out" },
+            }
+        }, 1);
+
+        fileSystem.Verify(item => item.WriteToFile("1000", "sample.in", "one-in"), Times.Once);
+        fileSystem.Verify(item => item.WriteToFile("1000", "sample.out", "one-out"), Times.Once);
+        fileSystem.Verify(item => item.WriteToFile("1000", "sample-2.in", "two-in"), Times.Once);
+        fileSystem.Verify(item => item.WriteToFile("1000", "sample-2.out", "two-out"), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateProblemAsync_DeletesStaleSampleFilesWhenSampleCountShrinks()
+    {
+        var repository = new Mock<IProblemRepository>();
+        repository.Setup(item => item.GetProblemByIdAsync(1000, 1)).ReturnsAsync(new Problem { ProblemId = 1000 });
+        repository.Setup(item => item.UpdateProblemAsync("teacher", 1000, It.IsAny<Problem>(), 1))
+            .ReturnsAsync((string _, int _, Problem problem, int _) => { problem.ProblemId = 1000; return problem; });
+
+        var fileSystem = new Mock<IFileSystemLocalManagerManager>();
+        fileSystem.Setup(item => item.ListFiles("1000"))
+            .Returns(new List<string> { "sample.in", "sample.out", "sample-2.in", "sample-2.out", "sample-3.in", "sample-3.out", "1.in" });
+        var service = CreateService(repository.Object, fileSystemLocalManager: fileSystem.Object);
+
+        await service.UpdateProblemAsync("teacher", 1000, new Problem
+        {
+            SampleCases = new List<ProblemSample> { new() { Input = "only-in", Output = "only-out" } }
+        }, 1);
+
+        fileSystem.Verify(item => item.DeleteFile("1000", "sample-2.in"), Times.Once);
+        fileSystem.Verify(item => item.DeleteFile("1000", "sample-2.out"), Times.Once);
+        fileSystem.Verify(item => item.DeleteFile("1000", "sample-3.in"), Times.Once);
+        fileSystem.Verify(item => item.DeleteFile("1000", "sample-3.out"), Times.Once);
+        fileSystem.Verify(item => item.DeleteFile("1000", "1.in"), Times.Never);
+    }
+
     private static ProblemService CreateService(
         IProblemRepository? problemRepository = null,
         ITopicRepository? topicRepository = null,
