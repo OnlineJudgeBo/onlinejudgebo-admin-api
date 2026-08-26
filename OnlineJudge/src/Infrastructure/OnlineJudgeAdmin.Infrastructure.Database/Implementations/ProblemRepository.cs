@@ -224,6 +224,7 @@ public class ProblemRepository : IProblemRepository
     public async Task<Problem> CreateProblemAsync(Problem problem, int siteId)
     {
         DbProblem dbProblem = _mapper.Map<DbProblem>(problem);
+        dbProblem.ProblemId = null; // must be null (not 0) so EF treats problem_id as store-generated
         _context.Problems.Add(dbProblem);
         _context.SaveChanges();
 

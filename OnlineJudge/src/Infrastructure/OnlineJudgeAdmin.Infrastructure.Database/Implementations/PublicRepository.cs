@@ -930,6 +930,7 @@ public class PublicRepository : IPublicRepository
         {
             ContestId = contest.ContestId,
             Title = string.IsNullOrWhiteSpace(contest.Title) ? $"Contest #{contest.ContestId}" : contest.Title,
+            Description = contest.Description ?? string.Empty,
             StartTimeUtc = contest.StartTime,
             EndTimeUtc = contest.EndTime,
             Status = ComputeContestStatus(contest.StartTime, contest.EndTime, contestNow, isPromotedContest),
