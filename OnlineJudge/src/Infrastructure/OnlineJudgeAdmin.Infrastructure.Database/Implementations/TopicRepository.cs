@@ -88,11 +88,14 @@ public class TopicRepository : ITopicRepository
 
     public async Task AddClassificationToTopic(int id, Topic classificationTopic)
     {
-        DbTopic topic = _mapper.Map<DbTopic>(classificationTopic);
         var existingTopic = await _context.Topics.FirstOrDefaultAsync(t => t.TopicId == id);
-        foreach (DbClassification classification in topic.Classifications)
+        foreach (Classification classification in classificationTopic.Classifications)
         {
-            existingTopic.Classifications.Add(classification);
+            DbClassification? existingClassification = classification.ClassificationId != 0
+                ? await _context.Classifications.FirstOrDefaultAsync(c => c.ClassificationId == classification.ClassificationId)
+                : null;
+
+            existingTopic.Classifications.Add(existingClassification ?? new DbClassification { Name = classification.Name });
         }
 
         await _context.SaveChangesAsync();

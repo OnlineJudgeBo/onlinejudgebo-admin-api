@@ -35,6 +35,7 @@ public class RoleRepository : IRoleRepository
                 .Where(ur => ur.Role.RoleId != 1)
                 .Select(ur => new DbUserRole
                 {
+                    RoleId = ur.RoleId,
                     Role = new DbRole
                     {
                         RoleId = ur.RoleId,
