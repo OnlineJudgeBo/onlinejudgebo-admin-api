@@ -135,7 +135,7 @@ public sealed class IdeSubmissionService : IIdeSubmissionService
         {
             if (submission.ContestId.HasValue && submission.ContestId.Value > 0 && submission.ContestId.Value != claims.ContestId.Value)
             {
-                throw new UnauthorizedAccessException("El token de IDE no permite enviar a este concurso.");
+                throw new UnauthorizedAccessException("The IDE token is not authorized to submit to this contest.");
             }
 
             return claims.ContestId;
@@ -157,7 +157,7 @@ public sealed class IdeSubmissionService : IIdeSubmissionService
         {
             if (submission.Num.HasValue && submission.Num.Value >= 0 && submission.Num.Value != claims.Num.Value)
             {
-                throw new UnauthorizedAccessException("El token de IDE no permite enviar a este problema del concurso.");
+                throw new UnauthorizedAccessException("The IDE token is not authorized to submit to this contest problem.");
             }
 
             return ContestProblemCode.FromNumber(claims.Num.Value);
@@ -176,7 +176,7 @@ public sealed class IdeSubmissionService : IIdeSubmissionService
         }
         catch (Exception error) when (error is ArgumentException or InvalidOperationException)
         {
-            throw new UnauthorizedAccessException("Token de IDE inválido o expirado.", error);
+            throw new UnauthorizedAccessException("Invalid or expired IDE token.", error);
         }
     }
 
@@ -202,7 +202,7 @@ public sealed class IdeSubmissionService : IIdeSubmissionService
 
         if (claims.ProblemId > 0 && problemId != claims.ProblemId)
         {
-            throw new UnauthorizedAccessException("El token de IDE no permite enviar a este problema.");
+            throw new UnauthorizedAccessException("The IDE token is not authorized to submit to this problem.");
         }
 
         return problemId;
@@ -218,7 +218,7 @@ public sealed class IdeSubmissionService : IIdeSubmissionService
         int languageId = submission.LanguageId.Value;
         if (claims.AllowedLanguages.Length > 0 && !claims.AllowedLanguages.Contains(languageId))
         {
-            throw new UnauthorizedAccessException("El token de IDE no permite usar este lenguaje.");
+            throw new UnauthorizedAccessException("The IDE token is not authorized to use this language.");
         }
 
         return languageId;

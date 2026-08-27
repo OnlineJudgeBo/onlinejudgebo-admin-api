@@ -48,7 +48,7 @@ public class UserService : IUserService
         EnsureSameSite(currentUser, siteId);
         if (!string.Equals(currentUser.UserId, userId, StringComparison.Ordinal)
             && currentUser.Role is not UserRolesEnum.Administrador and not UserRolesEnum.Auxiliar)
-            throw new UnauthorizedAccessException("Solo el propio usuario, un administrador o un auxiliar pueden actualizar el perfil.");
+            throw new UnauthorizedAccessException("Only the user themself, an administrator, or an assistant can update the profile.");
 
         if (userToUpdate.UserId != userId)
         {
@@ -63,7 +63,7 @@ public class UserService : IUserService
         if (!string.Equals(currentUser.UserId, userId, StringComparison.Ordinal)
             && currentUser.Role is not UserRolesEnum.Administrador and not UserRolesEnum.Auxiliar)
         {
-            throw new UnauthorizedAccessException("Solo el propio usuario, un administrador o un auxiliar pueden cambiar la contraseña.");
+            throw new UnauthorizedAccessException("Only the user themself, an administrator, or an assistant can change the password.");
         }
 
         string passwordEncrypt = GeneratePasswordHash(password);
@@ -75,7 +75,7 @@ public class UserService : IUserService
         EnsureSameSite(currentUser, siteId);
         if (currentUser.Role != UserRolesEnum.Administrador)
         {
-            throw new UnauthorizedAccessException("Solo los administradores pueden eliminar roles.");
+            throw new UnauthorizedAccessException("Only administrators can delete roles.");
         }
 
         await _userRepository.DeleteRoleAsync(userId, roleId, siteId);
@@ -86,7 +86,7 @@ public class UserService : IUserService
         EnsureSameSite(currentUser, siteId);
         if (currentUser.Role != UserRolesEnum.Administrador)
         {
-            throw new UnauthorizedAccessException("Solo los administradores pueden eliminar usuarios.");
+            throw new UnauthorizedAccessException("Only administrators can delete users.");
         }
 
         await _userRepository.DeleteUserAsync(userId, siteId);
@@ -96,7 +96,7 @@ public class UserService : IUserService
     {
         ArgumentNullException.ThrowIfNull(currentUser);
         if (siteId <= 0 || currentUser.SiteId != siteId)
-            throw new UnauthorizedAccessException("El usuario no pertenece al sitio solicitado.");
+            throw new UnauthorizedAccessException("The user does not belong to the requested site.");
     }
 
     private static void EnsureUserManager(CurrentUser currentUser, int siteId)

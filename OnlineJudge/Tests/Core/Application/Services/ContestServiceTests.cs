@@ -117,7 +117,7 @@ public class ContestServiceTests
             Level = "PRACTICE"
         }, string.Empty, 1));
 
-        Assert.Equal("Contest track must be OBI, ICPC_BOLIVIA or GENERAL.", error.Message);
+        Assert.Equal("El track del concurso debe ser OBI, ICPC_BOLIVIA o GENERAL.", error.Message);
     }
 
     [Fact]

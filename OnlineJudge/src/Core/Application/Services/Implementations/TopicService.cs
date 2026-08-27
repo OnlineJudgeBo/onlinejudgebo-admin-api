@@ -33,7 +33,7 @@ public class TopicService : ITopicService
     {
         if (topic.Classifications == null || topic.Classifications.Count == 0)
         {
-            throw new ArgumentException("No classifications provided.");
+            throw new ArgumentException("No se proporcionaron clasificaciones.");
         }
 
         await _topicRepository.AddClassificationToTopic(id, topic);
@@ -45,7 +45,7 @@ public class TopicService : ITopicService
 
         if (existingClassification == null)
         {
-            throw new ArgumentException("Classification not found.");
+            throw new ArgumentException("Clasificación no encontrada.");
         }
 
         await _topicRepository.UpdateClassification(classification, classificationId);

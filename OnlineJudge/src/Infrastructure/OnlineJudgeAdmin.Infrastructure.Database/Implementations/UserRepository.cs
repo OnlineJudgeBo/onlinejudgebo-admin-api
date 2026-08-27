@@ -8,11 +8,13 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.Models;
 public class UserRepository : IUserRepository
 {
     private readonly AppDbContext _context;
+    private readonly AcademicCatalogDbContext _academicContext;
     private readonly IMapper _mapper;
 
-    public UserRepository(AppDbContext context, IMapper mapper)
+    public UserRepository(AppDbContext context, AcademicCatalogDbContext academicContext, IMapper mapper)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
+        _academicContext = academicContext ?? throw new ArgumentNullException(nameof(academicContext));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
@@ -30,19 +32,6 @@ public class UserRepository : IUserRepository
             }).ToList(),
         }).ToListAsync();
         return _mapper.Map<IEnumerable<Topic>>(topics);
-    }
-
-    public async Task AddClassificationsToProblemAsync(int problemId, IEnumerable<Classification> classifications)
-    {
-        var problem = await _context.Classifications.FindAsync(problemId);
-
-        foreach (var classification in classifications)
-        {
-            var topic = await _context.Classifications.FindAsync(classification.TopicId);
-
-            _context.Classifications.Add(topic);
-        }
-        await _context.SaveChangesAsync();
     }
 
     public async Task<IEnumerable<User>> GetAllUsersProfilesAsync(int siteId)
@@ -71,20 +60,13 @@ public class UserRepository : IUserRepository
 
     public async Task<User> GetUserById(string userId, int siteId)
     {
-        try
-        {
-            DbUser user = await _context.Users
-                .Where(u => u.SiteId == siteId && u.UserId == userId)
-                .Select(u => new DbUser
-                {
-                    UserId = u.UserId
-                }).FirstAsync();
-            return _mapper.Map<User>(user);
-        }
-        catch (Exception e)
-        {
-            return null;
-        }
+        DbUser? user = await _context.Users
+            .Where(u => u.SiteId == siteId && u.UserId == userId)
+            .Select(u => new DbUser
+            {
+                UserId = u.UserId
+            }).FirstOrDefaultAsync();
+        return _mapper.Map<User>(user);
     }
 
     public async Task<bool> CheckUsernameAvailable(UserProfile userProfile, int siteId)
@@ -135,19 +117,54 @@ public class UserRepository : IUserRepository
     }
 
 
+    // user_id is the PK of `users`, but it's also duplicated - with no
+    // DB-level FK cascade - as a plain column on every table below. Renaming
+    // it must fan out to all of them, or those rows are silently left
+    // pointing at a user_id that no longer exists (profile, roles,
+    // submissions, privileges... effectively orphaned).
+    private static readonly string[] AppDbTablesWithUserId =
+    {
+        "privilege", "custom_input", "user_profiles", "contest_user", "solution",
+        "user_settings", "user_activity", "news", "loginlog", "user_roles"
+    };
+
+    private static readonly string[] AcademicTablesWithUserId =
+    {
+        "course_user", "learning_path_topic_progress", "learning_path_progress", "course_submission_context"
+    };
+
     public async Task<User> UpdateUser(User userToUpdate, string userId, int siteId)
     {
-        string sqlQuery = @"
-            UPDATE users
-            SET user_id = @NewUserId
-            WHERE user_id = @UserId AND site_id = @SiteId;
-            ";
+        await using var transaction = await _context.Database.BeginTransactionAsync();
 
-        await _context.Database.ExecuteSqlRawAsync(sqlQuery,
-            new MySqlConnector.MySqlParameter("@NewUserId", userToUpdate.UserId),
-            new MySqlConnector.MySqlParameter("@UserId", userId),
-            new MySqlConnector.MySqlParameter("@SiteId", siteId)
-        );
+        // {0}/{1}/... positional placeholders (not string-concatenated
+        // values) - EF builds a provider-correct parameter for each, so
+        // this isn't tied to MySqlConnector specifically and isn't SQL
+        // injectable.
+        await _context.Database.ExecuteSqlRawAsync(
+            "UPDATE users SET user_id = {0} WHERE user_id = {1} AND site_id = {2};",
+            userToUpdate.UserId, userId, siteId);
+
+        // EF1002 fires on any interpolated ExecuteSqlRawAsync string, but
+        // `table` is never user input - it only ever comes from the fixed
+        // arrays declared above, so this is not an injection risk.
+#pragma warning disable EF1002
+        foreach (string table in AppDbTablesWithUserId)
+        {
+            await _context.Database.ExecuteSqlRawAsync($"UPDATE {table} SET user_id = {{0}} WHERE user_id = {{1}};", userToUpdate.UserId, userId);
+        }
+
+        await transaction.CommitAsync();
+
+        // AcademicCatalogDbContext uses its own connection, so this half
+        // can't share the transaction above - best-effort, not atomic with
+        // it. Still strictly better than leaving these four tables
+        // uncascaded entirely.
+        foreach (string table in AcademicTablesWithUserId)
+        {
+            await _academicContext.Database.ExecuteSqlRawAsync($"UPDATE {table} SET user_id = {{0}} WHERE user_id = {{1}};", userToUpdate.UserId, userId);
+        }
+#pragma warning restore EF1002
 
         return _mapper.Map<User>(userToUpdate);
     }

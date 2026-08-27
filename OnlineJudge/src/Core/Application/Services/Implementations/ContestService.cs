@@ -174,7 +174,7 @@ public class ContestService : IContestService
             && contest.Track != "ICPC_BOLIVIA"
             && contest.Track != "GENERAL")
         {
-            throw new ArgumentException("Contest track must be OBI, ICPC_BOLIVIA or GENERAL.");
+            throw new ArgumentException("El track del concurso debe ser OBI, ICPC_BOLIVIA o GENERAL.");
         }
 
         if (contest.Level != "REGIONAL"
@@ -182,7 +182,7 @@ public class ContestService : IContestService
             && contest.Level != "PRACTICE"
             && contest.Level != "TRAINING")
         {
-            throw new ArgumentException("Contest level must be REGIONAL, NATIONAL, PRACTICE or TRAINING.");
+            throw new ArgumentException("El nivel del concurso debe ser REGIONAL, NATIONAL, PRACTICE o TRAINING.");
         }
     }
 }
