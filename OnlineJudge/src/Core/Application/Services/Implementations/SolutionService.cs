@@ -51,7 +51,7 @@ public class SolutionService : ISolutionService
         Solution? solution = await _solutionRepository.GetSolutionByIdAsync(solutionToUpdate.SolutionId);
         if (solution == null)
         {
-            throw new ArgumentException("Solution not found.");
+            throw new ArgumentException("Solución no encontrada.");
         }
 
         if (solution.IsRemoteOj == false)

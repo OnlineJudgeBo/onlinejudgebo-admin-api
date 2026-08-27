@@ -337,7 +337,7 @@ public class PublicServiceTests
 
         var error = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.ResetPasswordWithRecoveryCodeAsync("s@example.com", "ABCDEF", 1));
 
-        Assert.Equal("El código de recuperación es inválido o expiró.", error.Message);
+        Assert.Equal("The recovery code is invalid or has expired.", error.Message);
     }
 
     private static PublicService CreateService(

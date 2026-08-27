@@ -23,13 +23,13 @@ public sealed class IdeLaunchTokenValidator : IIdeLaunchTokenValidator
     {
         if (string.IsNullOrWhiteSpace(token))
         {
-            throw new ArgumentException("Missing IDE launch token.");
+            throw new ArgumentException("Falta el token de lanzamiento de IDE.");
         }
 
         var parts = token.Split('.');
         if (parts.Length != 3)
         {
-            throw new ArgumentException("Invalid IDE launch token format.");
+            throw new ArgumentException("Formato de token de lanzamiento de IDE inválido.");
         }
 
         ValidateSignature(parts);
@@ -38,18 +38,18 @@ public sealed class IdeLaunchTokenValidator : IIdeLaunchTokenValidator
 
         if (GetString(root, "iss") != TokenIssuer() || GetString(root, "aud") != TokenAudience())
         {
-            throw new ArgumentException("Invalid IDE launch token issuer or audience.");
+            throw new ArgumentException("Emisor o audiencia del token de lanzamiento de IDE inválido.");
         }
 
         if (GetInt64(root, "exp") < DateTimeOffset.UtcNow.ToUnixTimeSeconds())
         {
-            throw new ArgumentException("Expired IDE launch token.");
+            throw new ArgumentException("El token de lanzamiento de IDE expiró.");
         }
 
         var userId = GetString(root, "sub");
         if (string.IsNullOrWhiteSpace(userId))
         {
-            throw new ArgumentException("Missing user claim.");
+            throw new ArgumentException("Falta el claim de usuario.");
         }
 
         return new IdeLaunchClaims(
@@ -69,7 +69,7 @@ public sealed class IdeLaunchTokenValidator : IIdeLaunchTokenValidator
         var expectedSignature = Base64UrlEncode(HMACSHA256.HashData(Encoding.UTF8.GetBytes(TokenSecret()), Encoding.UTF8.GetBytes(unsignedToken)));
         if (!CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(expectedSignature), Encoding.ASCII.GetBytes(tokenParts[2])))
         {
-            throw new ArgumentException("Invalid IDE launch token signature.");
+            throw new ArgumentException("Firma del token de lanzamiento de IDE inválida.");
         }
     }
 

@@ -106,7 +106,7 @@ public partial class AcademicRepository
 
         if (course == null)
         {
-            throw new ArgumentException("Invite code is invalid.");
+            throw new ArgumentException("El código de invitación no es válido.");
         }
 
         var existingMember = await _academicContext.CourseUsers
@@ -144,7 +144,7 @@ public partial class AcademicRepository
 
         if (course == null)
         {
-            throw new ArgumentException("Course not found.");
+            throw new ArgumentException("Curso no encontrado.");
         }
 
         var teacher = await _academicContext.CourseUsers
@@ -233,7 +233,7 @@ public partial class AcademicRepository
 
         if (course == null)
         {
-            throw new ArgumentException("Course not found.");
+            throw new ArgumentException("Curso no encontrado.");
         }
 
         var members = await _academicContext.CourseUsers
@@ -279,7 +279,7 @@ public partial class AcademicRepository
 
         if (course == null)
         {
-            throw new ArgumentException("Course not found.");
+            throw new ArgumentException("Curso no encontrado.");
         }
 
         var normalizedUserId = request.UserId.Trim();
@@ -290,12 +290,12 @@ public partial class AcademicRepository
 
         if (userInSite == null)
         {
-            throw new ArgumentException("User not found in this site.");
+            throw new ArgumentException("Usuario no encontrado en este sitio.");
         }
 
         if (!userInSite.IsActive || userInSite.IsDeleted)
         {
-            throw new ArgumentException("User exists in this site but is inactive or deleted.");
+            throw new ArgumentException("El usuario existe en este sitio pero está inactivo o eliminado.");
         }
 
         var existingMember = await _academicContext.CourseUsers
@@ -315,7 +315,7 @@ public partial class AcademicRepository
         {
             if (string.Equals(existingMember.Role, CourseRoleNames.Teacher, StringComparison.OrdinalIgnoreCase))
             {
-                throw new ArgumentException("Teacher membership cannot be edited from this endpoint.");
+                throw new ArgumentException("La membresía de docente no se puede editar desde este endpoint.");
             }
 
             existingMember.Role = normalizedRole;
@@ -335,12 +335,12 @@ public partial class AcademicRepository
 
         if (existingMember == null)
         {
-            throw new ArgumentException("Course member not found.");
+            throw new ArgumentException("Miembro del curso no encontrado.");
         }
 
         if (string.Equals(existingMember.Role, CourseRoleNames.Teacher, StringComparison.OrdinalIgnoreCase))
         {
-            throw new ArgumentException("Teacher membership cannot be removed from this endpoint.");
+            throw new ArgumentException("La membresía de docente no se puede eliminar desde este endpoint.");
         }
 
         _academicContext.CourseUsers.Remove(existingMember);
@@ -467,7 +467,7 @@ public partial class AcademicRepository
             }
         }
 
-        throw new InvalidOperationException("Could not generate a unique invite code.");
+        throw new InvalidOperationException("No se pudo generar un código de invitación único.");
     }
 
     private async Task<string> GenerateUniqueCourseKeyAsync(string courseName)
@@ -493,7 +493,7 @@ public partial class AcademicRepository
             }
         }
 
-        throw new InvalidOperationException("Could not generate a unique course key.");
+        throw new InvalidOperationException("No se pudo generar una clave de curso única.");
     }
 
     private static string BuildCourseKeyBase(string value)

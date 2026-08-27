@@ -98,7 +98,7 @@ public partial class AcademicRepository
 
         if (learningPath == null)
         {
-            throw new ArgumentException("Learning path not found.");
+            throw new ArgumentException("Ruta de aprendizaje no encontrada.");
         }
 
         var linkedTopics = await _academicContext.LearningPathTopics
@@ -240,7 +240,7 @@ public partial class AcademicRepository
     {
         var key = NormalizeCatalogKey(request.Key);
         if (await _academicContext.LearningPaths.AnyAsync(path => path.SiteId == siteId && path.LearningPathKey == key))
-            throw new ArgumentException("Learning path key already exists.");
+            throw new ArgumentException("La clave de la ruta de aprendizaje ya existe.");
 
         await _academicContext.LearningPaths.AddAsync(new DbLearningPath
         {
@@ -262,7 +262,7 @@ public partial class AcademicRepository
         var path = await FindLearningPathAsync(siteId, learningPathKey);
         var key = NormalizeCatalogKey(request.Key);
         if (!string.Equals(path.LearningPathKey, key, StringComparison.Ordinal))
-            throw new ArgumentException("Learning path key cannot be changed.");
+            throw new ArgumentException("La clave de la ruta de aprendizaje no se puede cambiar.");
         path.Title = request.Title.Trim();
         path.Description = request.Description?.Trim() ?? string.Empty;
         path.Version = request.Version;
@@ -319,8 +319,8 @@ public partial class AcademicRepository
     {
         var path = await FindLearningPathAsync(siteId, learningPathKey);
         var key = NormalizeCatalogKey(request.Key);
-        if (await _academicContext.Topics.AnyAsync(topic => topic.TopicKey == key)) throw new ArgumentException("Stage key already exists.");
-        if (await HasStageWithOrderAsync(path.LearningPathId, request.Order)) throw new ArgumentException("Stage order already exists in this learning path.");
+        if (await _academicContext.Topics.AnyAsync(topic => topic.TopicKey == key)) throw new ArgumentException("La clave de la etapa ya existe.");
+        if (await HasStageWithOrderAsync(path.LearningPathId, request.Order)) throw new ArgumentException("El orden de la etapa ya existe en esta ruta de aprendizaje.");
         await using var transaction = await _academicContext.Database.BeginTransactionAsync();
         var stage = new DbAcademicTopic { TopicKey = key, Name = request.Name.Trim(), SortOrder = request.Order, UnlockedByDefault = request.UnlockedByDefault };
         await _academicContext.Topics.AddAsync(stage);
@@ -335,11 +335,11 @@ public partial class AcademicRepository
     {
         var path = await FindLearningPathAsync(siteId, learningPathKey);
         var stage = await _academicContext.Topics.FirstOrDefaultAsync(item => item.TopicId == stageId)
-            ?? throw new ArgumentException("Stage not found.");
+            ?? throw new ArgumentException("Etapa no encontrada.");
         if (await _academicContext.LearningPathTopics.AnyAsync(link => link.LearningPathId == path.LearningPathId && link.TopicId == stageId))
-            throw new ArgumentException("Stage is already linked to this learning path.");
+            throw new ArgumentException("La etapa ya está vinculada a esta ruta de aprendizaje.");
         if (await HasStageWithOrderAsync(path.LearningPathId, stage.SortOrder))
-            throw new ArgumentException("Stage order already exists in this learning path.");
+            throw new ArgumentException("El orden de la etapa ya existe en esta ruta de aprendizaje.");
 
         await _academicContext.LearningPathTopics.AddAsync(new DbLearningPathTopic
         {
@@ -365,8 +365,8 @@ public partial class AcademicRepository
         await EnsureStageIsExclusiveAsync(path.LearningPathId, stageId);
         var stage = await _academicContext.Topics.FirstAsync(item => item.TopicId == stageId);
         var key = NormalizeCatalogKey(request.Key);
-        if (await _academicContext.Topics.AnyAsync(item => item.TopicId != stageId && item.TopicKey == key)) throw new ArgumentException("Stage key already exists.");
-        if (await HasStageWithOrderAsync(path.LearningPathId, request.Order, stageId)) throw new ArgumentException("Stage order already exists in this learning path.");
+        if (await _academicContext.Topics.AnyAsync(item => item.TopicId != stageId && item.TopicKey == key)) throw new ArgumentException("La clave de la etapa ya existe.");
+        if (await HasStageWithOrderAsync(path.LearningPathId, request.Order, stageId)) throw new ArgumentException("El orden de la etapa ya existe en esta ruta de aprendizaje.");
         stage.TopicKey = key; stage.Name = request.Name.Trim(); stage.SortOrder = request.Order; stage.UnlockedByDefault = request.UnlockedByDefault;
         await _academicContext.SaveChangesAsync();
         return await GetLearningPathAsync(siteId, path.LearningPathKey);
@@ -387,7 +387,7 @@ public partial class AcademicRepository
         await EnsureStageLinkedAsync(path.LearningPathId, stageId);
         await EnsureStageIsExclusiveAsync(path.LearningPathId, stageId);
         var key = NormalizeCatalogKey(request.Key);
-        if (await _academicContext.Subtopics.AnyAsync(item => item.TopicId == stageId && item.SubtopicKey == key)) throw new ArgumentException("Topic key already exists in this stage.");
+        if (await _academicContext.Subtopics.AnyAsync(item => item.TopicId == stageId && item.SubtopicKey == key)) throw new ArgumentException("La clave del tema ya existe en esta etapa.");
         var validProblemIds = await ValidateProblemIdsAsync(siteId, request.ProblemIds);
         await using var transaction = await _academicContext.Database.BeginTransactionAsync();
         var topic = new DbSubtopic { TopicId = stageId, SubtopicKey = key };
@@ -404,9 +404,9 @@ public partial class AcademicRepository
         var path = await FindLearningPathAsync(siteId, learningPathKey);
         await EnsureStageLinkedAsync(path.LearningPathId, stageId);
         await EnsureStageIsExclusiveAsync(path.LearningPathId, stageId);
-        var topic = await _academicContext.Subtopics.FirstOrDefaultAsync(item => item.SubtopicId == topicId && item.TopicId == stageId) ?? throw new ArgumentException("Topic not found.");
+        var topic = await _academicContext.Subtopics.FirstOrDefaultAsync(item => item.SubtopicId == topicId && item.TopicId == stageId) ?? throw new ArgumentException("Tema no encontrado.");
         var key = NormalizeCatalogKey(request.Key);
-        if (await _academicContext.Subtopics.AnyAsync(item => item.SubtopicId != topicId && item.TopicId == stageId && item.SubtopicKey == key)) throw new ArgumentException("Topic key already exists in this stage.");
+        if (await _academicContext.Subtopics.AnyAsync(item => item.SubtopicId != topicId && item.TopicId == stageId && item.SubtopicKey == key)) throw new ArgumentException("La clave del tema ya existe en esta etapa.");
         var previousKey = topic.SubtopicKey;
         topic.SubtopicKey = key; ApplyTopic(topic, request);
         if (!string.Equals(previousKey, key, StringComparison.OrdinalIgnoreCase))
@@ -436,7 +436,7 @@ public partial class AcademicRepository
         var path = await FindLearningPathAsync(siteId, learningPathKey);
         await EnsureStageLinkedAsync(path.LearningPathId, stageId);
         await EnsureStageIsExclusiveAsync(path.LearningPathId, stageId);
-        var topic = await _academicContext.Subtopics.FirstOrDefaultAsync(item => item.SubtopicId == topicId && item.TopicId == stageId) ?? throw new ArgumentException("Topic not found.");
+        var topic = await _academicContext.Subtopics.FirstOrDefaultAsync(item => item.SubtopicId == topicId && item.TopicId == stageId) ?? throw new ArgumentException("Tema no encontrado.");
         _academicContext.SubtopicProblems.RemoveRange(_academicContext.SubtopicProblems.Where(item => item.SubtopicId == topicId));
         _academicContext.SubtopicTags.RemoveRange(_academicContext.SubtopicTags.Where(item => item.SubtopicId == topicId));
         _academicContext.LearningPathTopicProgresses.RemoveRange(_academicContext.LearningPathTopicProgresses.Where(item => item.LearningPathId == path.LearningPathId && item.TopicId == topic.SubtopicKey));
@@ -447,17 +447,17 @@ public partial class AcademicRepository
     }
 
     private async Task<DbLearningPath> FindLearningPathAsync(int siteId, string key) =>
-        await _academicContext.LearningPaths.FirstOrDefaultAsync(path => path.SiteId == siteId && path.LearningPathKey == key) ?? throw new ArgumentException("Learning path not found.");
+        await _academicContext.LearningPaths.FirstOrDefaultAsync(path => path.SiteId == siteId && path.LearningPathKey == key) ?? throw new ArgumentException("Ruta de aprendizaje no encontrada.");
 
     private async Task EnsureStageLinkedAsync(long pathId, long stageId)
     {
-        if (!await _academicContext.LearningPathTopics.AnyAsync(link => link.LearningPathId == pathId && link.TopicId == stageId)) throw new ArgumentException("Stage not found in learning path.");
+        if (!await _academicContext.LearningPathTopics.AnyAsync(link => link.LearningPathId == pathId && link.TopicId == stageId)) throw new ArgumentException("Etapa no encontrada en la ruta de aprendizaje.");
     }
 
     private async Task EnsureStageIsExclusiveAsync(long pathId, long stageId)
     {
         if (await _academicContext.LearningPathTopics.AnyAsync(link => link.TopicId == stageId && link.LearningPathId != pathId))
-            throw new InvalidOperationException("Shared stages cannot be modified. Remove the stage from the other learning paths first.");
+            throw new InvalidOperationException("Las etapas compartidas no se pueden modificar. Primero quita la etapa de las otras rutas de aprendizaje.");
     }
 
     private Task<bool> HasStageWithOrderAsync(long pathId, int order, long? excludedStageId = null) =>
@@ -512,7 +512,7 @@ public partial class AcademicRepository
     {
         var ids = problemIds.Where(id => id > 0).Distinct().ToList();
         var validIds = await _context.ProblemSites.Where(item => item.SiteId == siteId && item.IsActive && ids.Contains(item.problemId)).Select(item => item.problemId).ToListAsync();
-        if (validIds.Count != ids.Count) throw new ArgumentException("One or more problems are not active in this site.");
+        if (validIds.Count != ids.Count) throw new ArgumentException("Uno o más problemas no están activos en este sitio.");
         return ids;
     }
 
@@ -533,7 +533,7 @@ public partial class AcademicRepository
     private static string NormalizeCatalogKey(string value)
     {
         var normalized = Regex.Replace(value.Trim().ToLowerInvariant(), @"[^a-z0-9_]+", "_").Trim('_');
-        if (string.IsNullOrWhiteSpace(normalized)) throw new ArgumentException("Key contains no valid characters.");
+        if (string.IsNullOrWhiteSpace(normalized)) throw new ArgumentException("La clave no contiene caracteres válidos.");
         return normalized;
     }
 

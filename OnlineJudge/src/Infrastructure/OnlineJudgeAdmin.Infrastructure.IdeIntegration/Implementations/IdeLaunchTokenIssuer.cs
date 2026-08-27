@@ -25,12 +25,12 @@ public sealed class IdeLaunchTokenIssuer : IIdeLaunchTokenIssuer
     {
         if (string.IsNullOrWhiteSpace(claims.UserId))
         {
-            throw new ArgumentException("UserId is required to issue an IDE launch token.");
+            throw new ArgumentException("UserId es requerido para emitir un token de lanzamiento de IDE.");
         }
 
         if (claims.ProblemId <= 0)
         {
-            throw new ArgumentException("ProblemId is required to issue an IDE launch token.");
+            throw new ArgumentException("ProblemId es requerido para emitir un token de lanzamiento de IDE.");
         }
 
         var payload = new Dictionary<string, object?>

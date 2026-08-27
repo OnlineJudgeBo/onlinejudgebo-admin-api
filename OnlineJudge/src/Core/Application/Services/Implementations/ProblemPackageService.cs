@@ -38,7 +38,7 @@ public class ProblemPackageService : IProblemPackageService
     public async Task<byte[]> ExportProblemPackageAsync(int problemId, int siteId)
     {
         var problem = await _problemService.GetProblemByIdAsync(problemId, siteId)
-            ?? throw new KeyNotFoundException($"Problem {problemId} not found.");
+            ?? throw new KeyNotFoundException($"Problema {problemId} no encontrado.");
 
         if (string.Equals(problem.Spj, "Y", StringComparison.OrdinalIgnoreCase))
         {
@@ -333,7 +333,7 @@ public class ProblemPackageService : IProblemPackageService
         {
             // Our own export: metadata.json is the lossless source of truth.
             var metadata = JsonSerializer.Deserialize<ProblemPackageMetadata>(File.ReadAllText(metadataPath))
-                ?? throw new InvalidOperationException("metadata.json is invalid.");
+                ?? throw new InvalidOperationException("metadata.json no es válido.");
 
             return new Problem
             {

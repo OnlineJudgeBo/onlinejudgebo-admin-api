@@ -36,7 +36,7 @@ public partial class PublicRepository
 
         if (user == null || !LegacyPasswordHasher.Verify(password, user.Password))
         {
-            throw new UnauthorizedAccessException("Usuario o contraseña incorrectos.");
+            throw new UnauthorizedAccessException("Invalid username or password.");
         }
 
         await _context.Users
@@ -256,7 +256,7 @@ public partial class PublicRepository
 
         if (user == null)
         {
-            throw new UnauthorizedAccessException("Usuario no autorizado.");
+            throw new UnauthorizedAccessException("Unauthorized user.");
         }
 
         return new PublicAuthenticatedUser

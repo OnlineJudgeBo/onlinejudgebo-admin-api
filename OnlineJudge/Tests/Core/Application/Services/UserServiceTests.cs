@@ -66,7 +66,7 @@ public class UserServiceTests
 
         var error = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.DeleteRoleAsync(User("teacher", UserRolesEnum.Docente), "student", 2, 1));
 
-        Assert.Equal("Solo los administradores pueden eliminar roles.", error.Message);
+        Assert.Equal("Only administrators can delete roles.", error.Message);
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public class UserServiceTests
 
         var error = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.DeleteUserAsync(User("teacher", UserRolesEnum.Docente), "student", 1));
 
-        Assert.Equal("Solo los administradores pueden eliminar usuarios.", error.Message);
+        Assert.Equal("Only administrators can delete users.", error.Message);
     }
 
     [Fact]

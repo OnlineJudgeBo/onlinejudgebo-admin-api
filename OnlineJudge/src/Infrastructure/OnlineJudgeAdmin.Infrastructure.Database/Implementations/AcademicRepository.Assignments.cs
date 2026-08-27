@@ -21,7 +21,7 @@ public partial class AcademicRepository
 
         if (course == null)
         {
-            throw new ArgumentException("Course not found.");
+            throw new ArgumentException("Curso no encontrado.");
         }
 
         await EnsureAssignmentContentItemsAsync(courseId, userId);
@@ -40,7 +40,7 @@ public partial class AcademicRepository
 
         if (availableProblemIds.Count != problemIds.Count)
         {
-            throw new ArgumentException("Some problems are not available in this site.");
+            throw new ArgumentException("Algunos problemas no están disponibles en este sitio.");
         }
 
         var assignment = new DbCourseAssignment
@@ -131,7 +131,7 @@ public partial class AcademicRepository
     {
         var material = await _academicContext.CourseContentItems
             .FirstOrDefaultAsync(item => item.CourseId == courseId && item.ItemId == materialId && item.ItemType == "material")
-            ?? throw new KeyNotFoundException("Course material was not found.");
+            ?? throw new KeyNotFoundException("No se encontró el material del curso.");
         material.Title = request.Title.Trim();
         material.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
         material.ContentUrl = string.IsNullOrWhiteSpace(request.ContentUrl) ? null : request.ContentUrl.Trim();
@@ -150,7 +150,7 @@ public partial class AcademicRepository
     {
         var material = await _academicContext.CourseContentItems
             .FirstOrDefaultAsync(item => item.CourseId == courseId && item.ItemId == materialId && item.ItemType == "material")
-            ?? throw new KeyNotFoundException("Course material was not found.");
+            ?? throw new KeyNotFoundException("No se encontró el material del curso.");
         _academicContext.CourseContentItems.Remove(material);
         await _academicContext.SaveChangesAsync();
     }
@@ -196,7 +196,7 @@ public partial class AcademicRepository
 
         if (course == null)
         {
-            throw new ArgumentException("Course not found.");
+            throw new ArgumentException("Curso no encontrado.");
         }
 
         var assignment = await _academicContext.CourseAssignments
@@ -205,7 +205,7 @@ public partial class AcademicRepository
 
         if (assignment == null)
         {
-            throw new ArgumentException("Assignment not found in this course.");
+            throw new ArgumentException("Tarea no encontrada en este curso.");
         }
 
         var problemIds = request.ProblemIds
@@ -222,7 +222,7 @@ public partial class AcademicRepository
 
         if (availableProblemIds.Count != problemIds.Count)
         {
-            throw new ArgumentException("Some problems are not available in this site.");
+            throw new ArgumentException("Algunos problemas no están disponibles en este sitio.");
         }
 
         assignment.Title = request.Title.Trim();
@@ -277,7 +277,7 @@ public partial class AcademicRepository
 
         if (course == null)
         {
-            throw new ArgumentException("Course not found.");
+            throw new ArgumentException("Curso no encontrado.");
         }
 
         var assignment = (await BuildCourseAssignmentsAsync(siteId, courseId, currentUserId))
@@ -285,7 +285,7 @@ public partial class AcademicRepository
 
         if (assignment == null)
         {
-            throw new ArgumentException("Assignment not found.");
+            throw new ArgumentException("Tarea no encontrada.");
         }
 
         var studentUserIds = await _academicContext.CourseUsers
@@ -367,7 +367,7 @@ public partial class AcademicRepository
 
         if (!assignmentExists)
         {
-            throw new ArgumentException("Assignment not found.");
+            throw new ArgumentException("Tarea no encontrada.");
         }
 
         var studentUserIds = await _academicContext.CourseUsers
@@ -775,7 +775,7 @@ public partial class AcademicRepository
 
         if (course == null)
         {
-            throw new ArgumentException("Course not found.");
+            throw new ArgumentException("Curso no encontrado.");
         }
 
         var ownerUserId = includeOwner

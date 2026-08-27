@@ -61,7 +61,7 @@ public class TopicRepository : ITopicRepository
             .Include(p => p.Classifications)
             .FirstOrDefaultAsync(p => p.ProblemId == problemId);
 
-        if (problem == null) throw new ArgumentException("Problem not found.");
+        if (problem == null) throw new ArgumentException("Problema no encontrado.");
 
         var classificationsToRemove = problem.Classifications
             .ToList();
@@ -107,7 +107,7 @@ public class TopicRepository : ITopicRepository
         var existingClassification = _context.Classifications
             .FirstOrDefault(c => c.ClassificationId == classificationId);
 
-        if (existingClassification == null) throw new ArgumentException("Classification not found.");
+        if (existingClassification == null) throw new ArgumentException("Clasificación no encontrada.");
 
         existingClassification.Name = classificationToUpdate.Name;
         _context.Entry(existingClassification).Property(c => c.Name).IsModified = true;

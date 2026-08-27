@@ -378,7 +378,7 @@ public partial class PublicRepository
 
         if (!await CanAccessPrivateContestAsync(siteId, contest.ContestId, currentUser))
         {
-            throw new UnauthorizedAccessException("Este concurso es privado.");
+            throw new UnauthorizedAccessException("This contest is private.");
         }
     }
 

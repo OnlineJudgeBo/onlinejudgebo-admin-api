@@ -111,7 +111,7 @@ public partial class AcademicRepository
 
         if (!problemExistsInSite)
         {
-            throw new ArgumentException("Problem does not exist for this site.");
+            throw new ArgumentException("El problema no existe en este sitio.");
         }
 
         long? courseId = request.CourseId;
@@ -125,12 +125,12 @@ public partial class AcademicRepository
 
             if (assignment == null)
             {
-                throw new ArgumentException("Assignment not found.");
+                throw new ArgumentException("Tarea no encontrada.");
             }
 
             if (courseId.HasValue && courseId.Value != assignment.CourseId)
             {
-                throw new ArgumentException("Assignment does not belong to the specified course.");
+                throw new ArgumentException("La tarea no pertenece al curso especificado.");
             }
 
             var assignmentProblemExists = await _academicContext.CourseAssignmentProblems
@@ -140,7 +140,7 @@ public partial class AcademicRepository
 
             if (!assignmentProblemExists)
             {
-                throw new ArgumentException("Problem does not belong to the specified assignment.");
+                throw new ArgumentException("El problema no pertenece a la tarea especificada.");
             }
 
             EnsureAssignmentAcceptsSubmissions(assignment, now);
@@ -221,7 +221,7 @@ public partial class AcademicRepository
 
         if (learningPath == null)
         {
-            throw new ArgumentException("Learning path not found.");
+            throw new ArgumentException("Ruta de aprendizaje no encontrada.");
         }
 
         var linkedTopics = await _academicContext.LearningPathTopics
@@ -231,7 +231,7 @@ public partial class AcademicRepository
 
         if (linkedTopics.Count == 0)
         {
-            throw new ArgumentException("Learning path has no stages configured.");
+            throw new ArgumentException("La ruta de aprendizaje no tiene etapas configuradas.");
         }
 
         var topicIds = linkedTopics
