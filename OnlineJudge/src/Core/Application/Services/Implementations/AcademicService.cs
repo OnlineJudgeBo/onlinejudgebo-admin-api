@@ -563,7 +563,7 @@ public class AcademicService : IAcademicService
         }
 
         request.ProblemIds = problemIds;
-        request.OpensAt ??= DateTime.UtcNow;
+        request.OpensAt ??= DateTime.Now;
         request.DueAt ??= request.OpensAt.Value.AddDays(7);
 
         if (request.DueAt.Value < request.OpensAt.Value)
