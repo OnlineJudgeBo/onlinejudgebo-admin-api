@@ -576,13 +576,6 @@ public partial class PublicRepository
             {
                 metadata[problemId].OriginSource = normalizedOriginSource;
                 metadata[problemId].Sources.Add(normalizedOriginSource);
-                metadata[problemId].Tracks.Add(
-                    normalizedOriginSource.Contains("OBI", StringComparison.OrdinalIgnoreCase)
-                        ? "OBI"
-                        : normalizedOriginSource.Contains("ICPC", StringComparison.OrdinalIgnoreCase)
-                            || normalizedOriginSource.Contains("Bolivia", StringComparison.OrdinalIgnoreCase)
-                            ? "ICPC_BOLIVIA"
-                            : "GENERAL");
             }
         }
 
@@ -647,15 +640,11 @@ public partial class PublicRepository
                 metadata[problemId].Sources.Add(metadata[problemId].OriginSource);
             }
 
+            // No contest carries a real Track for this problem (see the contest join
+            // above) - default to GENERAL instead of guessing one from OriginSource text.
             if (metadata[problemId].Tracks.Count == 0)
             {
-                metadata[problemId].Tracks.Add(
-                    metadata[problemId].OriginSource.Contains("OBI", StringComparison.OrdinalIgnoreCase)
-                        ? "OBI"
-                        : metadata[problemId].OriginSource.Contains("ICPC", StringComparison.OrdinalIgnoreCase)
-                            || metadata[problemId].OriginSource.Contains("Bolivia", StringComparison.OrdinalIgnoreCase)
-                            ? "ICPC_BOLIVIA"
-                            : "GENERAL");
+                metadata[problemId].Tracks.Add("GENERAL");
             }
         }
 

@@ -303,4 +303,68 @@ public class PublicRepositoryTests
 
         Assert.False(result);
     }
+
+    // ---- GetProblemFiltersAsync / GetProblemDetailAsync - Track classification ----
+
+    [Fact]
+    public async Task GetProblemDetailAsync_UsesContestTrackColumn_NotOriginSourceGuessing()
+    {
+        using SqliteContext<AppDbContext> scope = CreateSqliteContext<AppDbContext>(o => new SqliteAppDbContext(o));
+        AppDbContext context = scope.Context;
+        var repository = CreateRepository(context);
+        context.Sites.Add(new DbSite { SiteId = 1, Name = "Site 1" });
+
+        // OriginSource text mentions "OBI", but the real contest.Track column says GENERAL -
+        // the column must win, not a text guess.
+        var problem = new DbProblem { Title = "Problem A", Spj = "N", Defunct = "N", TimeLimit = 1000, MemoryLimit = 128, OriginSource = "OBI Regional 2023" };
+        context.Problems.Add(problem);
+        await context.SaveChangesAsync();
+        context.ProblemSites.Add(new DbProblemSite { problemId = problem.ProblemId!.Value, SiteId = 1, IsActive = true });
+        context.Contests.Add(new DbContest { ContestId = 1, Title = "Contest A", StartTime = DateTime.Now, EndTime = DateTime.Now.AddDays(1), Defunct = "N", Track = "GENERAL" });
+        await context.SaveChangesAsync();
+        context.ContestSites.Add(new DbContestSite { ContestId = 1, SiteId = 1 });
+        context.ContestProblems.Add(new DbContestProblem { ContestId = 1, ProblemId = problem.ProblemId!.Value, Num = 1 });
+        await context.SaveChangesAsync();
+
+        PublicProblemDetailResponse detail = await repository.GetProblemDetailAsync(siteId: 1, problemId: problem.ProblemId!.Value);
+
+        Assert.Equal(new[] { "GENERAL" }, detail.ContestTracks);
+    }
+
+    [Fact]
+    public async Task GetProblemDetailAsync_ClassifiesByContestTrack_EvenWithoutMatchingOriginSourceText()
+    {
+        using SqliteContext<AppDbContext> scope = CreateSqliteContext<AppDbContext>(o => new SqliteAppDbContext(o));
+        AppDbContext context = scope.Context;
+        var repository = CreateRepository(context);
+        context.Sites.Add(new DbSite { SiteId = 1, Name = "Site 1" });
+
+        // OriginSource has nothing to do with OBI - only the contest.Track column says so.
+        var problem = new DbProblem { Title = "Problem A", Spj = "N", Defunct = "N", TimeLimit = 1000, MemoryLimit = 128, OriginSource = "Regional Qualifier" };
+        context.Problems.Add(problem);
+        await context.SaveChangesAsync();
+        context.ProblemSites.Add(new DbProblemSite { problemId = problem.ProblemId!.Value, SiteId = 1, IsActive = true });
+        context.Contests.Add(new DbContest { ContestId = 1, Title = "Contest A", StartTime = DateTime.Now, EndTime = DateTime.Now.AddDays(1), Defunct = "N", Track = "OBI" });
+        await context.SaveChangesAsync();
+        context.ContestSites.Add(new DbContestSite { ContestId = 1, SiteId = 1 });
+        context.ContestProblems.Add(new DbContestProblem { ContestId = 1, ProblemId = problem.ProblemId!.Value, Num = 1 });
+        await context.SaveChangesAsync();
+
+        PublicProblemDetailResponse detail = await repository.GetProblemDetailAsync(siteId: 1, problemId: problem.ProblemId!.Value);
+
+        Assert.Equal(new[] { "OBI" }, detail.ContestTracks);
+    }
+
+    [Fact]
+    public async Task GetProblemDetailAsync_DefaultsToGeneral_WhenProblemHasNoContest()
+    {
+        using SqliteContext<AppDbContext> scope = CreateSqliteContext<AppDbContext>(o => new SqliteAppDbContext(o));
+        AppDbContext context = scope.Context;
+        var repository = CreateRepository(context);
+        int problemId = await SeedProblemAsync(context, siteId: 1);
+
+        PublicProblemDetailResponse detail = await repository.GetProblemDetailAsync(siteId: 1, problemId: problemId);
+
+        Assert.Equal(new[] { "GENERAL" }, detail.ContestTracks);
+    }
 }
