@@ -20,6 +20,33 @@ public class UserServiceTests
         userRepository.Verify(item => item.UpdateUserProfile(user.UserProfile, 1), Times.Once);
     }
 
+    [Theory]
+    [InlineData("ab")]
+    [InlineData("con espacio")]
+    [InlineData("ñandu")]
+    [InlineData("abcdefghijklmnopqrstu")]
+    public async Task UpdateUserProfile_RejectsInvalidNewUserId(string newUserId)
+    {
+        var userRepository = new Mock<IUserRepository>();
+        var service = CreateService(userRepository.Object);
+        var user = new User { UserId = newUserId, UserProfile = new UserProfile() };
+
+        await Assert.ThrowsAsync<ArgumentException>(() => service.UpdateUserProfile(User("admin", UserRolesEnum.Administrador), user, "old", 1));
+        userRepository.Verify(item => item.UpdateUser(It.IsAny<User>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateUserProfile_RejectsTakenUserId()
+    {
+        var userRepository = new Mock<IUserRepository>();
+        userRepository.Setup(item => item.UserIdExists("taken", "old")).ReturnsAsync(true);
+        var service = CreateService(userRepository.Object);
+        var user = new User { UserId = "taken", UserProfile = new UserProfile() };
+
+        await Assert.ThrowsAsync<ArgumentException>(() => service.UpdateUserProfile(User("old", UserRolesEnum.Invitado), user, "old", 1));
+        userRepository.Verify(item => item.UpdateUser(It.IsAny<User>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
     [Fact]
     public async Task ChangePassword_HashesPasswordBeforeSaving()
     {

@@ -14,6 +14,8 @@ public interface IUserRepository
 
     public Task<IEnumerable<User>> SearchUserProfilesAsync(string searchTerm, int siteId);
 
+    public Task<bool> UserIdExists(string userId, string exceptUserId);
+
     public Task<User> UpdateUser(User userToUpdate, string userId, int siteId);
 
     public Task<UserProfile> UpdateUserProfile(UserProfile userProfileToUpdate, int siteId);
