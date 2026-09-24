@@ -3,6 +3,7 @@ using System.Net.Mail;
 using System.Net.Mime;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using OnlineJudgeAdmin.Core.Application.Services.Helpers;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 
 namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
@@ -18,25 +19,14 @@ public class WelcomeEmailService : IWelcomeEmailService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task SendWelcomeAsync(string email, string userId, string? displayName = null)
+    public async Task SendWelcomeAsync(string email, string userId, int siteId, string? displayName = null)
     {
-        var (_, host) = GetConfiguredValue(
-            "Email:Smtp:Host",
-            "WelcomeEmail:SmtpHost",
-            "PasswordRecovery:SmtpHost");
-        var (_, username) = GetConfiguredValue(
-            "Email:Smtp:Username",
-            "WelcomeEmail:SmtpUsername",
-            "PasswordRecovery:SmtpUsername");
-        var (_, password) = GetConfiguredValue(
-            "Email:Smtp:Password",
-            "WelcomeEmail:SmtpPassword",
-            "PasswordRecovery:SmtpPassword");
-        var (_, configuredFromEmail) = GetConfiguredValue(
-            "Email:Smtp:From:Email",
-            "WelcomeEmail:FromEmail",
-            "PasswordRecovery:FromEmail");
-        var fromEmail = configuredFromEmail ?? username;
+        string? Setting(string key, params string[] legacyKeys) => SiteEmailSettings.Get(_configuration, siteId, key, legacyKeys);
+
+        var host = Setting("Smtp:Host", "WelcomeEmail:SmtpHost", "PasswordRecovery:SmtpHost");
+        var username = Setting("Smtp:Username", "WelcomeEmail:SmtpUsername", "PasswordRecovery:SmtpUsername");
+        var password = Setting("Smtp:Password", "WelcomeEmail:SmtpPassword", "PasswordRecovery:SmtpPassword");
+        var fromEmail = Setting("Smtp:From:Email", "WelcomeEmail:FromEmail", "PasswordRecovery:FromEmail") ?? username;
 
         if (string.IsNullOrWhiteSpace(host)
             || string.IsNullOrWhiteSpace(username)
@@ -64,35 +54,27 @@ public class WelcomeEmailService : IWelcomeEmailService
                 missingFields.Add("Email:Smtp:From:Email");
             }
 
-            _logger.LogWarning("Welcome email configuration is incomplete. MissingFields={MissingFields}", string.Join(", ", missingFields));
+            _logger.LogWarning("Welcome email configuration is incomplete. SiteId={SiteId} MissingFields={MissingFields}", siteId, string.Join(", ", missingFields));
 
             throw new InvalidOperationException($"La configuración de correo de bienvenida no está completa. MissingFields: {string.Join(", ", missingFields)}");
         }
 
         var port = 465;
-        if (int.TryParse(_configuration["Email:Smtp:Port"] ?? _configuration["WelcomeEmail:SmtpPort"] ?? _configuration["PasswordRecovery:SmtpPort"], out var configuredPort))
+        if (int.TryParse(Setting("Smtp:Port", "WelcomeEmail:SmtpPort", "PasswordRecovery:SmtpPort"), out var configuredPort))
         {
             port = configuredPort;
         }
 
         var useSsl = true;
-        if (bool.TryParse(_configuration["Email:Smtp:UseSsl"] ?? _configuration["WelcomeEmail:UseSsl"] ?? _configuration["PasswordRecovery:UseSsl"], out var configuredUseSsl))
+        if (bool.TryParse(Setting("Smtp:UseSsl", "WelcomeEmail:UseSsl", "PasswordRecovery:UseSsl"), out var configuredUseSsl))
         {
             useSsl = configuredUseSsl;
         }
 
-        var fromName = _configuration["Email:Smtp:From:Name"]
-            ?? _configuration["WelcomeEmail:FromName"]
-            ?? _configuration["PasswordRecovery:FromName"]
-            ?? "Juez Virtual";
-        var subject = _configuration["Email:Welcome:Subject"]
-            ?? _configuration["WelcomeEmail:Subject"]
-            ?? "Bienvenido a Juez Virtual";
-        var appName = _configuration["Email:AppName"]
-            ?? _configuration["WelcomeEmail:AppName"]
-            ?? _configuration["PasswordRecovery:AppName"]
-            ?? "Juez Virtual";
-        var portalUrl = _configuration["Email:Welcome:PortalUrl"] ?? _configuration["WelcomeEmail:PortalUrl"];
+        var fromName = Setting("Smtp:From:Name", "WelcomeEmail:FromName", "PasswordRecovery:FromName") ?? "Juez Virtual";
+        var subject = Setting("Welcome:Subject", "WelcomeEmail:Subject") ?? "Bienvenido a Juez Virtual";
+        var appName = Setting("AppName", "WelcomeEmail:AppName", "PasswordRecovery:AppName") ?? "Juez Virtual";
+        var portalUrl = Setting("Welcome:PortalUrl", "WelcomeEmail:PortalUrl");
         var recipientName = string.IsNullOrWhiteSpace(displayName) ? userId : displayName.Trim();
 
         var plainTextBody = BuildPlainTextBody(recipientName, appName, userId, portalUrl);
@@ -132,20 +114,6 @@ public class WelcomeEmailService : IWelcomeEmailService
         }
     }
 
-    private (string Key, string? Value) GetConfiguredValue(params string[] keys)
-    {
-        foreach (var key in keys)
-        {
-            var value = _configuration[key];
-            if (!string.IsNullOrWhiteSpace(value))
-            {
-                return (key, value);
-            }
-        }
-
-        return (keys.FirstOrDefault() ?? string.Empty, null);
-    }
-
     private static string BuildPlainTextBody(string recipientName, string appName, string userId, string? portalUrl)
     {
         var body = $"""
@@ -166,9 +134,9 @@ Accede aquí: {portalUrl}
 """;
         }
 
-        body += """
+        body += $"""
 
-Bienvenido a Juez Virtual.
+Bienvenido a {appName}.
 """;
 
         return body;
@@ -187,7 +155,7 @@ Bienvenido a Juez Virtual.
               <tr>
                 <td style="padding: 0 32px 28px 32px;">
                   <a href="{safePortalUrl}" style="display:inline-block;background:#0f5bd8;color:#ffffff;text-decoration:none;padding:14px 22px;border-radius:10px;font-weight:600;">
-                    Ir al Juez Virtual
+                    Ir a {safeAppName}
                   </a>
                 </td>
               </tr>
@@ -209,7 +177,7 @@ Bienvenido a Juez Virtual.
           <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #dbe3ef;">
             <tr>
               <td style="padding:28px 32px;background:linear-gradient(135deg,#0f5bd8,#123b86);color:#ffffff;">
-                <div style="font-size:13px;letter-spacing:0.12em;text-transform:uppercase;opacity:0.85;">Juez Virtual</div>
+                <div style="font-size:13px;letter-spacing:0.12em;text-transform:uppercase;opacity:0.85;">{safeAppName}</div>
                 <div style="margin-top:10px;font-size:28px;font-weight:700;line-height:1.2;">Bienvenido, {safeRecipientName}</div>
                 <div style="margin-top:8px;font-size:15px;line-height:1.6;opacity:0.92;">
                   Tu cuenta en {safeAppName} ya esta lista para usarse.

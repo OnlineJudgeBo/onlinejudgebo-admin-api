@@ -251,7 +251,7 @@ public class PublicServiceTests
             .Callback<string, string, string, string?, string?, string?, int, string>((_, passwordHash, _, _, _, _, _, _) => capturedPasswordHash = passwordHash)
             .ReturnsAsync(new PublicAuthenticatedUser { UserId = "student_1", Email = "s@example.com", Nick = "Nick", SiteId = 1 });
         var welcomeEmailService = new Mock<IWelcomeEmailService>();
-        welcomeEmailService.Setup(item => item.SendWelcomeAsync("s@example.com", "student_1", "Nick")).ThrowsAsync(new InvalidOperationException("smtp down"));
+        welcomeEmailService.Setup(item => item.SendWelcomeAsync("s@example.com", "student_1", 1, "Nick")).ThrowsAsync(new InvalidOperationException("smtp down"));
         var service = CreateService(repository.Object, welcomeEmailService: welcomeEmailService.Object);
 
         var user = await service.RegisterAsync("student_1", "secret1", " s@example.com ", " Nick ", " ", " School ", 1, "127.0.0.1");
@@ -297,8 +297,8 @@ public class PublicServiceTests
             .Returns(Task.CompletedTask);
         var emailService = new Mock<IPasswordRecoveryEmailService>();
         emailService
-            .Setup(item => item.SendRecoveryCodeAsync("s@example.com", "student", It.IsAny<string>(), "Student"))
-            .Callback<string, string, string, string?>((_, _, code, _) => capturedRecoveryCode = code)
+            .Setup(item => item.SendRecoveryCodeAsync("s@example.com", "student", It.IsAny<string>(), 1, "Student"))
+            .Callback<string, string, string, int, string?>((_, _, code, _, _) => capturedRecoveryCode = code)
             .Returns(Task.CompletedTask);
         var configuration = new Mock<IConfiguration>();
         configuration.SetupGet(item => item["PasswordRecovery:TokenTtlMinutes"]).Returns("2");
@@ -324,7 +324,7 @@ public class PublicServiceTests
         await service.RequestPasswordRecoveryAsync("nobody@example.com", 1);
 
         repository.Verify(item => item.SavePasswordRecoveryTokenAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<DateTime>()), Times.Never);
-        emailService.Verify(item => item.SendRecoveryCodeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()), Times.Never);
+        emailService.Verify(item => item.SendRecoveryCodeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string?>()), Times.Never);
     }
 
     [Fact]

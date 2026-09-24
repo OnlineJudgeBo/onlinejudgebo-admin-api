@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Mail;
 using Microsoft.Extensions.Configuration;
+using OnlineJudgeAdmin.Core.Application.Services.Helpers;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 
 namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
@@ -14,12 +15,14 @@ public class PasswordRecoveryEmailService : IPasswordRecoveryEmailService
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
     }
 
-    public async Task SendRecoveryCodeAsync(string email, string userId, string recoveryCode, string? displayName = null)
+    public async Task SendRecoveryCodeAsync(string email, string userId, string recoveryCode, int siteId, string? displayName = null)
     {
-        var host = _configuration["Email:Smtp:Host"] ?? _configuration["PasswordRecovery:SmtpHost"];
-        var username = _configuration["Email:Smtp:Username"] ?? _configuration["PasswordRecovery:SmtpUsername"];
-        var password = _configuration["Email:Smtp:Password"] ?? _configuration["PasswordRecovery:SmtpPassword"];
-        var fromEmail = _configuration["Email:Smtp:From:Email"] ?? _configuration["PasswordRecovery:FromEmail"] ?? username;
+        string? Setting(string key, params string[] legacyKeys) => SiteEmailSettings.Get(_configuration, siteId, key, legacyKeys);
+
+        var host = Setting("Smtp:Host", "PasswordRecovery:SmtpHost");
+        var username = Setting("Smtp:Username", "PasswordRecovery:SmtpUsername");
+        var password = Setting("Smtp:Password", "PasswordRecovery:SmtpPassword");
+        var fromEmail = Setting("Smtp:From:Email", "PasswordRecovery:FromEmail") ?? username;
 
         if (string.IsNullOrWhiteSpace(host)
             || string.IsNullOrWhiteSpace(username)
@@ -30,19 +33,19 @@ public class PasswordRecoveryEmailService : IPasswordRecoveryEmailService
         }
 
         var port = 465;
-        if (int.TryParse(_configuration["Email:Smtp:Port"] ?? _configuration["PasswordRecovery:SmtpPort"], out var configuredPort))
+        if (int.TryParse(Setting("Smtp:Port", "PasswordRecovery:SmtpPort"), out var configuredPort))
         {
             port = configuredPort;
         }
 
         var useSsl = true;
-        if (bool.TryParse(_configuration["Email:Smtp:UseSsl"] ?? _configuration["PasswordRecovery:UseSsl"], out var configuredUseSsl))
+        if (bool.TryParse(Setting("Smtp:UseSsl", "PasswordRecovery:UseSsl"), out var configuredUseSsl))
         {
             useSsl = configuredUseSsl;
         }
-        var fromName = _configuration["Email:Smtp:From:Name"] ?? _configuration["PasswordRecovery:FromName"] ?? "Juez Virtual";
-        var subject = _configuration["Email:PasswordRecovery:Subject"] ?? _configuration["PasswordRecovery:Subject"] ?? "Recuperación de contraseña";
-        var appName = _configuration["Email:AppName"] ?? _configuration["PasswordRecovery:AppName"] ?? "Juez Virtual";
+        var fromName = Setting("Smtp:From:Name", "PasswordRecovery:FromName") ?? "Juez Virtual";
+        var subject = Setting("PasswordRecovery:Subject", "PasswordRecovery:Subject") ?? "Recuperación de contraseña";
+        var appName = Setting("AppName", "PasswordRecovery:AppName") ?? "Juez Virtual";
         var recipientName = string.IsNullOrWhiteSpace(displayName) ? userId : displayName.Trim();
 
         using var message = new MailMessage
