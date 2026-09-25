@@ -232,13 +232,13 @@ public class PublicServiceTests
     public async Task LoginAsync_TrimsUserOrEmailAndDelegates()
     {
         var repository = new Mock<IPublicRepository>();
-        repository.Setup(item => item.LoginAsync("student", "secret", 1)).ReturnsAsync(new PublicAuthenticatedUser { UserId = "student" });
+        repository.Setup(item => item.LoginAsync("student", "secret", 1, It.IsAny<string>())).ReturnsAsync(new PublicAuthenticatedUser { UserId = "student" });
         var service = CreateService(repository.Object);
 
         var user = await service.LoginAsync(" student ", "secret", 1);
 
         Assert.Equal("student", user.UserId);
-        repository.Verify(item => item.LoginAsync("student", "secret", 1), Times.Once);
+        repository.Verify(item => item.LoginAsync("student", "secret", 1, It.IsAny<string>()), Times.Once);
     }
 
     [Fact]

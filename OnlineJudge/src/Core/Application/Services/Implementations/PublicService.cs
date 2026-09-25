@@ -276,7 +276,7 @@ public class PublicService : IPublicService
             || currentUser.Role == UserRolesEnum.Auxiliar;
     }
 
-    public Task<PublicAuthenticatedUser> LoginAsync(string userOrEmail, string password, int siteId)
+    public Task<PublicAuthenticatedUser> LoginAsync(string userOrEmail, string password, int siteId, string clientIp = "0.0.0.0")
     {
         ValidateSite(siteId);
 
@@ -285,7 +285,7 @@ public class PublicService : IPublicService
             throw new ArgumentException("Credenciales inválidas.");
         }
 
-        return _publicRepository.LoginAsync(userOrEmail.Trim(), password, siteId);
+        return _publicRepository.LoginAsync(userOrEmail.Trim(), password, siteId, clientIp);
     }
 
     public Task<PublicAuthenticatedUser> RegisterAsync(string userId, string password, string email, string? nick, string? lastName, string? school, int siteId, string ipAddress)

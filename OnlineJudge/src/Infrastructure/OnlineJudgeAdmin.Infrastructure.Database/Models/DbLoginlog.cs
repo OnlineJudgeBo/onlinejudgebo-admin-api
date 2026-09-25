@@ -20,4 +20,7 @@ public partial class DbLoginlog
 
     [Column("time")]
     public DateTime? Time { get; set; }
+
+    [Column("site_id")]
+    public int SiteId { get; set; } = 1;
 }

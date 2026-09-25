@@ -48,7 +48,7 @@ public class PublicAuthControllerTests
     [Fact]
     public async Task Login_IssuesSignedTokenWithUserRoleAndSiteClaims()
     {
-        _service.Setup(item => item.LoginAsync("ana", "secret1", 3)).ReturnsAsync(User());
+        _service.Setup(item => item.LoginAsync("ana", "secret1", 3, It.IsAny<string>())).ReturnsAsync(User());
         var before = DateTime.UtcNow;
 
         var response = Assert.IsType<PublicAuthResponse>(OkValue(await Controller().LoginAsync(new PublicLoginForCreation { UserId = "ana", Password = "secret1", SiteId = 3 })));
@@ -66,13 +66,13 @@ public class PublicAuthControllerTests
         Assert.Equal("3", validation.Claims["site_id"]);
         Assert.Equal(SecurityAlgorithms.HmacSha256, ((JsonWebToken)validation.SecurityToken).Alg);
         Assert.InRange(response.ExpiresAtUtc, before.AddHours(2).AddSeconds(-1), DateTime.UtcNow.AddHours(2).AddSeconds(1));
-        Assert.Same(_service.Object.LoginAsync("ana", "secret1", 3).Result, response.User);
+        Assert.Same(_service.Object.LoginAsync("ana", "secret1", 3, "0.0.0.0").Result, response.User);
     }
 
     [Fact]
     public async Task Login_TokenFailsValidationWithAnotherKey()
     {
-        _service.Setup(item => item.LoginAsync("ana", "secret1", 3)).ReturnsAsync(User());
+        _service.Setup(item => item.LoginAsync("ana", "secret1", 3, It.IsAny<string>())).ReturnsAsync(User());
         var response = Assert.IsType<PublicAuthResponse>(OkValue(await Controller().LoginAsync(new PublicLoginForCreation { UserId = "ana", Password = "secret1", SiteId = 3 })));
 
         var validation = await new JsonWebTokenHandler().ValidateTokenAsync(response.AccessToken, new TokenValidationParameters
@@ -93,7 +93,7 @@ public class PublicAuthControllerTests
     [InlineData("24", 24)]
     public async Task Login_ExpirationDefaultsToEightHoursWithOneHourMinimum(string? configured, int expectedHours)
     {
-        _service.Setup(item => item.LoginAsync("ana", "pw", 1)).ReturnsAsync(User());
+        _service.Setup(item => item.LoginAsync("ana", "pw", 1, It.IsAny<string>())).ReturnsAsync(User());
         var controller = Controller(settings: new Dictionary<string, string?> { ["Jwt:Key"] = JwtKey, ["Jwt:ExpiresHours"] = configured });
         var before = DateTime.UtcNow;
 
@@ -105,7 +105,7 @@ public class PublicAuthControllerTests
     [Fact]
     public async Task Login_MissingJwtKeyIsAServerError()
     {
-        _service.Setup(item => item.LoginAsync("ana", "pw", 1)).ReturnsAsync(User());
+        _service.Setup(item => item.LoginAsync("ana", "pw", 1, It.IsAny<string>())).ReturnsAsync(User());
         var controller = Controller(settings: new Dictionary<string, string?>());
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.LoginAsync(new PublicLoginForCreation { UserId = "ana", Password = "pw", SiteId = 1 }));
@@ -116,8 +116,8 @@ public class PublicAuthControllerTests
     [Fact]
     public async Task Login_MapsServiceErrorsToStatusCodes()
     {
-        _service.Setup(item => item.LoginAsync("bad", It.IsAny<string>(), 1)).ThrowsAsync(new UnauthorizedAccessException("Usuario o contraseña incorrectos."));
-        _service.Setup(item => item.LoginAsync("", It.IsAny<string>(), 1)).ThrowsAsync(new ArgumentException("Credenciales inválidas."));
+        _service.Setup(item => item.LoginAsync("bad", It.IsAny<string>(), 1, It.IsAny<string>())).ThrowsAsync(new UnauthorizedAccessException("Usuario o contraseña incorrectos."));
+        _service.Setup(item => item.LoginAsync("", It.IsAny<string>(), 1, It.IsAny<string>())).ThrowsAsync(new ArgumentException("Credenciales inválidas."));
         var controller = Controller();
 
         var unauthorized = Assert.IsType<UnauthorizedObjectResult>(await controller.LoginAsync(new PublicLoginForCreation { UserId = "bad", SiteId = 1 }));
