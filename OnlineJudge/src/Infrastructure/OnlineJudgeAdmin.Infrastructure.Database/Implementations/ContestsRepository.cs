@@ -54,7 +54,8 @@ public class ContestsRepository : IContestsRepository
                 EndTime = c.EndTime,
                 Defunct = c.Defunct,
                 Track = c.Track,
-                Level = c.Level
+                Level = c.Level,
+                IsExam = c.IsExam
             })
             .ToListAsync();
         return _mapper.Map<IEnumerable<Contest>>(contests);
@@ -81,7 +82,8 @@ public class ContestsRepository : IContestsRepository
                 EndTime = c.EndTime,
                 Defunct = c.Defunct,
                 Track = c.Track,
-                Level = c.Level
+                Level = c.Level,
+                IsExam = c.IsExam
             })
             .Take(100)
             .ToListAsync();
@@ -104,6 +106,8 @@ public class ContestsRepository : IContestsRepository
             Langmask = c.Langmask,
             Track = c.Track,
             Level = c.Level,
+            IsExam = c.IsExam,
+            ExamLabIps = c.ExamLabIps,
             ProgrammingLanguages = c.ProgrammingLanguages.Select(c => new DbProgrammingLanguage
             {
                 LanguageId = c.LanguageId,
@@ -257,5 +261,40 @@ public class ContestsRepository : IContestsRepository
 
         await _context.SaveChangesAsync();
         return await GetContestByIdAsync(contestId, siteId);
+    }
+
+    public async Task<ExamActivity> GetExamActivityAsync(int contestId, int siteId, DateTime from, DateTime to)
+    {
+        var participantIds = await _context.ContestUsers
+            .Where(user => user.ContestId == contestId && user.SiteId == siteId && !user.IsOwner)
+            .Select(user => user.UserId)
+            .ToListAsync();
+
+        // Every run counts as activity, custom-input runs included.
+        var submissions = await _context.Solutions
+            .Where(solution => solution.ContestId == contestId && solution.SiteId == siteId)
+            .Select(solution => new { solution.UserId, solution.Ip, solution.InDate })
+            .ToListAsync();
+
+        var userIds = participantIds.Concat(submissions.Select(item => item.UserId)).Distinct().ToList();
+
+        var logins = await _context.Loginlogs
+            .Where(login => userIds.Contains(login.UserId) && login.SiteId == siteId && login.Time >= from && login.Time <= to)
+            .Select(login => new { login.UserId, login.Ip, login.Time })
+            .ToListAsync();
+
+        var nicks = await _context.UserProfiles
+            .Where(profile => profile.SiteId == siteId && userIds.Contains(profile.UserId))
+            .ToDictionaryAsync(profile => profile.UserId, profile => profile.Nick);
+
+        return new ExamActivity
+        {
+            ParticipantUserIds = userIds,
+            Nicks = nicks,
+            Events = submissions
+                .Select(item => new ExamActivityEvent(item.UserId, (item.Ip ?? string.Empty).Trim(), item.InDate, ExamActivitySources.Submission))
+                .Concat(logins.Select(item => new ExamActivityEvent(item.UserId, (item.Ip ?? string.Empty).Trim(), item.Time!.Value, ExamActivitySources.Login)))
+                .ToList()
+        };
     }
 }

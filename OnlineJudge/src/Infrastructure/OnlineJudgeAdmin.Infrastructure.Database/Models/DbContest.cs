@@ -39,6 +39,12 @@ public partial class DbContest
     [Column("level")]
     public string Level { get; set; } = "PRACTICE";
 
+    [Column("is_exam")]
+    public bool IsExam { get; set; }
+
+    [Column("exam_lab_ips")]
+    public string? ExamLabIps { get; set; }
+
     public virtual ICollection<DbContestProblem>? ContestProblems { get; set; } = new List<DbContestProblem>();
 
     public ICollection<DbContestUser>? ContestUsers { get; set; } = new List<DbContestUser>();

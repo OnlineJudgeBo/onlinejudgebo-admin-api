@@ -1,4 +1,5 @@
 using FluentValidation;
+using OnlineJudgeAdmin.Core.Application.Services.Helpers;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
@@ -165,8 +166,24 @@ public class ContestService : IContestService
             .Where(userId => !string.IsNullOrWhiteSpace(userId));
     }
 
+    public async Task<ExamMonitorResponse> GetExamMonitorAsync(int contestId, int siteId)
+    {
+        var contest = await _contestRepository.GetContestByIdAsync(contestId, siteId)
+            ?? throw new KeyNotFoundException("Concurso no encontrado.");
+
+        if (!contest.IsExam)
+        {
+            throw new InvalidOperationException("El concurso no está marcado como examen.");
+        }
+
+        // Students usually log in a little before the start; logins from the hour before count.
+        var activity = await _contestRepository.GetExamActivityAsync(contestId, siteId, contest.StartTime.AddHours(-1), contest.EndTime);
+        return ExamActivityAnalyzer.Analyze(contest, activity, DateTime.Now);
+    }
+
     private static void EnsureContestMetadata(Contest contest)
     {
+        contest.ExamLabIps = ExamActivityAnalyzer.NormalizeLabIps(contest.ExamLabIps);
         contest.Track = string.IsNullOrWhiteSpace(contest.Track) ? "GENERAL" : contest.Track;
         contest.Level = string.IsNullOrWhiteSpace(contest.Level) ? "PRACTICE" : contest.Level;
 

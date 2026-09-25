@@ -104,6 +104,7 @@ public class AuthorizationContractTests
         ["ContestsController.CreateContestAsync [POST ]"] = "roles:Administrador,Auxiliar,Docente",
         ["ContestsController.GetAllContestAsync [GET ]"] = "roles:Administrador,Auxiliar,Docente",
         ["ContestsController.GetContestById [GET {contestId:int}]"] = "roles:Administrador,Auxiliar,Docente",
+        ["ContestsController.GetExamMonitorAsync [GET {contestId:int}/exam-monitor]"] = "roles:Administrador,Auxiliar,Docente",
         ["ContestsController.PromoteContestAsync [PUT {contestId:int}/promote]"] = "roles:Administrador,Auxiliar,Docente",
         ["ContestsController.UpdateContestAsync [PUT {contestId:int}]"] = "roles:Administrador,Auxiliar,Docente",
         ["FileManagerController.DeleteFile [DELETE local-storage]"] = "roles:Administrador,Auxiliar,Docente",
