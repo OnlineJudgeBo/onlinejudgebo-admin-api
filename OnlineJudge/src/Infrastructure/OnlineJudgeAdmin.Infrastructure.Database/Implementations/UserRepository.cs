@@ -89,8 +89,8 @@ public class UserRepository : IUserRepository
 
     public async Task<bool> CheckUsernameAvailable(UserProfile userProfile, int siteId)
     {
-        return !await _context.UserSettings
-            .AnyAsync(u => u.UserId == userProfile.UserId && u.SiteId == siteId);
+        // users.user_id is UNIQUE across sites, and not every user has a user_settings row.
+        return !await _context.Users.AnyAsync(u => u.UserId == userProfile.UserId);
     }
 
     public async Task<bool> CheckUserEmailAvailable(UserProfile userProfile, int siteId)
@@ -135,19 +135,71 @@ public class UserRepository : IUserRepository
     }
 
 
+    public async Task<bool> UserIdExists(string userId, string exceptUserId)
+    {
+        // users.user_id is UNIQUE across sites. The except clause lets a case-only rename (Juan -> juan) pass the ci collation.
+        return await _context.Users.AnyAsync(u => u.UserId == userId && u.UserId != exceptUserId);
+    }
+
+    // Every column that stores a user_id. news has no ON UPDATE CASCADE and several tables have no FK at all,
+    // so FK checks are disabled and each table is updated explicitly. Keep in sync with
+    // patito-client-web LoginRepository::renameUser.
+    private static readonly string[] RenameUserStatements =
+    {
+        "UPDATE user_profiles SET user_id = @NewUserId WHERE user_id = @UserId",
+        "UPDATE user_roles SET user_id = @NewUserId WHERE user_id = @UserId",
+        "UPDATE user_settings SET user_id = @NewUserId WHERE user_id = @UserId",
+        "UPDATE user_activity SET user_id = @NewUserId WHERE user_id = @UserId",
+        "UPDATE solution SET user_id = @NewUserId WHERE user_id = @UserId",
+        "UPDATE contest_user SET user_id = @NewUserId WHERE user_id = @UserId",
+        "UPDATE privilege SET user_id = @NewUserId WHERE user_id = @UserId",
+        "UPDATE news SET user_id = @NewUserId WHERE user_id = @UserId",
+        "UPDATE custom_input SET user_id = @NewUserId WHERE user_id = @UserId",
+        "UPDATE loginlog SET user_id = @NewUserId WHERE user_id = @UserId",
+        "UPDATE online_history SET user_id = @NewUserId WHERE user_id = @UserId",
+        "UPDATE academic.course SET created_by_user_id = @NewUserId WHERE created_by_user_id = @UserId",
+        "UPDATE academic.course_user SET user_id = @NewUserId WHERE user_id = @UserId",
+        "UPDATE academic.course_assignment SET created_by_user_id = @NewUserId WHERE created_by_user_id = @UserId",
+        "UPDATE academic.course_content_item SET created_by_user_id = @NewUserId WHERE created_by_user_id = @UserId",
+        "UPDATE academic.course_submission_context SET user_id = @NewUserId WHERE user_id = @UserId",
+        "UPDATE academic.learning_path_progress SET user_id = @NewUserId WHERE user_id = @UserId",
+        "UPDATE academic.learning_path_topic_progress SET user_id = @NewUserId WHERE user_id = @UserId",
+    };
+
     public async Task<User> UpdateUser(User userToUpdate, string userId, int siteId)
     {
-        string sqlQuery = @"
-            UPDATE users
-            SET user_id = @NewUserId
-            WHERE user_id = @UserId AND site_id = @SiteId;
-            ";
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        await _context.Database.ExecuteSqlRawAsync("SET FOREIGN_KEY_CHECKS = 0");
+        try
+        {
+            int renamed = await _context.Database.ExecuteSqlRawAsync(
+                "UPDATE users SET user_id = @NewUserId WHERE user_id = @UserId AND site_id = @SiteId",
+                new MySqlConnector.MySqlParameter("@NewUserId", userToUpdate.UserId),
+                new MySqlConnector.MySqlParameter("@UserId", userId),
+                new MySqlConnector.MySqlParameter("@SiteId", siteId));
+            if (renamed == 0)
+                throw new KeyNotFoundException($"El usuario {userId} no existe en este sitio.");
 
-        await _context.Database.ExecuteSqlRawAsync(sqlQuery,
-            new MySqlConnector.MySqlParameter("@NewUserId", userToUpdate.UserId),
-            new MySqlConnector.MySqlParameter("@UserId", userId),
-            new MySqlConnector.MySqlParameter("@SiteId", siteId)
-        );
+            foreach (string statement in RenameUserStatements)
+            {
+                try
+                {
+                    await _context.Database.ExecuteSqlRawAsync(statement,
+                        new MySqlConnector.MySqlParameter("@NewUserId", userToUpdate.UserId),
+                        new MySqlConnector.MySqlParameter("@UserId", userId));
+                }
+                catch (MySqlConnector.MySqlException ex) when (ex.ErrorCode == MySqlConnector.MySqlErrorCode.NoSuchTable
+                                                                || ex.ErrorCode == MySqlConnector.MySqlErrorCode.UnknownDatabase)
+                {
+                    // Deployments without the academic schema: nothing to rename there.
+                }
+            }
+            await transaction.CommitAsync();
+        }
+        finally
+        {
+            await _context.Database.ExecuteSqlRawAsync("SET FOREIGN_KEY_CHECKS = 1");
+        }
 
         return _mapper.Map<User>(userToUpdate);
     }
