@@ -54,6 +54,13 @@ public static class BocaPackageReader
             .Select(Path.GetFileName)
             .FirstOrDefault(name => name is not null && name != "problem.info");
 
+        // descfile comes from the uploaded package: only a plain file name inside description/ is allowed,
+        // otherwise "../../appsettings.json" would read (and publish) any file on the server.
+        if (descFile is not null && (descFile.Length == 0 || Path.GetFileName(descFile) != descFile || descFile is "." or ".."))
+        {
+            throw new InvalidOperationException($"descfile must be a file name inside description/ in {problemDir}");
+        }
+
         return new BocaProblemInfo(folderName, fullName, descFile);
     }
 
