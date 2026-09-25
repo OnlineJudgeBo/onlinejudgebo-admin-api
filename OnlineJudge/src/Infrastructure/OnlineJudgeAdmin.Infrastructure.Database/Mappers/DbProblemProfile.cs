@@ -101,6 +101,14 @@ public class DbProblemProfile : Profile
             .ForMember(dest => dest.CodeLength, opt => opt.MapFrom(src => src.CodeLength))
             .ForMember(dest => dest.IsRemoteOj, opt => opt.MapFrom(src => src.IsRemoteOj))
             .ForMember(dest => dest.RemoteId, opt => opt.MapFrom(src => src.RemoteId))
-            .ForMember(dest => dest.SiteId, opt => opt.MapFrom(src => src.SiteId));
+            .ForMember(dest => dest.SiteId, opt => opt.MapFrom(src => src.SiteId))
+            // Solution rows are updated on their own (SolutionRepository.UpdateSolutionRemoteAsync attaches the result);
+            // mapping the loaded User/Profile/Source graph back fails (no UserProfile -> DbUserProfile map) and is not needed.
+            .ForMember(dest => dest.User, opt => opt.Ignore())
+            .ForMember(dest => dest.Problem, opt => opt.Ignore())
+            .ForMember(dest => dest.SourceCode, opt => opt.Ignore())
+            .ForMember(dest => dest.Compileinfo, opt => opt.Ignore())
+            .ForMember(dest => dest.Runtimeinfo, opt => opt.Ignore())
+            .ForMember(dest => dest.CustomInput, opt => opt.Ignore());
     }
 }
