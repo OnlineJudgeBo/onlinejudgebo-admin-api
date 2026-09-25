@@ -57,7 +57,7 @@ public class ApplicationServiceTests
 
         var error = await Assert.ThrowsAsync<ArgumentException>(() => service.AddClassificationToTopic(1, new Topic()));
 
-        Assert.Equal("No classifications provided.", error.Message);
+        Assert.Equal("No se proporcionaron clasificaciones.", error.Message);
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public class ApplicationServiceTests
 
         var error = await Assert.ThrowsAsync<ArgumentException>(() => service.UpdateClassification(new Classification(), 10));
 
-        Assert.Equal("Classification not found.", error.Message);
+        Assert.Equal("Clasificación no encontrada.", error.Message);
         repository.Verify(item => item.UpdateClassification(It.IsAny<Classification>(), It.IsAny<int>()), Times.Never);
     }
 

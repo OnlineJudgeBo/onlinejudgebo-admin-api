@@ -145,7 +145,7 @@ public class IdeSubmissionServiceTests
             LanguageId = 2
         }));
 
-        Assert.Equal("El token de IDE no permite enviar a este concurso.", error.Message);
+        Assert.Equal("The IDE token is not authorized to submit to this contest.", error.Message);
     }
 
     [Fact]
@@ -169,7 +169,7 @@ public class IdeSubmissionServiceTests
             LanguageId = 2
         }));
 
-        Assert.Equal("El token de IDE no permite enviar a este problema.", error.Message);
+        Assert.Equal("The IDE token is not authorized to submit to this problem.", error.Message);
     }
 
     [Fact]
@@ -193,7 +193,7 @@ public class IdeSubmissionServiceTests
             LanguageId = 2
         }));
 
-        Assert.Equal("El token de IDE no permite usar este lenguaje.", error.Message);
+        Assert.Equal("The IDE token is not authorized to use this language.", error.Message);
     }
 
     [Fact]
@@ -214,7 +214,7 @@ public class IdeSubmissionServiceTests
             LanguageId = 2
         }));
 
-        Assert.Equal("Token de IDE inválido o expirado.", error.Message);
+        Assert.Equal("Invalid or expired IDE token.", error.Message);
         Assert.IsType<ArgumentException>(error.InnerException);
     }
 

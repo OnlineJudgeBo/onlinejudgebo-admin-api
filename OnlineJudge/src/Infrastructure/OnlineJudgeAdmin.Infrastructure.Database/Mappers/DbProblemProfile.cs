@@ -78,6 +78,7 @@ public class DbProblemProfile : Profile
         CreateMap<Role, DbRole>();
 
         CreateMap<Privilege, DbPrivilege>();
+        CreateMap<DbPrivilege, Privilege>();
 
         CreateMap<UserRole, DbUserRole>()
             .ForMember(dest => dest.RoleId, opt => opt.MapFrom(src => src.RoleId))

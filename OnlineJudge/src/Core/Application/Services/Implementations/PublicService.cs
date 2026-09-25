@@ -379,7 +379,7 @@ public class PublicService : IPublicService
 
         if (!wasReset)
         {
-            throw new UnauthorizedAccessException("El código de recuperación es inválido o expiró.");
+            throw new UnauthorizedAccessException("The recovery code is invalid or has expired.");
         }
     }
 

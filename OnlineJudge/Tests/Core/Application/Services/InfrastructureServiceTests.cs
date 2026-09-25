@@ -92,7 +92,7 @@ public class InfrastructureServiceTests
 
         var error = Assert.Throws<ArgumentException>(() => validator.Validate(token + "broken"));
 
-        Assert.Equal("Invalid IDE launch token signature.", error.Message);
+        Assert.Equal("Firma del token de lanzamiento de IDE inválida.", error.Message);
     }
 
     [Fact]
@@ -113,7 +113,7 @@ public class InfrastructureServiceTests
 
         var error = Assert.Throws<ArgumentException>(() => validator.Validate(token));
 
-        Assert.Equal("Expired IDE launch token.", error.Message);
+        Assert.Equal("El token de lanzamiento de IDE expiró.", error.Message);
     }
 
     [Fact]

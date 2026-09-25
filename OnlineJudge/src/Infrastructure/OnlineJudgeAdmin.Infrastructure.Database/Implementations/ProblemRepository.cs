@@ -284,7 +284,7 @@ public class ProblemRepository : IProblemRepository
         }
         else
         {
-            throw new KeyNotFoundException("Problem ID not found.");
+            throw new KeyNotFoundException("No se encontró el ID del problema.");
         }
     }
 
@@ -295,7 +295,7 @@ public class ProblemRepository : IProblemRepository
             .ToListAsync();
 
         if (existingProblems == null || existingProblems.Count == 0)
-            throw new KeyNotFoundException("No problems found with the given IDs.");
+            throw new KeyNotFoundException("No se encontraron problemas con los IDs proporcionados.");
 
         foreach (var problem in existingProblems)
         {
@@ -312,7 +312,7 @@ public class ProblemRepository : IProblemRepository
             .FirstOrDefault(p => p.ProblemId == problemId);
 
         if (existingProblem == null)
-            throw new KeyNotFoundException("No problems found with the given IDs.");
+            throw new KeyNotFoundException("No se encontraron problemas con los IDs proporcionados.");
 
         if (existingProblem.Defunct == "Y")
         {

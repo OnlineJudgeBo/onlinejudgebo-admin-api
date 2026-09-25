@@ -61,7 +61,7 @@ public class AcademicService : IAcademicService
 
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            throw new ArgumentException("Course name is required.");
+            throw new ArgumentException("El nombre del curso es requerido.");
         }
 
         return await _academicRepository.CreateCourseAsync(siteId, currentUser.UserId, request);
@@ -73,7 +73,7 @@ public class AcademicService : IAcademicService
 
         if (string.IsNullOrWhiteSpace(request.InviteCode))
         {
-            throw new ArgumentException("Invite code is required.");
+            throw new ArgumentException("El código de invitación es requerido.");
         }
 
         return await _academicRepository.JoinCourseAsync(siteId, currentUser.UserId, request);
@@ -111,7 +111,7 @@ public class AcademicService : IAcademicService
 
         if (string.IsNullOrWhiteSpace(request.UserId))
         {
-            throw new ArgumentException("Member username is required.");
+            throw new ArgumentException("El nombre de usuario del miembro es requerido.");
         }
 
         var course = await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
@@ -130,7 +130,7 @@ public class AcademicService : IAcademicService
 
         if (string.IsNullOrWhiteSpace(memberUserId))
         {
-            throw new ArgumentException("Member username is required.");
+            throw new ArgumentException("El nombre de usuario del miembro es requerido.");
         }
 
         var course = await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
@@ -165,13 +165,13 @@ public class AcademicService : IAcademicService
     private static void EnsureValidMaterialRequest(AcademicCourseMaterialCreationRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Title))
-            throw new ArgumentException("Material title is required.");
+            throw new ArgumentException("El título del material es requerido.");
         if (string.IsNullOrWhiteSpace(request.ContentBody) && string.IsNullOrWhiteSpace(request.ContentUrl))
-            throw new ArgumentException("Add material content or a resource link.");
+            throw new ArgumentException("Agrega contenido del material o un enlace de recurso.");
         if (!string.IsNullOrWhiteSpace(request.ContentUrl)
             && (!Uri.TryCreate(request.ContentUrl, UriKind.Absolute, out var uri)
                 || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)))
-            throw new ArgumentException("Material URL must be a valid HTTP or HTTPS address.");
+            throw new ArgumentException("La URL del material debe ser una dirección HTTP o HTTPS válida.");
     }
 
     public async Task<AcademicCourseContentItem> UpdateCourseMaterialAsync(
@@ -181,7 +181,7 @@ public class AcademicService : IAcademicService
         CurrentUser currentUser,
         AcademicCourseMaterialCreationRequest request)
     {
-        if (materialId <= 0) throw new ArgumentException("Material id is required.");
+        if (materialId <= 0) throw new ArgumentException("El id del material es requerido.");
         var course = await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
         EnsureCourseManager(course, currentUser, "update course materials");
         EnsureValidMaterialRequest(request);
@@ -190,7 +190,7 @@ public class AcademicService : IAcademicService
 
     public async Task DeleteCourseMaterialAsync(int siteId, long courseId, long materialId, CurrentUser currentUser)
     {
-        if (materialId <= 0) throw new ArgumentException("Material id is required.");
+        if (materialId <= 0) throw new ArgumentException("El id del material es requerido.");
         var course = await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
         EnsureCourseManager(course, currentUser, "delete course materials");
         await _academicRepository.DeleteCourseMaterialAsync(courseId, materialId);
@@ -208,7 +208,7 @@ public class AcademicService : IAcademicService
             || submittedIds.Distinct().Count() != submittedIds.Count
             || submittedIds.Any(id => !existingIds.Contains(id)))
         {
-            throw new ArgumentException("The provided order does not match the course content.");
+            throw new ArgumentException("El orden proporcionado no coincide con el contenido del curso.");
         }
 
         await _academicRepository.ReorderCourseContentAsync(courseId, submittedIds);
@@ -225,7 +225,7 @@ public class AcademicService : IAcademicService
 
         if (assignmentId <= 0)
         {
-            throw new ArgumentException("Assignment id is required.");
+            throw new ArgumentException("El id de la tarea es requerido.");
         }
 
         var course = await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
@@ -240,7 +240,7 @@ public class AcademicService : IAcademicService
 
         if (assignmentId <= 0)
         {
-            throw new ArgumentException("Assignment id is required.");
+            throw new ArgumentException("El id de la tarea es requerido.");
         }
 
         var course = await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
@@ -267,7 +267,7 @@ public class AcademicService : IAcademicService
 
         if (assignmentId <= 0)
         {
-            throw new ArgumentException("Assignment id is required.");
+            throw new ArgumentException("El id de la tarea es requerido.");
         }
 
         await GetCourseForCurrentUserAsync(siteId, courseId, currentUser);
@@ -311,7 +311,7 @@ public class AcademicService : IAcademicService
         ValidateSite(siteId, currentUser.SiteId);
         if (string.IsNullOrWhiteSpace(learningPathKey))
         {
-            throw new ArgumentException("Learning path key is required.");
+            throw new ArgumentException("La clave de la ruta de aprendizaje es requerida.");
         }
 
         return await _academicRepository.GetLearningPathAsync(siteId, learningPathKey);
@@ -413,7 +413,7 @@ public class AcademicService : IAcademicService
 
         if (string.IsNullOrWhiteSpace(learningPathKey))
         {
-            throw new ArgumentException("Learning path key is required.");
+            throw new ArgumentException("La clave de la ruta de aprendizaje es requerida.");
         }
 
         return await _academicRepository.GetLearningPathProgressAsync(siteId, learningPathKey, currentUser.UserId);
@@ -429,7 +429,7 @@ public class AcademicService : IAcademicService
 
         if (string.IsNullOrWhiteSpace(learningPathKey))
         {
-            throw new ArgumentException("Learning path key is required.");
+            throw new ArgumentException("La clave de la ruta de aprendizaje es requerida.");
         }
 
         return await _academicRepository.SaveLearningPathProgressAsync(
@@ -445,12 +445,12 @@ public class AcademicService : IAcademicService
 
         if (request.ProblemId <= 0)
         {
-            throw new ArgumentException("ProblemId is required.");
+            throw new ArgumentException("ProblemId es requerido.");
         }
 
         if (string.IsNullOrWhiteSpace(request.SourceCode))
         {
-            throw new ArgumentException("SourceCode is required.");
+            throw new ArgumentException("SourceCode es requerido.");
         }
 
         return await _academicRepository.SubmitAsync(currentUser.SiteId, currentUser.UserId, request);
@@ -519,7 +519,7 @@ public class AcademicService : IAcademicService
         ArgumentNullException.ThrowIfNull(request);
         ValidateKey(request.Key, "Learning path key");
         ValidateKey(request.Title, "Learning path title");
-        if (request.Version <= 0) throw new ArgumentException("Version must be positive.");
+        if (request.Version <= 0) throw new ArgumentException("Version debe ser positiva.");
     }
 
     private static void ValidateTopicRequest(LearningPathTopicAdminRequest request)
@@ -527,29 +527,29 @@ public class AcademicService : IAcademicService
         ArgumentNullException.ThrowIfNull(request);
         ValidateKey(request.Key, "Topic key");
         ValidateKey(request.Title, "Topic title");
-        if (request.ProblemIds.Any(id => id <= 0)) throw new ArgumentException("Problem ids must be positive.");
+        if (request.ProblemIds.Any(id => id <= 0)) throw new ArgumentException("Los ids de problema deben ser positivos.");
     }
 
     private static void ValidateKey(string? value, string name)
     {
-        if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException($"{name} is required.");
+        if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException($"{name} es requerido.");
     }
 
     private static void ValidatePositiveId(long id, string name)
     {
-        if (id <= 0) throw new ArgumentException($"{name} is required.");
+        if (id <= 0) throw new ArgumentException($"{name} es requerido.");
     }
 
     private static void ValidatePositiveOrder(int order, string name)
     {
-        if (order <= 0) throw new ArgumentException($"{name} must be positive.");
+        if (order <= 0) throw new ArgumentException($"{name} debe ser positivo.");
     }
 
     private static void EnsureValidAssignmentRequest(AcademicCourseAssignmentCreationRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Title))
         {
-            throw new ArgumentException("Assignment title is required.");
+            throw new ArgumentException("El título de la tarea es requerido.");
         }
 
         var problemIds = request.ProblemIds
@@ -559,21 +559,21 @@ public class AcademicService : IAcademicService
 
         if (problemIds.Count == 0)
         {
-            throw new ArgumentException("At least one problem is required.");
+            throw new ArgumentException("Se requiere al menos un problema.");
         }
 
         request.ProblemIds = problemIds;
-        request.OpensAt ??= DateTime.UtcNow;
+        request.OpensAt ??= DateTime.Now;
         request.DueAt ??= request.OpensAt.Value.AddDays(7);
 
         if (request.DueAt.Value < request.OpensAt.Value)
         {
-            throw new ArgumentException("Due date must be after open date.");
+            throw new ArgumentException("La fecha límite debe ser posterior a la fecha de apertura.");
         }
 
         if (request.LateDueAt.HasValue && request.LateDueAt.Value < request.DueAt.Value)
         {
-            throw new ArgumentException("Late due date must be after due date.");
+            throw new ArgumentException("La fecha límite tardía debe ser posterior a la fecha límite.");
         }
     }
 

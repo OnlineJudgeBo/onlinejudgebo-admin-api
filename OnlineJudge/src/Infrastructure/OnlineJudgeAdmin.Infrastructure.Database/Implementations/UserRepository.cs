@@ -1,3 +1,4 @@
+using System.Data.Common;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
@@ -8,11 +9,13 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.Models;
 public class UserRepository : IUserRepository
 {
     private readonly AppDbContext _context;
+    private readonly AcademicCatalogDbContext _academicContext;
     private readonly IMapper _mapper;
 
-    public UserRepository(AppDbContext context, IMapper mapper)
+    public UserRepository(AppDbContext context, AcademicCatalogDbContext academicContext, IMapper mapper)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
+        _academicContext = academicContext ?? throw new ArgumentNullException(nameof(academicContext));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
@@ -30,19 +33,6 @@ public class UserRepository : IUserRepository
             }).ToList(),
         }).ToListAsync();
         return _mapper.Map<IEnumerable<Topic>>(topics);
-    }
-
-    public async Task AddClassificationsToProblemAsync(int problemId, IEnumerable<Classification> classifications)
-    {
-        var problem = await _context.Classifications.FindAsync(problemId);
-
-        foreach (var classification in classifications)
-        {
-            var topic = await _context.Classifications.FindAsync(classification.TopicId);
-
-            _context.Classifications.Add(topic);
-        }
-        await _context.SaveChangesAsync();
     }
 
     public async Task<IEnumerable<User>> GetAllUsersProfilesAsync(int siteId)
@@ -71,20 +61,13 @@ public class UserRepository : IUserRepository
 
     public async Task<User> GetUserById(string userId, int siteId)
     {
-        try
-        {
-            DbUser user = await _context.Users
-                .Where(u => u.SiteId == siteId && u.UserId == userId)
-                .Select(u => new DbUser
-                {
-                    UserId = u.UserId
-                }).FirstAsync();
-            return _mapper.Map<User>(user);
-        }
-        catch (Exception e)
-        {
-            return null;
-        }
+        DbUser? user = await _context.Users
+            .Where(u => u.SiteId == siteId && u.UserId == userId)
+            .Select(u => new DbUser
+            {
+                UserId = u.UserId
+            }).FirstOrDefaultAsync();
+        return _mapper.Map<User>(user);
     }
 
     public async Task<bool> CheckUsernameAvailable(UserProfile userProfile, int siteId)
@@ -141,68 +124,86 @@ public class UserRepository : IUserRepository
         return await _context.Users.AnyAsync(u => u.UserId == userId && u.UserId != exceptUserId);
     }
 
-    // Every column that stores a user_id. news has no ON UPDATE CASCADE and several tables have no FK at all,
-    // so FK checks are disabled and each table is updated explicitly. Keep in sync with
+    // Every column besides users.user_id that stores a user id. news has no ON UPDATE CASCADE and several
+    // tables have no FK at all, so each one is updated explicitly. Keep in sync with
     // patito-client-web LoginRepository::renameUser.
-    private static readonly string[] RenameUserStatements =
+    private static readonly (string Table, string Column)[] AppTablesWithUserId =
     {
-        "UPDATE user_profiles SET user_id = @NewUserId WHERE user_id = @UserId",
-        "UPDATE user_roles SET user_id = @NewUserId WHERE user_id = @UserId",
-        "UPDATE user_settings SET user_id = @NewUserId WHERE user_id = @UserId",
-        "UPDATE user_activity SET user_id = @NewUserId WHERE user_id = @UserId",
-        "UPDATE solution SET user_id = @NewUserId WHERE user_id = @UserId",
-        "UPDATE contest_user SET user_id = @NewUserId WHERE user_id = @UserId",
-        "UPDATE privilege SET user_id = @NewUserId WHERE user_id = @UserId",
-        "UPDATE news SET user_id = @NewUserId WHERE user_id = @UserId",
-        "UPDATE custom_input SET user_id = @NewUserId WHERE user_id = @UserId",
-        "UPDATE loginlog SET user_id = @NewUserId WHERE user_id = @UserId",
-        "UPDATE online_history SET user_id = @NewUserId WHERE user_id = @UserId",
-        "UPDATE academic.course SET created_by_user_id = @NewUserId WHERE created_by_user_id = @UserId",
-        "UPDATE academic.course_user SET user_id = @NewUserId WHERE user_id = @UserId",
-        "UPDATE academic.course_assignment SET created_by_user_id = @NewUserId WHERE created_by_user_id = @UserId",
-        "UPDATE academic.course_content_item SET created_by_user_id = @NewUserId WHERE created_by_user_id = @UserId",
-        "UPDATE academic.course_submission_context SET user_id = @NewUserId WHERE user_id = @UserId",
-        "UPDATE academic.learning_path_progress SET user_id = @NewUserId WHERE user_id = @UserId",
-        "UPDATE academic.learning_path_topic_progress SET user_id = @NewUserId WHERE user_id = @UserId",
+        ("user_profiles", "user_id"), ("user_roles", "user_id"), ("user_settings", "user_id"),
+        ("user_activity", "user_id"), ("solution", "user_id"), ("contest_user", "user_id"),
+        ("privilege", "user_id"), ("news", "user_id"), ("custom_input", "user_id"),
+        ("loginlog", "user_id"), ("online_history", "user_id"),
+    };
+
+    private static readonly (string Table, string Column)[] AcademicTablesWithUserId =
+    {
+        ("course", "created_by_user_id"), ("course_user", "user_id"), ("course_assignment", "created_by_user_id"),
+        ("course_content_item", "created_by_user_id"), ("course_submission_context", "user_id"),
+        ("learning_path_progress", "user_id"), ("learning_path_topic_progress", "user_id"),
     };
 
     public async Task<User> UpdateUser(User userToUpdate, string userId, int siteId)
     {
+        string newUserId = userToUpdate.UserId;
+        bool isMySql = _context.Database.IsMySql();
+        var appConnection = _context.Database.GetDbConnection();
+        var academicConnection = _academicContext.Database.GetDbConnection();
+        // Default setup: the academic schema lives on the same server, so it joins the same transaction via
+        // db-qualified names. If AcademicConnection points elsewhere it's renamed after commit (best effort).
+        string? academicSchema = isMySql && appConnection.DataSource == academicConnection.DataSource
+            ? academicConnection.Database
+            : null;
+
         await using var transaction = await _context.Database.BeginTransactionAsync();
-        await _context.Database.ExecuteSqlRawAsync("SET FOREIGN_KEY_CHECKS = 0");
+        if (isMySql)
+            await _context.Database.ExecuteSqlRawAsync("SET FOREIGN_KEY_CHECKS = 0");
         try
         {
             int renamed = await _context.Database.ExecuteSqlRawAsync(
-                "UPDATE users SET user_id = @NewUserId WHERE user_id = @UserId AND site_id = @SiteId",
-                new MySqlConnector.MySqlParameter("@NewUserId", userToUpdate.UserId),
-                new MySqlConnector.MySqlParameter("@UserId", userId),
-                new MySqlConnector.MySqlParameter("@SiteId", siteId));
+                "UPDATE users SET user_id = {0} WHERE user_id = {1} AND site_id = {2}", newUserId, userId, siteId);
             if (renamed == 0)
                 throw new KeyNotFoundException($"El usuario {userId} no existe en este sitio.");
 
-            foreach (string statement in RenameUserStatements)
-            {
-                try
-                {
-                    await _context.Database.ExecuteSqlRawAsync(statement,
-                        new MySqlConnector.MySqlParameter("@NewUserId", userToUpdate.UserId),
-                        new MySqlConnector.MySqlParameter("@UserId", userId));
-                }
-                catch (MySqlConnector.MySqlException ex) when (ex.ErrorCode == MySqlConnector.MySqlErrorCode.NoSuchTable
-                                                                || ex.ErrorCode == MySqlConnector.MySqlErrorCode.UnknownDatabase)
-                {
-                    // Deployments without the academic schema: nothing to rename there.
-                }
-            }
+            foreach (var (table, column) in AppTablesWithUserId)
+                await RenameColumnAsync(_context, table, column, newUserId, userId);
+
+            if (academicSchema != null)
+                foreach (var (table, column) in AcademicTablesWithUserId)
+                    await RenameColumnAsync(_context, $"`{academicSchema}`.{table}", column, newUserId, userId);
+
             await transaction.CommitAsync();
         }
         finally
         {
-            await _context.Database.ExecuteSqlRawAsync("SET FOREIGN_KEY_CHECKS = 1");
+            if (isMySql)
+                await _context.Database.ExecuteSqlRawAsync("SET FOREIGN_KEY_CHECKS = 1");
         }
+
+        if (academicSchema == null)
+            foreach (var (table, column) in AcademicTablesWithUserId)
+                await RenameColumnAsync(_academicContext, table, column, newUserId, userId);
 
         return _mapper.Map<User>(userToUpdate);
     }
+
+    private static async Task RenameColumnAsync(DbContext context, string table, string column, string newUserId, string oldUserId)
+    {
+        try
+        {
+            // table/column only come from the fixed arrays above, never from user input.
+#pragma warning disable EF1002
+            await context.Database.ExecuteSqlRawAsync($"UPDATE {table} SET {column} = {{0}} WHERE {column} = {{1}}", newUserId, oldUserId);
+#pragma warning restore EF1002
+        }
+        catch (DbException ex) when (IsMissingTable(ex))
+        {
+            // Deployments without the academic schema (or tables not in this context): nothing to rename there.
+        }
+    }
+
+    private static bool IsMissingTable(DbException ex) =>
+        ex is MySqlConnector.MySqlException { ErrorCode: MySqlConnector.MySqlErrorCode.NoSuchTable or MySqlConnector.MySqlErrorCode.UnknownDatabase }
+        || ex.Message.Contains("no such table", StringComparison.OrdinalIgnoreCase);
 
     public async Task<UserProfile> UpdateUserProfile(UserProfile profileToUpdate, int siteId)
     {

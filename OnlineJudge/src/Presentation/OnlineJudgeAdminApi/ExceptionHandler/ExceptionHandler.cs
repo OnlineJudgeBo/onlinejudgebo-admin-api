@@ -54,17 +54,17 @@ public class ExceptionHandler
         {
             case Exceptions.Argument or Exceptions.InvalidOperation:
                 context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                messageToUse = $"Cannot complete the operation, {ex.Message}";
+                messageToUse = $"No se pudo completar la operación: {ex.Message}";
                 this.logger.LogInformation(ex.ToString());
                 break;
             case Exceptions.UnauthorizedAccess:
                 context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
-                messageToUse = "Cannot complete the operation, unauthorized request";
+                messageToUse = "No se pudo completar la operación: solicitud no autorizada";
                 this.logger.LogInformation(ex.ToString());
                 break;
             case Exceptions.AllTheOther:
                 context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                messageToUse = "Cannot complete the operation, internal error";
+                messageToUse = "No se pudo completar la operación: error interno";
                 this.logger.LogError(ex.ToString());
                 break;
         }
@@ -85,7 +85,7 @@ public class ExceptionHandler
         await context.Response.WriteAsync(new ErrorDetails
         {
             StatusCode = context.Response.StatusCode,
-            Message = $"Cannot complete the operation, {ex.Message}",
+            Message = $"No se pudo completar la operación: {ex.Message}",
         }.ToString());
     }
 
@@ -95,7 +95,7 @@ public class ExceptionHandler
         context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
 
         const string message =
-            "Cannot complete the operation, required academic tables are not available for this request.";
+            "No se pudo completar la operación: las tablas académicas necesarias no están disponibles para esta solicitud.";
 
         this.logger.LogError(ex.ToString());
 

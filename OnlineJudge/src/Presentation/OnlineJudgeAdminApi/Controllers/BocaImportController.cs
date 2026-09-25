@@ -125,7 +125,7 @@ public sealed class BocaImportController : ControllerBase
             {
                 if (!Directory.Exists(extractDir))
                 {
-                    throw new InvalidOperationException("Staged package not found (it may have expired) - upload it again.");
+                    throw new InvalidOperationException("No se encontró el paquete preparado (puede haber expirado) - vuelve a subirlo.");
                 }
 
                 var problem = BuildProblem(extractDir, stagingId, out _, out _);

@@ -76,7 +76,7 @@ public class FileManagerController : ControllerBase
         var problem = await _problemService.GetProblemByIdAsync(problemId, _currentUser.SiteId);
         if (problem == null)
         {
-            throw new KeyNotFoundException("Problem not found with ID: " + problemId);
+            throw new KeyNotFoundException("No se encontró el problema con ID: " + problemId);
         }
     }
 
@@ -91,7 +91,7 @@ public class FileManagerController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(fileName))
         {
-            throw new ArgumentException("File name is required.");
+            throw new ArgumentException("El nombre del archivo es requerido.");
         }
 
         var fullDirectory = Path.GetFullPath(problemDirectory + Path.DirectorySeparatorChar);
@@ -99,7 +99,7 @@ public class FileManagerController : ControllerBase
 
         if (!fullPath.StartsWith(fullDirectory, StringComparison.Ordinal))
         {
-            throw new ArgumentException("Invalid file path.");
+            throw new ArgumentException("Ruta de archivo inválida.");
         }
 
         return fullPath;

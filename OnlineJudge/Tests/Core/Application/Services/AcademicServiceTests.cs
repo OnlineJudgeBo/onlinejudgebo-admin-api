@@ -50,7 +50,7 @@ public class AcademicServiceTests
 
         var error = await Assert.ThrowsAsync<ArgumentException>(() => service.CreateCourseAsync(1, CurrentUser(UserRolesEnum.Docente), new AcademicCourseCreationRequest { Name = " " }));
 
-        Assert.Equal("Course name is required.", error.Message);
+        Assert.Equal("El nombre del curso es requerido.", error.Message);
     }
 
     [Fact]
@@ -117,7 +117,7 @@ public class AcademicServiceTests
             ProblemIds = new List<int> { 1000 }
         }));
 
-        Assert.Equal("Due date must be after open date.", error.Message);
+        Assert.Equal("La fecha límite debe ser posterior a la fecha de apertura.", error.Message);
     }
 
     [Fact]
@@ -245,7 +245,7 @@ public class AcademicServiceTests
 
         var error = await Assert.ThrowsAsync<ArgumentException>(() => service.CreateLearningPathTopicAsync(1, "cpp", 1, CurrentUser(UserRolesEnum.Administrador, "admin"), request));
 
-        Assert.Equal("Problem ids must be positive.", error.Message);
+        Assert.Equal("Los ids de problema deben ser positivos.", error.Message);
     }
 
     private static CurrentUser CurrentUser(UserRolesEnum role, string userId = "student")

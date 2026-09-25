@@ -206,10 +206,10 @@ public class ContestsRepository : IContestsRepository
             .FirstOrDefaultAsync(c => c.ContestId == contestId);
 
         if (existingContest == null)
-            throw new KeyNotFoundException("Contest not found with ID: " + contestId);
+            throw new KeyNotFoundException("No se encontró el concurso con ID: " + contestId);
 
         var ownerContest = existingContest.ContestUsers.FirstOrDefault(p => p.IsOwner && p.SiteId == siteId)
-            ?? throw new KeyNotFoundException("Contest not found with ID: " + contestId);
+            ?? throw new KeyNotFoundException("No se encontró el concurso con ID: " + contestId);
 
         _context.Entry(existingContest).CurrentValues.SetValues(contest);
 
@@ -251,7 +251,7 @@ public class ContestsRepository : IContestsRepository
             .FirstOrDefaultAsync(c => c.ContestId == contestId);
 
         if (existingContest == null)
-            throw new KeyNotFoundException("Contest not found with ID: " + contestId);
+            throw new KeyNotFoundException("No se encontró el concurso con ID: " + contestId);
 
         existingContest.Defunct = "O";
 
