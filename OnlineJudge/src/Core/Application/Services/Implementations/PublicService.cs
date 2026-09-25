@@ -345,7 +345,7 @@ public class PublicService : IPublicService
         var expiresAtUtc = DateTime.UtcNow.AddMinutes(tokenTtlMinutes);
 
         await _publicRepository.SavePasswordRecoveryTokenAsync(target.UserId, siteId, ComputeRecoveryCodeHash(recoveryCode), expiresAtUtc);
-        await _passwordRecoveryEmailService.SendRecoveryCodeAsync(target.Email, target.UserId, recoveryCode, target.Nick);
+        await _passwordRecoveryEmailService.SendRecoveryCodeAsync(target.Email, target.UserId, recoveryCode, siteId, target.Nick);
     }
 
     public async Task ResetPasswordWithRecoveryCodeAsync(string email, string recoveryCode, int siteId)
@@ -444,7 +444,7 @@ public class PublicService : IPublicService
 
         try
         {
-            await _welcomeEmailService.SendWelcomeAsync(user.Email, user.UserId, user.Nick);
+            await _welcomeEmailService.SendWelcomeAsync(user.Email, user.UserId, siteId, user.Nick);
         }
         catch (Exception ex)
         {
