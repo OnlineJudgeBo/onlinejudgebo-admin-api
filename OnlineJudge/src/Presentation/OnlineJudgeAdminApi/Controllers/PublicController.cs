@@ -366,16 +366,7 @@ public class PublicController : ControllerBase
             return ".c";
         }
 
-        if (normalized.Contains("java"))
-        {
-            return ".java";
-        }
-
-        if (normalized.Contains("python"))
-        {
-            return ".py";
-        }
-
+        // Before "java": "javascript".Contains("java").
         if (normalized.Contains("javascript"))
         {
             return ".js";
@@ -384,6 +375,16 @@ public class PublicController : ControllerBase
         if (normalized.Contains("typescript"))
         {
             return ".ts";
+        }
+
+        if (normalized.Contains("java"))
+        {
+            return ".java";
+        }
+
+        if (normalized.Contains("python"))
+        {
+            return ".py";
         }
 
         if (normalized.Contains("c#") || normalized.Contains("csharp"))
