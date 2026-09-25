@@ -1,4 +1,5 @@
 using FluentValidation;
+using System.Text.RegularExpressions;
 using OnlineJudgeAdmin.Core.Application.Services.Helpers;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
@@ -50,10 +51,18 @@ public class UserService : IUserService
             && currentUser.Role is not UserRolesEnum.Administrador and not UserRolesEnum.Auxiliar)
             throw new UnauthorizedAccessException("Only the user themself, an administrator, or an assistant can update the profile.");
 
+        userToUpdate.UserId = userToUpdate.UserId?.Trim();
         if (userToUpdate.UserId != userId)
         {
+            // Same rule as public registration (PublicService.Register).
+            if (string.IsNullOrEmpty(userToUpdate.UserId) || !Regex.IsMatch(userToUpdate.UserId, "^[A-Za-z0-9_]{3,20}$"))
+                throw new ArgumentException("El nombre de usuario debe tener de 3 a 20 caracteres: letras, números o guion bajo.");
+            if (await _userRepository.UserIdExists(userToUpdate.UserId, userId))
+                throw new ArgumentException($"El nombre de usuario {userToUpdate.UserId} ya está en uso.");
+
             await _userRepository.UpdateUser(userToUpdate, userId, siteId);
         }
+        userToUpdate.UserProfile.UserId = userToUpdate.UserId;
         return await _userRepository.UpdateUserProfile(userToUpdate.UserProfile, siteId);
     }
 

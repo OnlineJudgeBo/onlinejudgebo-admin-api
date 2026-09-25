@@ -1,3 +1,4 @@
+using System.Data.Common;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
@@ -71,8 +72,8 @@ public class UserRepository : IUserRepository
 
     public async Task<bool> CheckUsernameAvailable(UserProfile userProfile, int siteId)
     {
-        return !await _context.UserSettings
-            .AnyAsync(u => u.UserId == userProfile.UserId && u.SiteId == siteId);
+        // users.user_id is UNIQUE across sites, and not every user has a user_settings row.
+        return !await _context.Users.AnyAsync(u => u.UserId == userProfile.UserId);
     }
 
     public async Task<bool> CheckUserEmailAvailable(UserProfile userProfile, int siteId)
@@ -117,57 +118,92 @@ public class UserRepository : IUserRepository
     }
 
 
-    // user_id is the PK of `users`, but it's also duplicated - with no
-    // DB-level FK cascade - as a plain column on every table below. Renaming
-    // it must fan out to all of them, or those rows are silently left
-    // pointing at a user_id that no longer exists (profile, roles,
-    // submissions, privileges... effectively orphaned).
-    private static readonly string[] AppDbTablesWithUserId =
+    public async Task<bool> UserIdExists(string userId, string exceptUserId)
     {
-        "privilege", "custom_input", "user_profiles", "contest_user", "solution",
-        "user_settings", "user_activity", "news", "loginlog", "user_roles"
+        // users.user_id is UNIQUE across sites. The except clause lets a case-only rename (Juan -> juan) pass the ci collation.
+        return await _context.Users.AnyAsync(u => u.UserId == userId && u.UserId != exceptUserId);
+    }
+
+    // Every column besides users.user_id that stores a user id. news has no ON UPDATE CASCADE and several
+    // tables have no FK at all, so each one is updated explicitly. Keep in sync with
+    // patito-client-web LoginRepository::renameUser.
+    private static readonly (string Table, string Column)[] AppTablesWithUserId =
+    {
+        ("user_profiles", "user_id"), ("user_roles", "user_id"), ("user_settings", "user_id"),
+        ("user_activity", "user_id"), ("solution", "user_id"), ("contest_user", "user_id"),
+        ("privilege", "user_id"), ("news", "user_id"), ("custom_input", "user_id"),
+        ("loginlog", "user_id"), ("online_history", "user_id"),
     };
 
-    private static readonly string[] AcademicTablesWithUserId =
+    private static readonly (string Table, string Column)[] AcademicTablesWithUserId =
     {
-        "course_user", "learning_path_topic_progress", "learning_path_progress", "course_submission_context"
+        ("course", "created_by_user_id"), ("course_user", "user_id"), ("course_assignment", "created_by_user_id"),
+        ("course_content_item", "created_by_user_id"), ("course_submission_context", "user_id"),
+        ("learning_path_progress", "user_id"), ("learning_path_topic_progress", "user_id"),
     };
 
     public async Task<User> UpdateUser(User userToUpdate, string userId, int siteId)
     {
+        string newUserId = userToUpdate.UserId;
+        bool isMySql = _context.Database.IsMySql();
+        var appConnection = _context.Database.GetDbConnection();
+        var academicConnection = _academicContext.Database.GetDbConnection();
+        // Default setup: the academic schema lives on the same server, so it joins the same transaction via
+        // db-qualified names. If AcademicConnection points elsewhere it's renamed after commit (best effort).
+        string? academicSchema = isMySql && appConnection.DataSource == academicConnection.DataSource
+            ? academicConnection.Database
+            : null;
+
         await using var transaction = await _context.Database.BeginTransactionAsync();
-
-        // {0}/{1}/... positional placeholders (not string-concatenated
-        // values) - EF builds a provider-correct parameter for each, so
-        // this isn't tied to MySqlConnector specifically and isn't SQL
-        // injectable.
-        await _context.Database.ExecuteSqlRawAsync(
-            "UPDATE users SET user_id = {0} WHERE user_id = {1} AND site_id = {2};",
-            userToUpdate.UserId, userId, siteId);
-
-        // EF1002 fires on any interpolated ExecuteSqlRawAsync string, but
-        // `table` is never user input - it only ever comes from the fixed
-        // arrays declared above, so this is not an injection risk.
-#pragma warning disable EF1002
-        foreach (string table in AppDbTablesWithUserId)
+        if (isMySql)
+            await _context.Database.ExecuteSqlRawAsync("SET FOREIGN_KEY_CHECKS = 0");
+        try
         {
-            await _context.Database.ExecuteSqlRawAsync($"UPDATE {table} SET user_id = {{0}} WHERE user_id = {{1}};", userToUpdate.UserId, userId);
+            int renamed = await _context.Database.ExecuteSqlRawAsync(
+                "UPDATE users SET user_id = {0} WHERE user_id = {1} AND site_id = {2}", newUserId, userId, siteId);
+            if (renamed == 0)
+                throw new KeyNotFoundException($"El usuario {userId} no existe en este sitio.");
+
+            foreach (var (table, column) in AppTablesWithUserId)
+                await RenameColumnAsync(_context, table, column, newUserId, userId);
+
+            if (academicSchema != null)
+                foreach (var (table, column) in AcademicTablesWithUserId)
+                    await RenameColumnAsync(_context, $"`{academicSchema}`.{table}", column, newUserId, userId);
+
+            await transaction.CommitAsync();
+        }
+        finally
+        {
+            if (isMySql)
+                await _context.Database.ExecuteSqlRawAsync("SET FOREIGN_KEY_CHECKS = 1");
         }
 
-        await transaction.CommitAsync();
-
-        // AcademicCatalogDbContext uses its own connection, so this half
-        // can't share the transaction above - best-effort, not atomic with
-        // it. Still strictly better than leaving these four tables
-        // uncascaded entirely.
-        foreach (string table in AcademicTablesWithUserId)
-        {
-            await _academicContext.Database.ExecuteSqlRawAsync($"UPDATE {table} SET user_id = {{0}} WHERE user_id = {{1}};", userToUpdate.UserId, userId);
-        }
-#pragma warning restore EF1002
+        if (academicSchema == null)
+            foreach (var (table, column) in AcademicTablesWithUserId)
+                await RenameColumnAsync(_academicContext, table, column, newUserId, userId);
 
         return _mapper.Map<User>(userToUpdate);
     }
+
+    private static async Task RenameColumnAsync(DbContext context, string table, string column, string newUserId, string oldUserId)
+    {
+        try
+        {
+            // table/column only come from the fixed arrays above, never from user input.
+#pragma warning disable EF1002
+            await context.Database.ExecuteSqlRawAsync($"UPDATE {table} SET {column} = {{0}} WHERE {column} = {{1}}", newUserId, oldUserId);
+#pragma warning restore EF1002
+        }
+        catch (DbException ex) when (IsMissingTable(ex))
+        {
+            // Deployments without the academic schema (or tables not in this context): nothing to rename there.
+        }
+    }
+
+    private static bool IsMissingTable(DbException ex) =>
+        ex is MySqlConnector.MySqlException { ErrorCode: MySqlConnector.MySqlErrorCode.NoSuchTable or MySqlConnector.MySqlErrorCode.UnknownDatabase }
+        || ex.Message.Contains("no such table", StringComparison.OrdinalIgnoreCase);
 
     public async Task<UserProfile> UpdateUserProfile(UserProfile profileToUpdate, int siteId)
     {

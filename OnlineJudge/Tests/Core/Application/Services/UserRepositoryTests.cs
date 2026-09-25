@@ -47,6 +47,7 @@ public class UserRepositoryTests
         context.CustomInputs.Add(new DbCustomInput { SolutionId = (await context.Solutions.SingleAsync()).SolutionId, ProblemId = 1, UserId = oldUserId, SiteId = 1, CreatedAt = DateTime.Now });
         await context.SaveChangesAsync();
 
+        academicContext.Courses.Add(new DbCourse { CourseId = 1, CourseKey = "c1", InviteCode = "i1", Name = "Curso", CreatedByUserId = oldUserId });
         academicContext.CourseUsers.Add(new DbCourseUser { CourseId = 1, UserId = oldUserId, Role = "estudiante" });
         academicContext.LearningPathProgresses.Add(new DbLearningPathProgress { LearningPathId = 1, UserId = oldUserId });
         academicContext.LearningPathTopicProgresses.Add(new DbLearningPathTopicProgress { LearningPathId = 1, UserId = oldUserId, TopicId = "arrays" });
@@ -68,6 +69,7 @@ public class UserRepositoryTests
         Assert.Equal(newUserId, (await context.ContestUsers.AsNoTracking().SingleAsync()).UserId);
         Assert.Equal(newUserId, (await context.Solutions.AsNoTracking().SingleAsync()).UserId);
         Assert.Equal(newUserId, (await context.CustomInputs.AsNoTracking().SingleAsync()).UserId);
+        Assert.Equal(newUserId, (await academicContext.Courses.AsNoTracking().SingleAsync()).CreatedByUserId);
         Assert.Equal(newUserId, (await academicContext.CourseUsers.AsNoTracking().SingleAsync()).UserId);
         Assert.Equal(newUserId, (await academicContext.LearningPathProgresses.AsNoTracking().SingleAsync()).UserId);
         Assert.Equal(newUserId, (await academicContext.LearningPathTopicProgresses.AsNoTracking().SingleAsync()).UserId);
@@ -77,6 +79,24 @@ public class UserRepositoryTests
         Assert.False(await context.Users.AsNoTracking().AnyAsync(u => u.UserId == oldUserId));
         Assert.False(await context.UserRoles.AsNoTracking().AnyAsync(u => u.UserId == oldUserId));
         Assert.False(await academicContext.CourseUsers.AsNoTracking().AnyAsync(u => u.UserId == oldUserId));
+    }
+
+    [Fact]
+    public async Task UpdateUser_RejectsUserFromAnotherSite_AndChangesNothing()
+    {
+        using SqliteContext<AppDbContext> appScope = CreateSqliteContext<AppDbContext>(o => new SqliteAppDbContext(o));
+        using SqliteContext<AcademicCatalogDbContext> academicScope = CreateSqliteContext<AcademicCatalogDbContext>(o => new SqliteAcademicCatalogDbContext(o));
+        AppDbContext context = appScope.Context;
+        await context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = OFF;");
+        context.Users.Add(new DbUser { UserId = "alice", Ip = "127.0.0.1", SiteId = 2, IsActive = true, IsDeleted = false });
+        context.Privilege.Add(new DbPrivilege { UserId = "alice", Rightstr = "p1", Defunct = "N" });
+        await context.SaveChangesAsync();
+        var repository = new UserRepository(context, academicScope.Context, CreateMapper());
+
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => repository.UpdateUser(new User { UserId = "alice2" }, "alice", siteId: 1));
+
+        Assert.Equal("alice", (await context.Users.AsNoTracking().SingleAsync()).UserId);
+        Assert.Equal("alice", (await context.Privilege.AsNoTracking().SingleAsync()).UserId);
     }
 
     [Fact]

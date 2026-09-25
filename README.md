@@ -72,6 +72,33 @@ FileSettings__ProblemsFilePath=/home/judge/data
 
 Las contraseñas reales no deben quedar en `appsettings.json`.
 
+### Correo por sitio
+
+Una misma API atiende varios dominios (sitios). Los correos de bienvenida y de recuperación de contraseña se envían con la configuración del sitio donde se hizo el registro o la solicitud (`siteId`). Cada clave de `Email:` se puede sobrescribir por sitio en `Email:Sites:{siteId}:`. Si falta, se usa la global:
+
+```env
+# Global (y respaldo)
+Email__Smtp__Host=smtp.gmail.com
+Email__Smtp__Port=587
+Email__Smtp__UseSsl=true
+Email__Smtp__Username=cuenta@gmail.com
+Email__Smtp__Password=...
+Email__Smtp__From__Email=cuenta@gmail.com
+Email__Smtp__From__Name=Juez Virtual
+Email__AppName=Juez Virtual
+Email__Welcome__PortalUrl=https://juez.example.bo/oj/login.php
+
+# Sitio 2: su propio remitente, marca y enlace
+Email__Sites__2__Smtp__Username=no-reply@otro.bo
+Email__Sites__2__Smtp__Password=...
+Email__Sites__2__Smtp__From__Email=no-reply@otro.bo
+Email__Sites__2__Smtp__From__Name=Otro Juez
+Email__Sites__2__AppName=Otro Juez
+Email__Sites__2__Welcome__PortalUrl=https://otro.bo/oj/login.php
+```
+
+Claves disponibles: `Smtp:Host`, `Smtp:Port`, `Smtp:UseSsl`, `Smtp:Username`, `Smtp:Password`, `Smtp:From:Email`, `Smtp:From:Name`, `AppName`, `Welcome:Subject`, `Welcome:PortalUrl`, `PasswordRecovery:Subject`. Si el servidor SMTP es Gmail, el remitente real siempre será la cuenta autenticada, así que cada dominio necesita su propia cuenta `Smtp:Username`.
+
 En Docker también se usan `ASPNETCORE_ENVIRONMENT` y `ASPNETCORE_URLS`. La primera elige el ambiente y la segunda indica en qué dirección y puerto escucha la API.
 
 ## Arquitectura
