@@ -105,6 +105,13 @@ public partial class AcademicRepository
 
     public async Task<AcademicSubmissionResponse> SubmitAsync(int siteId, string userId, AcademicSubmissionRequest request)
     {
+        // This path does not validate contests (site, window, privacy, contest problems); contest submissions go through
+        // PublicRepository.SubmitAsync. Accepting a ContestId here would let any user post into any contest's ranking.
+        if (request.ContestId is > 0)
+        {
+            throw new ArgumentException("Los envíos a concursos deben hacerse desde el concurso.");
+        }
+
         var problemExistsInSite = await _context.ProblemSites
             .AnyAsync(problemSite => problemSite.SiteId == siteId && problemSite.IsActive
                 && problemSite.problemId == request.ProblemId);
@@ -170,7 +177,7 @@ public partial class AcademicRepository
             Result = 0,
             Language = (uint)Math.Max(request.LanguageId, 0),
             Ip = request.ClientIp,
-            ContestId = request.ContestId,
+            ContestId = null,
             Num = 0,
             CodeLength = request.SourceCode.Length,
             PassRate = 0,
