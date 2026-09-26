@@ -67,13 +67,23 @@ public class ProblemClassifierService : IProblemClassifierService
                 ["type"] = JsonSerializer.SerializeToElement("object"),
                 ["properties"] = JsonSerializer.SerializeToElement(new
                 {
-                    classificationIds = new
+                    classifications = new
                     {
                         type = "array",
-                        items = new { type = "integer", @enum = options.Select(o => o.classification.ClassificationId).ToArray() },
+                        items = new
+                        {
+                            type = "object",
+                            properties = new
+                            {
+                                classificationId = new { type = "integer", @enum = options.Select(o => o.classification.ClassificationId).ToArray() },
+                                reason = new { type = "string" },
+                            },
+                            required = new[] { "classificationId", "reason" },
+                            additionalProperties = false,
+                        },
                     },
                 }),
-                ["required"] = JsonSerializer.SerializeToElement(new[] { "classificationIds" }),
+                ["required"] = JsonSerializer.SerializeToElement(new[] { "classifications" }),
                 ["additionalProperties"] = JsonSerializer.SerializeToElement(false),
             };
 
@@ -97,6 +107,8 @@ public class ProblemClassifierService : IProblemClassifierService
                     - Usa "Ad hoc" solo si el problema no requiere ninguna técnica concreta de la lista.
                     - Elige solo lo que la solución esperada realmente necesita, no técnicas
                       que podrían usarse pero no hacen falta.
+                    - Para cada una escribe en "reason" una frase corta en español que diga qué
+                      parte del problema la justifica.
 
                     Clasificaciones disponibles:
                     {optionsList}
@@ -112,10 +124,12 @@ public class ProblemClassifierService : IProblemClassifierService
             }
 
             using var parsed = JsonDocument.Parse(json);
-            var suggestedIds = parsed.RootElement.GetProperty("classificationIds")
-                .EnumerateArray()
-                .Select(e => e.GetInt32())
-                .ToHashSet();
+            var reasons = new Dictionary<int, string>();
+            foreach (var item in parsed.RootElement.GetProperty("classifications").EnumerateArray())
+            {
+                reasons[item.GetProperty("classificationId").GetInt32()] = item.GetProperty("reason").GetString() ?? string.Empty;
+            }
+            var suggestedIds = reasons.Keys.ToHashSet();
 
             return new ProblemClassificationSuggestion
             {
@@ -132,6 +146,7 @@ public class ProblemClassifierService : IProblemClassifierService
                         return o.classification;
                     })
                     .ToList(),
+                Reasons = reasons,
             };
         }
         catch (Exception error)

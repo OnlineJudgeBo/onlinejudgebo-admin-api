@@ -41,6 +41,9 @@ public class BocaClassificationSuggestionDto
     // ProblemClassifierService lists options to the model, so what the admin sees here
     // is the same label the model chose from.
     public string Label { get; set; } = string.Empty;
+
+    // Why the model chose it, one short sentence.
+    public string Reason { get; set; } = string.Empty;
 }
 
 public class BocaImportConfirmRequest
