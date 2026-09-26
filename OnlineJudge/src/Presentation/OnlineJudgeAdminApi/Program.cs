@@ -22,6 +22,13 @@ const string IdeLaunchTokenRoute = $"{IdeAnonymousRoutePrefix}/launch-token";
 
 var builder = WebApplication.CreateBuilder(args);
 
+// The Anthropic client reads ANTHROPIC_API_KEY; let Anthropic:ApiKey set it too.
+if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY"))
+    && builder.Configuration["Anthropic:ApiKey"] is { Length: > 0 } anthropicApiKey)
+{
+    Environment.SetEnvironmentVariable("ANTHROPIC_API_KEY", anthropicApiKey);
+}
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {

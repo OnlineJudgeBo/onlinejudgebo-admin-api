@@ -6,7 +6,14 @@ namespace OnlineJudgeAdmin.BocaImporter;
 
 public sealed record BocaProblemInfo(string BaseName, string FullName, string? DescFile);
 
-public sealed record BocaDescription(string Html, bool NeedsReview, string? ReviewReason);
+public sealed record BocaDescription(
+    string Html,
+    bool NeedsReview,
+    string? ReviewReason,
+    string InputHtml = "",
+    string OutputHtml = "",
+    string HintHtml = ""
+);
 
 public sealed record BocaSample(string Input, string Output, bool NeedsReview, string? ReviewReason);
 
@@ -64,7 +71,7 @@ public static class BocaPackageReader
         return new BocaProblemInfo(folderName, fullName, descFile);
     }
 
-    public static BocaDescription ReadDescription(string problemDir, string? descFile)
+    public static async Task<BocaDescription> ReadDescriptionAsync(string problemDir, string? descFile)
     {
         if (descFile is null)
         {
@@ -73,6 +80,24 @@ public static class BocaPackageReader
 
         var descPath = Path.Combine(problemDir, "description", descFile);
         var isPdf = string.Equals(Path.GetExtension(descPath), ".pdf", StringComparison.OrdinalIgnoreCase);
+
+        if (isPdf)
+        {
+            var sections = await BocaStatementLlmReader.TryReadAsync(descPath);
+            if (sections is not null)
+            {
+                // Always flagged, regardless of how clean the transcription looks: this
+                // replaces a lossy extractor, not the human who checks it against the PDF.
+                return new BocaDescription(
+                    sections.DescriptionHtml,
+                    true,
+                    "transcribed by AI from PDF - verify against the original PDF",
+                    sections.InputHtml,
+                    sections.OutputHtml,
+                    sections.HintHtml
+                );
+            }
+        }
 
         var rawText = isPdf
             ? RunAndCaptureOutput("pdftotext", ["-layout", descPath, "-"], problemDir)

@@ -24,12 +24,18 @@ public sealed class BocaImportController : ControllerBase
     private const string ArchiveRoot = "/boca-archive";
 
     private readonly IProblemService _problemService;
+    private readonly IProblemClassifierService _problemClassifierService;
     private readonly IFileSystemLocalManagerManager _fileManager;
     private readonly UserClaimsHelper _userClaimsHelper;
 
-    public BocaImportController(IProblemService problemService, IFileSystemLocalManagerManager fileManager, UserClaimsHelper userClaimsHelper)
+    public BocaImportController(
+        IProblemService problemService,
+        IProblemClassifierService problemClassifierService,
+        IFileSystemLocalManagerManager fileManager,
+        UserClaimsHelper userClaimsHelper)
     {
         _problemService = problemService ?? throw new ArgumentNullException(nameof(problemService));
+        _problemClassifierService = problemClassifierService ?? throw new ArgumentNullException(nameof(problemClassifierService));
         _fileManager = fileManager ?? throw new ArgumentNullException(nameof(fileManager));
         _userClaimsHelper = userClaimsHelper ?? throw new ArgumentNullException(nameof(userClaimsHelper));
     }
@@ -37,7 +43,7 @@ public sealed class BocaImportController : ControllerBase
     [HttpPost("preview")]
     [RequestSizeLimit(200_000_000)]
     [RequestFormLimits(MultipartBodyLengthLimit = 200_000_000)]
-    public IActionResult Preview(List<IFormFile> files)
+    public async Task<IActionResult> Preview(List<IFormFile> files)
     {
         var results = new List<BocaImportPreviewResult>();
 
@@ -61,7 +67,7 @@ public sealed class BocaImportController : ControllerBase
                 var extractDir = Path.Combine(stagingDir, "extracted");
                 ZipFile.ExtractToDirectory(zipPath, extractDir);
 
-                var problem = BuildProblem(extractDir, file.FileName, out var needsReview, out var reasons);
+                var (problem, needsReview, reasons, suggestedClassifications) = await BuildProblemAsync(extractDir, file.FileName);
                 var testCaseCount = BocaPackageReader.ReadAllTestCases(extractDir).Count;
 
                 results.Add(new BocaImportPreviewResult
@@ -78,6 +84,13 @@ public sealed class BocaImportController : ControllerBase
                     DescriptionPreview = Truncate(problem.Description, 300),
                     SampleInputPreview = Truncate(problem.SampleInput, 300),
                     SampleOutputPreview = Truncate(problem.SampleOutput, 300),
+                    SuggestedClassifications = suggestedClassifications
+                        .Select(c => new BocaClassificationSuggestionDto
+                        {
+                            ClassificationId = c.ClassificationId,
+                            Label = c.Topic is not null ? $"{c.Topic.Name} > {c.Name}" : c.Name,
+                        })
+                        .ToList(),
                 });
             }
             catch (Exception error)
@@ -128,7 +141,13 @@ public sealed class BocaImportController : ControllerBase
                     throw new InvalidOperationException("No se encontró el paquete preparado (puede haber expirado) - vuelve a subirlo.");
                 }
 
-                var problem = BuildProblem(extractDir, stagingId, out _, out _);
+                var (problem, _, _, _) = await BuildProblemAsync(extractDir, stagingId);
+                var selectedIds = request.SelectedClassificationIdsByStagingId?.GetValueOrDefault(stagingId);
+                if (selectedIds is { Count: > 0 })
+                {
+                    problem.Classifications = selectedIds.Select(id => new Classification { ClassificationId = id }).ToList();
+                }
+
                 var testCases = BocaPackageReader.ReadAllTestCases(extractDir);
                 var created = await _problemService.CreateProblemAsync(userId, problem, currentUser.SiteId);
 
@@ -179,29 +198,30 @@ public sealed class BocaImportController : ControllerBase
         System.IO.File.Copy(originalZip, archivePath, overwrite: true);
     }
 
-    private static Problem BuildProblem(string extractDir, string sourceName, out bool needsReview, out List<string> reviewReasons)
+    private async Task<(Problem Problem, bool NeedsReview, List<string> ReviewReasons, IReadOnlyList<Classification> SuggestedClassifications)> BuildProblemAsync(
+        string extractDir, string sourceName)
     {
-        reviewReasons = [];
+        var reviewReasons = new List<string>();
         var baseName = Path.GetFileNameWithoutExtension(sourceName);
 
         var info = BocaPackageReader.ReadProblemInfo(extractDir, baseName);
-        var description = BocaPackageReader.ReadDescription(extractDir, info.DescFile);
+        var description = await BocaPackageReader.ReadDescriptionAsync(extractDir, info.DescFile);
         var sample = BocaPackageReader.ReadSamplePair(extractDir);
         var limits = BocaPackageReader.CollectLimits(extractDir);
 
         if (description.NeedsReview) reviewReasons.Add($"description: {description.ReviewReason}");
         if (sample.NeedsReview) reviewReasons.Add($"sample: {sample.ReviewReason}");
-        needsReview = reviewReasons.Count > 0;
+        var needsReview = reviewReasons.Count > 0;
 
-        return new Problem
+        var problem = new Problem
         {
             Title = info.FullName,
             Description = description.Html,
-            Input = string.Empty,
-            Output = string.Empty,
+            Input = description.InputHtml,
+            Output = description.OutputHtml,
             SampleInput = sample.Input,
             SampleOutput = sample.Output,
-            Hint = string.Empty,
+            Hint = description.HintHtml,
             Source = $"BOCA import ({info.BaseName})",
             OriginSource = "BOCA import",
             TimeLimit = limits.TimeLimitSeconds,
@@ -210,6 +230,9 @@ public sealed class BocaImportController : ControllerBase
             Defunct = "N",
             InDate = DateTime.Now,
         };
+
+        var suggestion = await _problemClassifierService.SuggestClassificationsAsync(problem);
+        return (problem, needsReview, reviewReasons, suggestion.Classifications.ToList());
     }
 
     private static string? Truncate(string? value, int maxLength)

@@ -16,6 +16,7 @@ public class ProblemsController : ControllerBase
 {
     private readonly IProblemService _problemService;
     private readonly IProblemPackageService _problemPackageService;
+    private readonly IProblemClassifierService _problemClassifierService;
     private readonly UserClaimsHelper _userClaimsHelper;
     private readonly IMapper _mapper;
     private readonly CurrentUser _currentUser;
@@ -23,11 +24,13 @@ public class ProblemsController : ControllerBase
     public ProblemsController(
         IProblemService problemService,
         IProblemPackageService problemPackageService,
+        IProblemClassifierService problemClassifierService,
         UserClaimsHelper userClaimsHelper,
         IMapper mapper)
     {
         _problemService = problemService ?? throw new ArgumentNullException(nameof(problemService));
         _problemPackageService = problemPackageService ?? throw new ArgumentNullException(nameof(problemPackageService));
+        _problemClassifierService = problemClassifierService ?? throw new ArgumentNullException(nameof(problemClassifierService));
         _userClaimsHelper = userClaimsHelper ?? throw new ArgumentNullException(nameof(userClaimsHelper));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         _currentUser = _userClaimsHelper.GetUserContextRole();
@@ -52,6 +55,17 @@ public class ProblemsController : ControllerBase
     {
         var currentUser = _userClaimsHelper.GetUserContextRole();
         return Ok(await _problemService.GetProblemByIdAsync(problem_id, currentUser.SiteId));
+    }
+
+    // Read-only: computes a suggestion, never touches the database. The admin applies
+    // whichever suggested classifications they want through the existing PUT above
+    // (ProblemForUpdate.Classifications) -- same "suggest, then a human confirms through
+    // the normal write path" shape as the BOCA import preview.
+    [HttpGet("{problemId:int}/classification-suggestions")]
+    public async Task<IActionResult> GetClassificationSuggestionsAsync(int problemId)
+    {
+        var problem = await _problemService.GetProblemByIdAsync(problemId, _currentUser.SiteId);
+        return Ok(await _problemClassifierService.SuggestClassificationsAsync(problem));
     }
 
     [HttpPut("{problemId:int}")]

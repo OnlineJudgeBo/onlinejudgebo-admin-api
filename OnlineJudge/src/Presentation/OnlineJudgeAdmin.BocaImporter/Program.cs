@@ -35,6 +35,7 @@ builder.Services.AddFileSystemLocalManagerInfrastructureManager(builder.Configur
 
 using var host = builder.Build();
 var problemService = host.Services.GetRequiredService<IProblemService>();
+var classifierService = host.Services.GetRequiredService<IProblemClassifierService>();
 var fileManager = host.Services.GetRequiredService<IFileSystemLocalManagerManager>();
 
 var targets = ResolveTargets(options);
@@ -59,7 +60,7 @@ foreach (var target in targets)
             : (tempExtractRoot = ExtractZip(target.ZipPath));
 
         var info = BocaPackageReader.ReadProblemInfo(problemDir, target.Name);
-        var description = BocaPackageReader.ReadDescription(problemDir, info.DescFile);
+        var description = await BocaPackageReader.ReadDescriptionAsync(problemDir, info.DescFile);
         var sample = BocaPackageReader.ReadSamplePair(problemDir);
         var limits = BocaPackageReader.CollectLimits(problemDir);
         var testCases = BocaPackageReader.ReadAllTestCases(problemDir);
@@ -68,11 +69,11 @@ foreach (var target in targets)
         {
             Title = info.FullName,
             Description = description.Html,
-            Input = string.Empty,
-            Output = string.Empty,
+            Input = description.InputHtml,
+            Output = description.OutputHtml,
             SampleInput = sample.Input,
             SampleOutput = sample.Output,
-            Hint = string.Empty,
+            Hint = description.HintHtml,
             Source = $"BOCA import ({info.BaseName})",
             OriginSource = "BOCA import",
             TimeLimit = limits.TimeLimitSeconds,
@@ -90,6 +91,17 @@ foreach (var target in targets)
         if (sample.NeedsReview)
         {
             Console.WriteLine($"  ! sample needs review: {sample.ReviewReason}");
+        }
+
+        // Informational only -- this CLI has no interactive picker, so unlike the admin
+        // API's /preview+/confirm flow it never attaches these on its own. Add them
+        // afterwards through the admin UI (PUT /api/problems/{id}) if they look right.
+        var classificationSuggestion = await classifierService.SuggestClassificationsAsync(problem);
+        if (classificationSuggestion.Available && classificationSuggestion.Classifications.Count > 0)
+        {
+            var labels = classificationSuggestion.Classifications
+                .Select(c => c.Topic is not null ? $"{c.Topic.Name} > {c.Name}" : c.Name);
+            Console.WriteLine($"  suggested classifications (not applied): {string.Join(", ", labels)}");
         }
 
         if (options.DryRun)

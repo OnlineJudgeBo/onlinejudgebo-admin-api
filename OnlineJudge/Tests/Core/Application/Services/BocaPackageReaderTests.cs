@@ -1,3 +1,4 @@
+using OnlineJudgeAdmin.Core.Domain.Models;
 using System.IO.Compression;
 using System.Text;
 using Microsoft.AspNetCore.Http;
@@ -115,23 +116,23 @@ public class BocaPackageReaderTests
     }
 
     [Fact]
-    public void ReadDescription_TextBecomesEncodedParagraphs()
+    public async Task ReadDescription_TextBecomesEncodedParagraphs()
     {
         using var package = new BocaPackage().File("description/desc.txt", "Linea <uno>\ncontinua\n\n\n  Segundo & final  \n");
 
-        var description = BocaPackageReader.ReadDescription(package.Root, "desc.txt");
+        var description = await BocaPackageReader.ReadDescriptionAsync(package.Root, "desc.txt");
 
         Assert.Equal("<p>Linea &lt;uno&gt;\ncontinua</p>\n<p>Segundo &amp; final</p>", description.Html);
         Assert.False(description.NeedsReview);
     }
 
     [Fact]
-    public void ReadDescription_FlagsMissingOrEmptyFiles()
+    public async Task ReadDescription_FlagsMissingOrEmptyFiles()
     {
         using var package = new BocaPackage().File("description/empty.txt", "  \n\n ");
 
-        var none = BocaPackageReader.ReadDescription(package.Root, null);
-        var empty = BocaPackageReader.ReadDescription(package.Root, "empty.txt");
+        var none = await BocaPackageReader.ReadDescriptionAsync(package.Root, null);
+        var empty = await BocaPackageReader.ReadDescriptionAsync(package.Root, "empty.txt");
 
         Assert.True(none.NeedsReview);
         Assert.Equal("no description file found", none.ReviewReason);
@@ -216,7 +217,9 @@ public class BocaImportControllerPreviewTests
     private static BocaImportController Controller(Mock<IProblemService>? problems = null)
     {
         var context = AuthenticatedContext("teacher", 1, "Docente");
-        return new BocaImportController((problems ?? new Mock<IProblemService>()).Object, Mock.Of<IFileSystemLocalManagerManager>(), Claims(context)).WithContext(context);
+        var classifier = new Mock<IProblemClassifierService>();
+        classifier.Setup(item => item.SuggestClassificationsAsync(It.IsAny<Problem>())).ReturnsAsync(new ProblemClassificationSuggestion());
+        return new BocaImportController((problems ?? new Mock<IProblemService>()).Object, classifier.Object, Mock.Of<IFileSystemLocalManagerManager>(), Claims(context)).WithContext(context);
     }
 
     private static IFormFile Upload(byte[] bytes, string name = "suma.zip") => new FormFile(new MemoryStream(bytes), 0, bytes.Length, "files", name);
@@ -225,11 +228,11 @@ public class BocaImportControllerPreviewTests
         (IEnumerable<T>)OkValue(result)!.GetType().GetProperty("results")!.GetValue(OkValue(result))!;
 
     [Fact]
-    public void Preview_ReadsPackageAndReturnsStagingId()
+    public async Task Preview_ReadsPackageAndReturnsStagingId()
     {
         using var package = new BocaPackage().Valid("Suma de enteros").Case("2", "5 5", "10");
 
-        var item = Assert.Single(Results<BocaImportPreviewResult>(Controller().Preview(new List<IFormFile> { Upload(package.Zip()) })));
+        var item = Assert.Single(Results<BocaImportPreviewResult>(await Controller().Preview(new List<IFormFile> { Upload(package.Zip()) })));
 
         Assert.True(item.Success, item.Error);
         Assert.True(Guid.TryParseExact(item.StagingId, "N", out _));
@@ -243,12 +246,12 @@ public class BocaImportControllerPreviewTests
     }
 
     [Fact]
-    public void Preview_ReportsReviewReasonsAndPerFileFailures()
+    public async Task Preview_ReportsReviewReasonsAndPerFileFailures()
     {
         using var noDescription = new BocaPackage().Info("fullname=Sin enunciado").Case("1", "1", "1").Limit("c", 1, 128);
         using var broken = new BocaPackage().Info("basename=x");
 
-        var results = Results<BocaImportPreviewResult>(Controller().Preview(new List<IFormFile>
+        var results = Results<BocaImportPreviewResult>(await Controller().Preview(new List<IFormFile>
         {
             Upload(noDescription.Zip(), "a.zip"),
             Upload(broken.Zip(), "b.zip"),
@@ -266,7 +269,7 @@ public class BocaImportControllerPreviewTests
     }
 
     [Fact]
-    public void Preview_DoesNotLeakServerFilesThroughDescFile()
+    public async Task Preview_DoesNotLeakServerFilesThroughDescFile()
     {
         var secret = Path.Combine(Path.GetTempPath(), "boca-secret-" + Guid.NewGuid().ToString("N") + ".txt");
         File.WriteAllText(secret, "JWT_KEY=top-secret");
@@ -274,7 +277,7 @@ public class BocaImportControllerPreviewTests
         {
             using var package = new BocaPackage().Info("fullname=Leak\ndescfile=../../../../../../../.." + secret).Case("1", "1", "1");
 
-            var item = Assert.Single(Results<BocaImportPreviewResult>(Controller().Preview(new List<IFormFile> { Upload(package.Zip()) })));
+            var item = Assert.Single(Results<BocaImportPreviewResult>(await Controller().Preview(new List<IFormFile> { Upload(package.Zip()) })));
 
             Assert.False(item.Success);
             Assert.DoesNotContain("top-secret", item.DescriptionPreview ?? string.Empty);
