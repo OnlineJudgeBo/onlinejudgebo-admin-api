@@ -58,9 +58,14 @@ public class ProblemsController : ControllerBase
     }
 
     // Read-only: computes a suggestion, never touches the database. The admin applies
-    // whichever suggested classifications they want through the existing PUT above
-    // (ProblemForUpdate.Classifications) -- same "suggest, then a human confirms through
-    // the normal write path" shape as the BOCA import preview.
+    // whichever suggested classifications they accept through POST {problemId}/classifications.
+    // Adds classifications to the problem (accepted suggestions) and returns the problem's full list.
+    [HttpPost("{problemId:int}/classifications")]
+    public async Task<IActionResult> AddClassificationsAsync(int problemId, ProblemClassificationsForAddition request)
+    {
+        return Ok(await _problemService.AddClassificationsAsync(problemId, request.ClassificationIds, _currentUser.SiteId));
+    }
+
     [HttpGet("{problemId:int}/classification-suggestions")]
     public async Task<IActionResult> GetClassificationSuggestionsAsync(int problemId)
     {

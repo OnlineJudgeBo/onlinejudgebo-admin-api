@@ -214,11 +214,11 @@ public class BocaPackageReaderTests
 
 public class BocaImportControllerPreviewTests
 {
-    private static BocaImportController Controller(Mock<IProblemService>? problems = null)
+    private static BocaImportController Controller(Mock<IProblemService>? problems = null, ProblemClassificationSuggestion? suggestion = null)
     {
         var context = AuthenticatedContext("teacher", 1, "Docente");
         var classifier = new Mock<IProblemClassifierService>();
-        classifier.Setup(item => item.SuggestClassificationsAsync(It.IsAny<Problem>())).ReturnsAsync(new ProblemClassificationSuggestion());
+        classifier.Setup(item => item.SuggestClassificationsAsync(It.IsAny<Problem>())).ReturnsAsync(suggestion ?? new ProblemClassificationSuggestion());
         return new BocaImportController((problems ?? new Mock<IProblemService>()).Object, classifier.Object, Mock.Of<IFileSystemLocalManagerManager>(), Claims(context)).WithContext(context);
     }
 
@@ -226,6 +226,25 @@ public class BocaImportControllerPreviewTests
 
     private static IEnumerable<T> Results<T>(IActionResult result) =>
         (IEnumerable<T>)OkValue(result)!.GetType().GetProperty("results")!.GetValue(OkValue(result))!;
+
+    [Fact]
+    public async Task Preview_IncludesWhyEachClassificationWasSuggested()
+    {
+        using var package = new BocaPackage().Valid("Suma de enteros").Case("2", "5 5", "10");
+        var suggestion = new ProblemClassificationSuggestion
+        {
+            Available = true,
+            Classifications = new List<Classification> { new() { ClassificationId = 65, Name = "Aritmética básica", Topic = new Topic { Name = "Matemáticas" } } },
+            Reasons = new Dictionary<int, string> { [65] = "Solo hay que sumar dos enteros." },
+        };
+
+        var item = Assert.Single(Results<BocaImportPreviewResult>(await Controller(suggestion: suggestion).Preview(new List<IFormFile> { Upload(package.Zip()) })));
+
+        var suggested = Assert.Single(item.SuggestedClassifications);
+        Assert.Equal("Matemáticas > Aritmética básica", suggested.Label);
+        Assert.Equal("Solo hay que sumar dos enteros.", suggested.Reason);
+        Directory.Delete(Path.Combine(Path.GetTempPath(), "boca-import", item.StagingId!), recursive: true);
+    }
 
     [Fact]
     public async Task Preview_ReadsPackageAndReturnsStagingId()

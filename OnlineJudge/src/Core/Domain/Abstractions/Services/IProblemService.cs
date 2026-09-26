@@ -8,6 +8,7 @@ public interface IProblemService
     public Task<Problem> GetProblemByIdAsync(int problemId, int? siteId = null);
     public Task<Problem> CreateProblemAsync(string userId, Problem problem, int siteId);
     public Task<Problem> UpdateProblemAsync(string userId, int problemId, Problem problem, int siteId);
+    public Task<IReadOnlyList<Classification>> AddClassificationsAsync(int problemId, IReadOnlyCollection<int> classificationIds, int siteId);
     public Task ChangeProblemVisibilityAsync(int problemId, int siteId);
     public Task DeleteProblemAsync(int problemId, int siteId);
     public Task<IEnumerable<Problem>> SearchProblemAsync(CurrentUser currentUser, string searchTerm);
