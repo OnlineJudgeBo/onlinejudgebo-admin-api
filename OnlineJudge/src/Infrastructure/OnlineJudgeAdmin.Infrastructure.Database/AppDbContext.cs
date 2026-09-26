@@ -138,6 +138,10 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValueSql("'PRACTICE'")
                 .HasColumnName("level");
             entity.Property(e => e.Obi).HasColumnName("obi");
+            entity.Property(e => e.IsExam).HasColumnName("is_exam");
+            entity.Property(e => e.ExamLabIps)
+                .HasMaxLength(1000)
+                .HasColumnName("exam_lab_ips");
             entity.Property(e => e.Private)
                 .HasColumnType("tinyint(4)")
                 .HasColumnName("private");

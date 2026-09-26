@@ -32,7 +32,7 @@ public class PublicAuthController : ControllerBase
     {
         try
         {
-            var user = await _publicService.LoginAsync(loginForCreation.UserId, loginForCreation.Password, loginForCreation.SiteId);
+            var user = await _publicService.LoginAsync(loginForCreation.UserId, loginForCreation.Password, loginForCreation.SiteId, ClientIpHelper.GetClientIp(HttpContext));
             return Ok(CreateAuthResponse(user));
         }
         catch (UnauthorizedAccessException ex)

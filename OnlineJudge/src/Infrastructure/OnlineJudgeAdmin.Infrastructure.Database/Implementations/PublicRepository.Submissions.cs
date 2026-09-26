@@ -368,11 +368,9 @@ public partial class PublicRepository
             CheckContestOpen(contest);
         }
 
-        bool requiresContestProblem = contestId.HasValue
-            && (!string.IsNullOrWhiteSpace(request.ContestProblemId)
-                || request.Num.HasValue && request.Num.Value >= 0);
-
-        if (requiresContestProblem && contestProblem == null)
+        // A contest submission must target one of the contest's problems, otherwise any site problem
+        // could be submitted "into" the contest and counted in its ranking.
+        if (contestId.HasValue && contestProblem == null)
         {
             throw new ArgumentException("Problema del concurso inválido o no disponible.");
         }

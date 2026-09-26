@@ -57,6 +57,12 @@ public class ContestsController : ControllerBase
         return Ok(await _contestService.UpdateContestAsync(contestId, contest, contestForUpdate.ManualUserList, _currentUser.SiteId));
     }
 
+    [HttpGet("{contestId:int}/exam-monitor")]
+    public async Task<IActionResult> GetExamMonitorAsync(int contestId)
+    {
+        return Ok(await _contestService.GetExamMonitorAsync(contestId, _currentUser));
+    }
+
     [HttpPut("{contestId:int}/promote")]
     public async Task<IActionResult> PromoteContestAsync(int contestId)
     {

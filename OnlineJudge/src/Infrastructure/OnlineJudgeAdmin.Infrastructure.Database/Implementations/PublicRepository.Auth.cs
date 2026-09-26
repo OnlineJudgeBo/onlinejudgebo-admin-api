@@ -9,7 +9,7 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.Implementations;
 
 public partial class PublicRepository
 {
-    public async Task<PublicAuthenticatedUser> LoginAsync(string userOrEmail, string password, int siteId)
+    public async Task<PublicAuthenticatedUser> LoginAsync(string userOrEmail, string password, int siteId, string clientIp = "0.0.0.0")
     {
         var normalizedUserOrEmail = userOrEmail.Trim();
         var normalizedEmail = normalizedUserOrEmail.ToLowerInvariant();
@@ -43,6 +43,10 @@ public partial class PublicRepository
             .Where(item => item.UserId == user.UserId && item.SiteId == siteId)
             .ExecuteUpdateAsync(setters => setters
                 .SetProperty(item => item.Accesstime, DateTime.Now));
+
+        // Same table the PHP front writes on login; exam monitoring reads it.
+        _context.Loginlogs.Add(new DbLoginlog { UserId = user.UserId, Ip = clientIp, Time = DateTime.Now, SiteId = siteId });
+        await _context.SaveChangesAsync();
 
         return new PublicAuthenticatedUser
         {

@@ -19,6 +19,10 @@ public partial class ContestForUpdate
 
     public string? ManualUserList { get; set; }
 
+    public bool IsExam { get; set; }
+
+    public string? ExamLabIps { get; set; }
+
     public virtual ICollection<ProblemForContestCreation> SelectedProblem { get; set; }
 
     public virtual ICollection<UserForContestCreation> SelectedUser { get; set; }
