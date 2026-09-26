@@ -138,7 +138,8 @@ public class ContestMachinesController : ControllerBase
             return false;
         }
 
-        if (machineId == null)
+        // "*" with the group means every machine of the group.
+        if (machineId == null || (machineId == "*" && groupId != null))
         {
             return true;
         }

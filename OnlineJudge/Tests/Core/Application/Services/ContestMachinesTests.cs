@@ -185,6 +185,7 @@ public class ContestMachinesControllerTests
     [Theory]
     [InlineData("{\"action\":\"net-open\",\"target\":{\"group_id\":\"contest-5\"}}")]
     [InlineData("{\"action\":\"collect-home\",\"target\":{\"machine_id\":\"m1\"}}")]
+    [InlineData("{\"action\":\"usb-block\",\"target\":{\"group_id\":\"contest-5\",\"machine_id\":\"*\"}}")]
     public async Task SuperadminCommands_ForThisExamUseTheSuperadminToken(string command)
     {
         var (controller, handler) = Controller("POST", command);
@@ -199,6 +200,8 @@ public class ContestMachinesControllerTests
     [InlineData("{\"action\":\"usb-unblock\",\"target\":{\"machine_id\":\"m9\"}}")]
     [InlineData("{\"action\":\"set-allowlist\",\"target\":{\"all\":true},\"args\":{\"hosts\":[]}}")]
     [InlineData("{\"action\":\"net-open\",\"target\":{}}")]
+    [InlineData("{\"action\":\"net-open\",\"target\":{\"machine_id\":\"*\"}}")]
+    [InlineData("{\"action\":\"net-open\",\"target\":{\"group_id\":\"contest-6\",\"machine_id\":\"*\"}}")]
     public async Task SuperadminCommands_OutsideThisExamAreRefused(string command)
     {
         var (controller, handler) = Controller("POST", command);
