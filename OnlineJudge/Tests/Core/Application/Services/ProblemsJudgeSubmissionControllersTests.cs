@@ -209,6 +209,7 @@ public class JudgeControllerTests
     public async Task RemoteExecution_MapsRequestUserIpAndSite()
     {
         var context = AuthenticatedContext("client", 3, "Docente");
+        context.Connection.RemoteIpAddress = System.Net.IPAddress.Parse("172.18.0.2");
         context.Request.Headers["X-Forwarded-For"] = "10.2.2.2";
 
         var result = await Controller(context).RemoteExecutionAsync(new RemoteExecutionForCreation
@@ -285,6 +286,7 @@ public class SubmissionControllerTests
     public async Task IdeEndpoints_PassBearerTokenAndMapRequest()
     {
         var context = new DefaultHttpContext();
+        context.Connection.RemoteIpAddress = System.Net.IPAddress.Parse("172.18.0.2");
         context.Request.Headers.Authorization = "Bearer ide-token";
         context.Request.Headers["X-Forwarded-For"] = "10.9.9.9";
         _ide.Setup(item => item.SubmitAsync("ide-token", It.IsAny<IdeSubmissionRequest>())).ReturnsAsync(new IdeSubmissionResponse { SubmissionId = "7", Id = "7", StatusUrl = "/s/7" });
@@ -356,6 +358,7 @@ public class ExceptionHandlerTests
         new object[] { new ArgumentNullException("x"), 400, "No se pudo completar la operación: Value cannot be null. (Parameter 'x')" },
         new object[] { new InvalidOperationException("estado malo"), 400, "No se pudo completar la operación: estado malo" },
         new object[] { new UnauthorizedAccessException("detalle interno"), 401, "No se pudo completar la operación: solicitud no autorizada" },
+        new object[] { new System.Security.SecurityException("solo el dueño"), 403, "No se pudo completar la operación: solo el dueño" },
         new object[] { new KeyNotFoundException("no existe"), 404, "No se pudo completar la operación: no existe" },
         new object[] { new Exception("secreto de base de datos"), 500, "No se pudo completar la operación: error interno" },
     };

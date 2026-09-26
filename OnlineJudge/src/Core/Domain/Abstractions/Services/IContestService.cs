@@ -9,5 +9,5 @@ public interface IContestService
     public Task<Contest> GetContestById(int contestId, int siteId);
     public Task<Contest> UpdateContestAsync(int contestId, Contest contest, string ManualUserList, int siteId);
     public Task PromoteContestAsync(int contestId, int siteId);
-    public Task<ExamMonitorResponse> GetExamMonitorAsync(int contestId, int siteId);
+    public Task<ExamMonitorResponse> GetExamMonitorAsync(int contestId, CurrentUser currentUser);
 }

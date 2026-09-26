@@ -58,18 +58,27 @@ public class ExamActivityAnalyzerTests
 
         var alert = Assert.Single(result.Alerts);
         Assert.Equal(ExamAlertCodes.MultipleIps, alert.Code);
-        Assert.Equal("high", alert.Severity);
+        Assert.Equal("medium", alert.Severity);
         Assert.Equal(new[] { "181.1.1.1", "190.2.2.2" }, alert.Ips);
     }
 
     [Fact]
-    public void GoingBackAndForthBetweenIpsIsConcurrentUse()
+    public void ActivityFromDifferentIpsWithinFiveMinutesIsConcurrentUse()
     {
         var result = Analyze(null, new[] { "ana" },
-            Login("ana", "181.1.1.1", 0), Login("ana", "190.2.2.2", 10), Submit("ana", "181.1.1.1", 20), Submit("ana", "190.2.2.2", 30));
+            Login("ana", "181.1.1.1", 0), Submit("ana", "190.2.2.2", 4));
 
         Assert.Equal(new[] { ExamAlertCodes.ConcurrentUse }, Codes(result, "ana"));
-        Assert.Contains("dos lugares", result.Alerts.Single().Message);
+        Assert.Contains("5 minutos o menos", result.Alerts.Single().Message);
+    }
+
+    [Fact]
+    public void ActivityFromDifferentIpsFarApartIsNotConcurrentUse()
+    {
+        var result = Analyze(null, new[] { "ana" },
+            Login("ana", "181.1.1.1", 0), Submit("ana", "190.2.2.2", 20), Submit("ana", "181.1.1.1", 40));
+
+        Assert.Equal(new[] { ExamAlertCodes.MultipleIps }, Codes(result, "ana"));
     }
 
     [Fact]
@@ -98,7 +107,7 @@ public class ExamActivityAnalyzerTests
     public void Lab_OutsideAndBackToLabIsAlsoConcurrentUse()
     {
         var result = Analyze("200.87.1.0/24", new[] { "ana" },
-            Login("ana", "200.87.1.10", 0), Submit("ana", "181.1.1.1", 20), Submit("ana", "200.87.1.11", 30));
+            Login("ana", "200.87.1.10", 0), Submit("ana", "181.1.1.1", 4));
 
         Assert.Equal(new[] { ExamAlertCodes.ConcurrentUse, ExamAlertCodes.OutsideLab }, Codes(result, "ana"));
     }

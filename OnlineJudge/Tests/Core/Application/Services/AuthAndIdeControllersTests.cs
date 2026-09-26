@@ -131,6 +131,7 @@ public class PublicAuthControllerTests
     public async Task Register_PassesAllFieldsAndClientIpAndReturnsToken()
     {
         var context = new DefaultHttpContext();
+        context.Connection.RemoteIpAddress = System.Net.IPAddress.Parse("172.18.0.2");
         context.Request.Headers["X-Forwarded-For"] = "10.1.1.1";
         _service.Setup(item => item.RegisterAsync("ana", "secret1", "a@b.c", "Ana", "Pérez", "UMSA", 3, "10.1.1.1")).ReturnsAsync(User());
 

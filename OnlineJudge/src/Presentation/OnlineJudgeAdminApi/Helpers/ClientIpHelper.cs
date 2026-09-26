@@ -1,22 +1,26 @@
 using Microsoft.AspNetCore.Http;
+using System.Net;
+using System.Net.Sockets;
 
 namespace OnlineJudgeAdminApi.Helpers;
 
 public static class ClientIpHelper
 {
+    private static readonly IPNetwork DockerNetwork = IPNetwork.Parse("172.16.0.0/12");
+
     public static string GetClientIp(HttpContext httpContext)
     {
+        var remote = httpContext.Connection.RemoteIpAddress;
         var forwarded = httpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault();
-        var rawIp = string.IsNullOrWhiteSpace(forwarded)
-            ? httpContext.Connection.RemoteIpAddress?.ToString() ?? "0.0.0.0"
-            : forwarded;
+        var rawIp = remote != null && DockerNetwork.Contains(remote) && !string.IsNullOrWhiteSpace(forwarded)
+            ? forwarded.Split(',')[0].Trim()
+            : remote?.ToString();
 
-        var ip = rawIp.Split(',')[0].Trim();
-        if (string.IsNullOrWhiteSpace(ip) || ip.Contains(':', StringComparison.Ordinal))
+        if (!IPAddress.TryParse(rawIp, out var ip) || ip.AddressFamily != AddressFamily.InterNetwork)
         {
             return "0.0.0.0";
         }
 
-        return ip.Length > 15 ? "0.0.0.0" : ip;
+        return ip.ToString();
     }
 }

@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security;
 using MySqlConnector;
 namespace OnlineJudgeAdminApi.ExceptionHandler;
 
@@ -27,6 +28,17 @@ public class ExceptionHandler
         catch (UnauthorizedAccessException ex)
         {
             await this.HandleExceptionAsync(httpContext, Exceptions.UnauthorizedAccess, ex);
+        }
+        catch (SecurityException ex)
+        {
+            httpContext.Response.ContentType = "application/json";
+            httpContext.Response.StatusCode = StatusCodes.Status403Forbidden;
+            this.logger.LogInformation(ex.ToString());
+            await httpContext.Response.WriteAsync(new ErrorDetails
+            {
+                StatusCode = StatusCodes.Status403Forbidden,
+                Message = $"No se pudo completar la operación: {ex.Message}",
+            }.ToString());
         }
         catch (InvalidOperationException ex)
         {

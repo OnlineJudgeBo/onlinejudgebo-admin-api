@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Configuration;
+using System.Security;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -22,16 +23,19 @@ public class ExamMonitorServiceTests
     private static Contest Contest(bool isExam, string? labIps = null) => new()
     {
         ContestId = 5, Title = "Parcial", StartTime = new DateTime(2026, 9, 25, 8, 0, 0), EndTime = new DateTime(2026, 9, 25, 10, 0, 0),
-        IsExam = isExam, ExamLabIps = labIps, Defunct = "N", Track = "GENERAL", Level = "PRACTICE"
+        IsExam = isExam, ExamLabIps = labIps, Defunct = "N", Track = "GENERAL", Level = "PRACTICE",
+        ContestUsers = new List<ContestUser> { new() { UserId = "teacher", IsOwner = true } }
     };
+
+    private static CurrentUser Teacher(int siteId = 1) => new() { UserId = "teacher", SiteId = siteId, Role = UserRolesEnum.Docente };
 
     [Fact]
     public async Task Monitor_RejectsUnknownAndNonExamContests()
     {
         _contests.Setup(item => item.GetContestByIdAsync(6, 1)).ReturnsAsync(Contest(isExam: false));
 
-        await Assert.ThrowsAsync<KeyNotFoundException>(() => Service.GetExamMonitorAsync(99, 1));
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => Service.GetExamMonitorAsync(6, 1));
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => Service.GetExamMonitorAsync(99, Teacher()));
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => Service.GetExamMonitorAsync(6, Teacher()));
 
         Assert.Equal("El concurso no está marcado como examen.", error.Message);
         _contests.Verify(item => item.GetExamActivityAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()), Times.Never);
@@ -43,17 +47,30 @@ public class ExamMonitorServiceTests
         var contest = Contest(isExam: true, labIps: "200.87.1.0/24");
         _contests.Setup(item => item.GetContestByIdAsync(5, 1)).ReturnsAsync(contest);
         _contests
-            .Setup(item => item.GetExamActivityAsync(5, 1, contest.StartTime.AddHours(-1), contest.EndTime))
+            .Setup(item => item.GetExamActivityAsync(5, 1, contest.StartTime, contest.EndTime))
             .ReturnsAsync(new ExamActivity
             {
                 ParticipantUserIds = new[] { "ana" },
                 Events = new[] { new ExamActivityEvent("ana", "181.1.1.1", contest.StartTime, ExamActivitySources.Login) }
             });
 
-        var result = await Service.GetExamMonitorAsync(5, 1);
+        var result = await Service.GetExamMonitorAsync(5, Teacher());
 
         Assert.Equal(ExamAlertCodes.OutsideLab, Assert.Single(result.Alerts).Code);
         Assert.Equal(new[] { "200.87.1.0/24" }, result.LabIps);
+    }
+
+    [Fact]
+    public async Task Monitor_AllowsAdministratorsAndOwnersOnly()
+    {
+        var contest = Contest(isExam: true);
+        _contests.Setup(item => item.GetContestByIdAsync(5, 1)).ReturnsAsync(contest);
+        _contests.Setup(item => item.GetExamActivityAsync(5, 1, contest.StartTime, contest.EndTime)).ReturnsAsync(new ExamActivity());
+
+        await Assert.ThrowsAsync<SecurityException>(() => Service.GetExamMonitorAsync(5,
+            new CurrentUser { UserId = "other-teacher", SiteId = 1, Role = UserRolesEnum.Docente }));
+        await Service.GetExamMonitorAsync(5,
+            new CurrentUser { UserId = "admin", SiteId = 1, Role = UserRolesEnum.Administrador });
     }
 
     [Fact]
@@ -88,6 +105,8 @@ public class ExamActivityRepositoryTests
         var submission = seed.Solution("ana", p, 4, Start.AddMinutes(30), contestId: contest);
         seed.Db.Solutions.Single(item => item.SolutionId == submission).Ip = "181.1.1.1";
         seed.Solution("bob", p, 6, Start.AddMinutes(40), contestId: contest);
+        seed.Solution("ana", p, 4, Start.AddMinutes(-10), contestId: contest);
+        seed.Solution("ana", p, 4, Start.AddHours(3), contestId: contest);
         seed.Solution("ana", p, 4, Start.AddMinutes(45), contestId: other);
         seed.Solution("ana", p, 4, Start.AddMinutes(50), contestId: contest, siteId: 2);
         seed.Db.Loginlogs.AddRange(
@@ -97,7 +116,7 @@ public class ExamActivityRepositoryTests
             new DbLoginlog { UserId = "stranger", Ip = "1.2.3.4", Time = Start.AddMinutes(10), SiteId = 1 });
         seed.Save();
 
-        var activity = await new ContestsRepository(seed.Db, CreateMapper()).GetExamActivityAsync(contest, 1, Start.AddHours(-1), Start.AddHours(2));
+        var activity = await new ContestsRepository(seed.Db, CreateMapper()).GetExamActivityAsync(contest, 1, Start, Start.AddHours(2));
 
         Assert.Equal(new[] { "ana", "bob", "idle" }, activity.ParticipantUserIds.OrderBy(id => id));
         Assert.Equal("Ana", activity.Nicks["ana"]);
@@ -168,7 +187,7 @@ public class ExamMonitorEndpointTests
     {
         var service = new Mock<IContestService>();
         var response = new ExamMonitorResponse { ContestId = 5 };
-        service.Setup(item => item.GetExamMonitorAsync(5, 3)).ReturnsAsync(response);
+        service.Setup(item => item.GetExamMonitorAsync(5, It.Is<CurrentUser>(user => user.UserId == "teacher" && user.SiteId == 3))).ReturnsAsync(response);
         var context = AuthenticatedContext("teacher", 3, "Docente");
         var controller = new ContestsController(service.Object, Claims(context), ApiMapper).WithContext(context);
 
@@ -181,6 +200,7 @@ public class ExamMonitorEndpointTests
         var service = new Mock<IPublicService>();
         service.Setup(item => item.LoginAsync("ana", "pw", 1, "181.1.1.1")).ReturnsAsync(new PublicAuthenticatedUser { UserId = "ana", Role = "Invitado", SiteId = 1 });
         var context = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+        context.Connection.RemoteIpAddress = System.Net.IPAddress.Parse("172.18.0.2");
         context.Request.Headers["X-Forwarded-For"] = "181.1.1.1";
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?> { ["Jwt:Key"] = "unit-test-signing-key-that-is-long-enough-32b" }).Build();

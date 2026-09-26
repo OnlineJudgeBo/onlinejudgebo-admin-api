@@ -9,6 +9,7 @@ namespace OnlineJudgeAdmin.Core.Application.Services.Helpers;
 public static class ExamActivityAnalyzer
 {
     private const string LabKey = "LAB";
+    private static readonly TimeSpan ConcurrentActivityWindow = TimeSpan.FromMinutes(5);
 
     // Docker's default address pool: seeing it means the judge stored the proxy's IP, not the student's.
     private static readonly IPNetwork DockerNetwork = IPNetwork.Parse("172.16.0.0/12");
@@ -90,14 +91,14 @@ public static class ExamActivityAnalyzer
                 AddAlert(ExamAlertCodes.OutsideLab, "high", $"{userId} tuvo actividad desde fuera del laboratorio.", new[] { userId }, outsideIps);
             }
 
-            var keysInOrder = userEvents.Select(item => Key(item.Ip)).ToList();
-            if (ReturnsToEarlierKey(keysInOrder))
+            if (HasConcurrentActivity(userEvents, Key))
             {
-                AddAlert(ExamAlertCodes.ConcurrentUse, "high", $"{userId} alternó entre IPs distintas: la cuenta pudo usarse en dos lugares a la vez.", new[] { userId }, userEvents.Select(item => item.Ip).Distinct());
+                AddAlert(ExamAlertCodes.ConcurrentUse, "high", $"{userId} tuvo actividad desde IPs distintas con 5 minutos o menos de diferencia.", new[] { userId }, userEvents.Select(item => item.Ip).Distinct());
             }
-            else if (labNetworks.Count == 0 && keysInOrder.Distinct().Count() > 1)
+            else if (labNetworks.Count == 0 && userEvents.Select(item => Key(item.Ip)).Distinct().Count() > 1)
             {
-                AddAlert(ExamAlertCodes.MultipleIps, "high", $"{userId} usó {keysInOrder.Distinct().Count()} IPs distintas durante el examen.", new[] { userId }, keysInOrder.Distinct());
+                var ips = userEvents.Select(item => item.Ip).Distinct().ToList();
+                AddAlert(ExamAlertCodes.MultipleIps, "medium", $"{userId} usó {ips.Count} IPs distintas durante el examen.", new[] { userId }, ips);
             }
         }
 
@@ -158,27 +159,10 @@ public static class ExamActivityAnalyzer
         };
     }
 
-    // A -> B -> A: after switching away from a place, activity came back from it, so both were in use.
-    private static bool ReturnsToEarlierKey(IReadOnlyList<string> keysInOrder)
-    {
-        var left = new HashSet<string>();
-        for (var index = 1; index < keysInOrder.Count; index++)
-        {
-            if (keysInOrder[index] == keysInOrder[index - 1])
-            {
-                continue;
-            }
-
-            if (left.Contains(keysInOrder[index]))
-            {
-                return true;
-            }
-
-            left.Add(keysInOrder[index - 1]);
-        }
-
-        return false;
-    }
+    private static bool HasConcurrentActivity(IReadOnlyList<ExamActivityEvent> events, Func<string, string> key) =>
+        events.Zip(events.Skip(1), (first, second) =>
+                key(first.Ip) != key(second.Ip) && second.Time - first.Time <= ConcurrentActivityWindow)
+            .Any(concurrent => concurrent);
 
     private static IEnumerable<string> SplitLabIps(string? labIps) =>
         (labIps ?? string.Empty)

@@ -263,7 +263,7 @@ public class ContestsRepository : IContestsRepository
         return await GetContestByIdAsync(contestId, siteId);
     }
 
-    public async Task<ExamActivity> GetExamActivityAsync(int contestId, int siteId, DateTime from, DateTime to)
+    public async Task<ExamActivity> GetExamActivityAsync(int contestId, int siteId, DateTime start, DateTime end)
     {
         var participantIds = await _context.ContestUsers
             .Where(user => user.ContestId == contestId && user.SiteId == siteId && !user.IsOwner)
@@ -272,14 +272,16 @@ public class ContestsRepository : IContestsRepository
 
         // Every run counts as activity, custom-input runs included.
         var submissions = await _context.Solutions
-            .Where(solution => solution.ContestId == contestId && solution.SiteId == siteId)
+            .Where(solution => solution.ContestId == contestId && solution.SiteId == siteId
+                && solution.InDate >= start && solution.InDate <= end)
             .Select(solution => new { solution.UserId, solution.Ip, solution.InDate })
             .ToListAsync();
 
         var userIds = participantIds.Concat(submissions.Select(item => item.UserId)).Distinct().ToList();
 
         var logins = await _context.Loginlogs
-            .Where(login => userIds.Contains(login.UserId) && login.SiteId == siteId && login.Time >= from && login.Time <= to)
+            .Where(login => userIds.Contains(login.UserId) && login.SiteId == siteId
+                && login.Time >= start.AddHours(-1) && login.Time <= end)
             .Select(login => new { login.UserId, login.Ip, login.Time })
             .ToListAsync();
 

@@ -60,7 +60,7 @@ public class ContestsController : ControllerBase
     [HttpGet("{contestId:int}/exam-monitor")]
     public async Task<IActionResult> GetExamMonitorAsync(int contestId)
     {
-        return Ok(await _contestService.GetExamMonitorAsync(contestId, _currentUser.SiteId));
+        return Ok(await _contestService.GetExamMonitorAsync(contestId, _currentUser));
     }
 
     [HttpPut("{contestId:int}/promote")]

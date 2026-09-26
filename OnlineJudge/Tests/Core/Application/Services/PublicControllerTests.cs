@@ -140,6 +140,7 @@ public class PublicControllerTests
     public async Task Submit_MapsDtoAndUsesForwardedClientIp()
     {
         var context = AuthenticatedContext("ana", 2, "Invitado");
+        context.Connection.RemoteIpAddress = IPAddress.Parse("172.18.0.2");
         context.Request.Headers["X-Forwarded-For"] = "10.0.0.7, 172.16.0.1";
         var dto = new PublicSubmissionForCreation
         {
@@ -280,13 +281,14 @@ public class PublicControllerTests
 public class ClientIpHelperTests
 {
     [Theory]
-    [InlineData("203.0.113.9", null, "203.0.113.9")]
-    [InlineData(" 203.0.113.9 , 10.0.0.1", null, "203.0.113.9")]
+    [InlineData("203.0.113.9", "172.18.0.2", "203.0.113.9")]
+    [InlineData(" 203.0.113.9 , 10.0.0.1", "172.18.0.2", "203.0.113.9")]
+    [InlineData("203.0.113.9", "198.51.100.4", "198.51.100.4")]
     [InlineData(null, "198.51.100.4", "198.51.100.4")]
     [InlineData(null, "::1", "0.0.0.0")]
-    [InlineData("2001:db8::1", null, "0.0.0.0")]
-    [InlineData("not-an-ip-but-very-long", null, "0.0.0.0")]
-    [InlineData(" , 10.0.0.1", null, "0.0.0.0")]
+    [InlineData("2001:db8::1", "172.18.0.2", "0.0.0.0")]
+    [InlineData("not-an-ip-but-very-long", "172.18.0.2", "0.0.0.0")]
+    [InlineData(" , 10.0.0.1", "172.18.0.2", "0.0.0.0")]
     [InlineData(null, null, "0.0.0.0")]
     public void GetClientIp_NormalizesForwardedOrRemoteAddress(string? forwardedFor, string? remoteIp, string expected)
     {

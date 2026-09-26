@@ -1,4 +1,5 @@
 using FluentValidation;
+using System.Security;
 using OnlineJudgeAdmin.Core.Application.Services.Helpers;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
@@ -166,9 +167,9 @@ public class ContestService : IContestService
             .Where(userId => !string.IsNullOrWhiteSpace(userId));
     }
 
-    public async Task<ExamMonitorResponse> GetExamMonitorAsync(int contestId, int siteId)
+    public async Task<ExamMonitorResponse> GetExamMonitorAsync(int contestId, CurrentUser currentUser)
     {
-        var contest = await _contestRepository.GetContestByIdAsync(contestId, siteId)
+        var contest = await _contestRepository.GetContestByIdAsync(contestId, currentUser.SiteId)
             ?? throw new KeyNotFoundException("Concurso no encontrado.");
 
         if (!contest.IsExam)
@@ -176,8 +177,13 @@ public class ContestService : IContestService
             throw new InvalidOperationException("El concurso no está marcado como examen.");
         }
 
-        // Students usually log in a little before the start; logins from the hour before count.
-        var activity = await _contestRepository.GetExamActivityAsync(contestId, siteId, contest.StartTime.AddHours(-1), contest.EndTime);
+        if (currentUser.Role != UserRolesEnum.Administrador
+            && !(contest.ContestUsers?.Any(user => user.IsOwner && user.UserId == currentUser.UserId) ?? false))
+        {
+            throw new SecurityException("Solo el dueño del examen puede ver las IPs.");
+        }
+
+        var activity = await _contestRepository.GetExamActivityAsync(contestId, currentUser.SiteId, contest.StartTime, contest.EndTime);
         return ExamActivityAnalyzer.Analyze(contest, activity, DateTime.Now);
     }
 
