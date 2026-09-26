@@ -90,6 +90,14 @@ public class ProblemClassifierService : IProblemClassifierService
                     específicas y relevantes. Si ninguna aplica bien, devuelve una lista vacía en
                     vez de forzar una que no encaje.
 
+                    Reglas para ser consistente:
+                    - Prefiere siempre la clasificación más específica. No agregues una general
+                      del mismo tema (por ejemplo "Matemáticas") si ya elegiste una más concreta
+                      (por ejemplo "Aritmética básica").
+                    - Usa "Ad hoc" solo si el problema no requiere ninguna técnica concreta de la lista.
+                    - Elige solo lo que la solución esperada realmente necesita, no técnicas
+                      que podrían usarse pero no hacen falta.
+
                     Clasificaciones disponibles:
                     {optionsList}
                     """,

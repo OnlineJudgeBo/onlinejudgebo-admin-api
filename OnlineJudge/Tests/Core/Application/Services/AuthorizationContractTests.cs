@@ -134,6 +134,7 @@ public class AuthorizationContractTests
         ["ProblemsController.CreateProblemAsync [POST ]"] = "roles:Administrador,Auxiliar,Docente",
         ["ProblemsController.DeleteProblemByIdAsync [DELETE {problemId:int}]"] = "roles:Administrador,Auxiliar,Docente",
         ["ProblemsController.ExportProblemAsync [GET {problemId:int}/export]"] = "roles:Administrador,Auxiliar,Docente & Administrador",
+        ["ProblemsController.AddClassificationsAsync [POST {problemId:int}/classifications]"] = "roles:Administrador,Auxiliar,Docente",
         ["ProblemsController.GetClassificationSuggestionsAsync [GET {problemId:int}/classification-suggestions]"] = "roles:Administrador,Auxiliar,Docente",
         ["ProblemsController.GetAllProblemsAsync [GET ]"] = "roles:Administrador,Auxiliar,Docente",
         ["ProblemsController.GetProblemByIdAsync [GET {problem_id}]"] = "roles:Administrador,Auxiliar,Docente",

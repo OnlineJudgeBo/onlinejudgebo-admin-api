@@ -86,6 +86,32 @@ public class ProblemService : IProblemService
         return newProblem;
     }
 
+    // Adds classifications (e.g. accepted suggestions) without touching the rest of the problem.
+    public async Task<IReadOnlyList<Classification>> AddClassificationsAsync(int problemId, IReadOnlyCollection<int> classificationIds, int siteId)
+    {
+        var problem = await _problemRepository.GetProblemByIdAsync(problemId, siteId)
+            ?? throw new KeyNotFoundException("No se encontró el ID del problema.");
+        var known = (await _topicRepository.GetAllTopicsAsync())
+            .SelectMany(topic => topic.Classifications.Select(classification => classification.ClassificationId))
+            .ToHashSet();
+        var unknown = classificationIds.Where(id => !known.Contains(id)).ToList();
+        if (unknown.Count > 0)
+        {
+            throw new ArgumentException($"Clasificación no encontrada: {string.Join(", ", unknown)}");
+        }
+
+        var current = problem.Classifications?.Select(classification => classification.ClassificationId).ToHashSet() ?? new HashSet<int>();
+        var toAdd = classificationIds.Distinct().Where(id => !current.Contains(id))
+            .Select(id => new Classification { ClassificationId = id }).ToList();
+        if (toAdd.Count > 0)
+        {
+            await _topicRepository.AddClassificationsToProblemAsync(problemId, toAdd);
+        }
+
+        var updated = await _problemRepository.GetProblemByIdAsync(problemId, siteId);
+        return updated.Classifications?.ToList() ?? new List<Classification>();
+    }
+
     public async Task<Problem> UpdateProblemAsync(string userId, int problemId, Problem problem, int siteId)
     {
         var existingProblem = await _problemRepository.GetProblemByIdAsync(problemId, siteId);
