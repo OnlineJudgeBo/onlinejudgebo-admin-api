@@ -300,7 +300,11 @@ public class LabLoginControllerTests
         factory.Setup(item => item.CreateClient(It.IsAny<string>())).Returns(controlServer == null
             ? new HttpClient()
             : new HttpClient(controlServer) { BaseAddress = new Uri("http://control:8090/") });
-        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Base:Url"] = "https://juez.example/" }).Build();
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Base:Url"] = "https://juez.example/",
+            ["ControlServer:LogoUrl"] = "https://juez.example/control/icpc-bolivia-logo.svg",
+        }).Build();
         return new LabLoginController(machines.Object, factory.Object, configuration).WithContext(new DefaultHttpContext());
     }
 
@@ -320,6 +324,8 @@ public class LabLoginControllerTests
         Assert.Equal(true, Prop(body, "ok"));
         Assert.Equal("https://juez.example/oj/contest.php?cid=5", Prop(body, "homepage"));
         Assert.Equal("ana-mar-a", Prop(Prop(body, "team")!, "id"));
+        Assert.Equal("Parcial · Ana", Prop(Prop(body, "team")!, "name"));
+        Assert.Equal("https://juez.example/control/icpc-bolivia-logo.svg", Prop(body, "logoUrl"));
         var region = Prop(body, "region")!;
         Assert.Equal("contest-5", Prop(region, "id"));
         Assert.Equal("enroll-tok", Prop(region, "enrollToken"));
@@ -349,7 +355,8 @@ public class LabLoginControllerTests
         var body = OkValue(await controller.LoginAsync(new LabLoginRequest { Username = "ana", Password = "x" }))!;
 
         Assert.Equal("https://juez.example/oj/problemset.php", Prop(body, "homepage"));
-        Assert.Equal(string.Empty, Prop(body, "logoUrl"));
+        // No logo set for the exam: the Patito one.
+        Assert.Equal("https://juez.example/control/icpc-bolivia-logo.svg", Prop(body, "logoUrl"));
     }
 
     [Fact]

@@ -41,7 +41,9 @@ public partial class LabLoginController : ControllerBase
         var baseUrl = (_configuration["Base:Url"] ?? string.Empty).TrimEnd('/');
         var homepage = await GroupSettingAsync(result.Group, "homepage", "url", onlyIfSet: true)
             ?? (baseUrl.Length > 0 ? $"{baseUrl}/oj/contest.php?cid={result.ContestId}" : string.Empty);
-        var logoUrl = await GroupSettingAsync(result.Group, "logo", "effective_url") ?? string.Empty;
+        var logoUrl = await GroupSettingAsync(result.Group, "logo", "effective_url") ?? _configuration["ControlServer:LogoUrl"] ?? string.Empty;
+        // The ISO prints the team name in big letters under the logo on the desktop background.
+        var teamName = $"{result.Group.Label} · {result.DisplayName}";
 
         return Ok(new
         {
@@ -50,7 +52,7 @@ public partial class LabLoginController : ControllerBase
             displayName = result.DisplayName,
             homepage,
             logoUrl,
-            team = new { id = TeamId(result.UserId), name = result.DisplayName },
+            team = new { id = TeamId(result.UserId), name = teamName.Length > 128 ? teamName[..128] : teamName },
             region = new { id = result.Group.Id, name = result.Group.Label, enrollToken = result.Group.EnrollToken },
         });
     }
