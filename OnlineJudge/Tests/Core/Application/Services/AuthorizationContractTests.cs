@@ -104,6 +104,9 @@ public class AuthorizationContractTests
         ["ContestsController.CreateContestAsync [POST ]"] = "roles:Administrador,Auxiliar,Docente",
         ["ContestsController.GetAllContestAsync [GET ]"] = "roles:Administrador,Auxiliar,Docente",
         ["ContestsController.GetContestById [GET {contestId:int}]"] = "roles:Administrador,Auxiliar,Docente",
+        ["ContestMachinesController.GetGroupAsync [GET group]"] = "roles:Administrador,Auxiliar,Docente",
+        ["ContestMachinesController.ForwardAsync [GET {**path}|POST {**path}|PUT {**path}]"] = "roles:Administrador,Auxiliar,Docente",
+        ["LabLoginController.LoginAsync [POST login]"] = "anonymous",
         ["ContestsController.GetClientIp [GET client-ip]"] = "roles:Administrador,Auxiliar,Docente",
         ["ContestsController.GetExamMonitorAsync [GET {contestId:int}/exam-monitor]"] = "roles:Administrador,Auxiliar,Docente",
         ["ContestsController.PromoteContestAsync [PUT {contestId:int}/promote]"] = "roles:Administrador,Auxiliar,Docente",
@@ -245,7 +248,9 @@ public class AuthorizationContractTests
             || key.StartsWith("PublicAuthController.", StringComparison.Ordinal)
             || key.StartsWith("AcademicController.GetLearningPath", StringComparison.Ordinal)
             || key.Contains("/api/patito-ide/", StringComparison.Ordinal)
-            || key.StartsWith("IdeContextController.", StringComparison.Ordinal),
+            || key.StartsWith("IdeContextController.", StringComparison.Ordinal)
+            // The lab ISO logs in before it has any token; it validates the Patito password itself.
+            || key == "LabLoginController.LoginAsync [POST login]",
             $"Unexpected anonymous endpoint: {key}"));
     }
 }

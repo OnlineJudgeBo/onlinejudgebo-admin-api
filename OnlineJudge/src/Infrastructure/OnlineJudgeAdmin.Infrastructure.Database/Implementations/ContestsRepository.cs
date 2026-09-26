@@ -263,6 +263,27 @@ public class ContestsRepository : IContestsRepository
         return await GetContestByIdAsync(contestId, siteId);
     }
 
+    // The exam a participant is taking right now; when two overlap, the one that started last wins.
+    public async Task<Contest?> GetActiveExamForUserAsync(string userId, int siteId, DateTime now)
+    {
+        var contest = await _context.Contests
+            .Where(c => c.IsExam && c.Defunct == "N" && c.StartTime <= now && c.EndTime >= now
+                && c.ContestSites.Any(site => site.SiteId == siteId)
+                && c.ContestUsers.Any(user => user.UserId == userId && user.SiteId == siteId && !user.IsOwner))
+            .OrderByDescending(c => c.StartTime)
+            .Select(c => new DbContest
+            {
+                ContestId = c.ContestId,
+                Title = c.Title,
+                StartTime = c.StartTime,
+                EndTime = c.EndTime,
+                Defunct = c.Defunct,
+                IsExam = c.IsExam,
+            })
+            .FirstOrDefaultAsync();
+        return contest == null ? null : _mapper.Map<Contest>(contest);
+    }
+
     public async Task<ExamActivity> GetExamActivityAsync(int contestId, int siteId, DateTime start, DateTime end)
     {
         var participantIds = await _context.ContestUsers

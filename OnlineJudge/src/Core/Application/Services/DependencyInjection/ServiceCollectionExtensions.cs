@@ -16,6 +16,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProblemClassifierService, ProblemClassifierService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IContestService, ContestService>();
+        services.AddScoped<IContestMachinesService, ContestMachinesService>();
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<IProgrammingLanguageService, ProgrammingLanguageService>();
         services.AddScoped<IFileManagerService, FileManagerService>();
