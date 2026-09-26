@@ -193,6 +193,19 @@ public class ExamMonitorEndpointTests
     }
 
     [Fact]
+    public void Controller_ReturnsTheCallerPublicIp()
+    {
+        var context = AuthenticatedContext("teacher", 3, "Docente");
+        context.Connection.RemoteIpAddress = System.Net.IPAddress.Parse("172.18.0.2");
+        context.Request.Headers["X-Forwarded-For"] = "203.0.113.9";
+        var controller = new ContestsController(Mock.Of<IContestService>(), Claims(context), ApiMapper).WithContext(context);
+
+        var body = OkValue(controller.GetClientIp())!;
+
+        Assert.Equal("203.0.113.9", body.GetType().GetProperty("ip")!.GetValue(body));
+    }
+
+    [Fact]
     public async Task PublicLogin_PassesClientIpToService()
     {
         var service = new Mock<IPublicService>();

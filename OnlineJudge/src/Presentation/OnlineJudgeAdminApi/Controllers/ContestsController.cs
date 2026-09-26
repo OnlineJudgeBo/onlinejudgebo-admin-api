@@ -57,6 +57,13 @@ public class ContestsController : ControllerBase
         return Ok(await _contestService.UpdateContestAsync(contestId, contest, contestForUpdate.ManualUserList, _currentUser.SiteId));
     }
 
+    // Lets staff fill the exam lab IPs from the lab itself: this is the public IP the server sees.
+    [HttpGet("client-ip")]
+    public IActionResult GetClientIp()
+    {
+        return Ok(new { ip = ClientIpHelper.GetClientIp(HttpContext) });
+    }
+
     [HttpGet("{contestId:int}/exam-monitor")]
     public async Task<IActionResult> GetExamMonitorAsync(int contestId)
     {
