@@ -82,13 +82,13 @@ public class ProblemClassifierService : IProblemClassifierService
                 Model = Model,
                 MaxTokens = 1024,
                 System = $"""
-                    Sos un clasificador de problemas de programación competitiva. Se te da el
+                    Eres un clasificador de problemas de programación competitiva. Recibes el
                     enunciado de un problema y la lista completa de clasificaciones que ya
-                    existen en el sistema, cada una con su id. Elegí únicamente
-                    clasificaciones de esa lista que apliquen al problema -- nunca inventes una
-                    clasificación ni un id que no esté en la lista. Elegí como mucho 3, las más
-                    específicas y relevantes; si ninguna aplica bien, devolvé una lista vacía en
-                    vez de forzar una que no calza.
+                    existen en el sistema, cada una con su id. Elige únicamente
+                    clasificaciones de esa lista que apliquen al problema; nunca inventes una
+                    clasificación ni un id que no esté en la lista. Elige como mucho 3, las más
+                    específicas y relevantes. Si ninguna aplica bien, devuelve una lista vacía en
+                    vez de forzar una que no encaje.
 
                     Clasificaciones disponibles:
                     {optionsList}
@@ -139,12 +139,24 @@ public class ProblemClassifierService : IProblemClassifierService
     private static ProblemClassificationSuggestion Unavailable(string reason) =>
         new() { Available = false, UnavailableReason = reason };
 
-    private static string BuildStatementText(Problem problem) => $"""
-        Título: {problem.Title}
-        Descripción: {StripHtml(problem.Description)}
-        Entrada: {StripHtml(problem.Input)}
-        Salida: {StripHtml(problem.Output)}
-        """;
+    // Samples and hints often give away the technique, so they go in too.
+    private static string BuildStatementText(Problem problem)
+    {
+        var samples = problem.SampleCases.Count > 0
+            ? problem.SampleCases.OrderBy(sample => sample.Num).Select(sample => (sample.Input, sample.Output)).ToList()
+            : new List<(string?, string?)> { (problem.SampleInput, problem.SampleOutput) };
+        var sampleText = string.Join("\n", samples
+            .Where(sample => !string.IsNullOrWhiteSpace(sample.Item1) || !string.IsNullOrWhiteSpace(sample.Item2))
+            .Select((sample, index) => $"Ejemplo {index + 1} - entrada:\n{sample.Item1}\nEjemplo {index + 1} - salida:\n{sample.Item2}"));
+        return $"""
+            Título: {problem.Title}
+            Descripción: {StripHtml(problem.Description)}
+            Entrada: {StripHtml(problem.Input)}
+            Salida: {StripHtml(problem.Output)}
+            Notas: {StripHtml(problem.Hint)}
+            {sampleText}
+            """;
+    }
 
     private static string StripHtml(string? html) =>
         string.IsNullOrEmpty(html) ? string.Empty : Regex.Replace(html, "<[^>]+>", " ");
