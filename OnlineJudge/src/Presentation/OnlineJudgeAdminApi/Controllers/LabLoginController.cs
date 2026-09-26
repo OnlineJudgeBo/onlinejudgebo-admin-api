@@ -39,7 +39,7 @@ public partial class LabLoginController : ControllerBase
         }
 
         var baseUrl = (_configuration["Base:Url"] ?? string.Empty).TrimEnd('/');
-        var homepage = await GroupSettingAsync(result.Group, "homepage", "url")
+        var homepage = await GroupSettingAsync(result.Group, "homepage", "url", onlyIfSet: true)
             ?? (baseUrl.Length > 0 ? $"{baseUrl}/oj/contest.php?cid={result.ContestId}" : string.Empty);
         var logoUrl = await GroupSettingAsync(result.Group, "logo", "effective_url") ?? string.Empty;
 
@@ -56,7 +56,8 @@ public partial class LabLoginController : ControllerBase
     }
 
     // Homepage and logo set for this exam in the machines panel; null when unset or the control-server is down.
-    private async Task<string?> GroupSettingAsync(ControlGroup group, string setting, string field)
+    // onlyIfSet: the control-server answers its own default homepage (updated_at null) when nobody set one.
+    private async Task<string?> GroupSettingAsync(ControlGroup group, string setting, string field, bool onlyIfSet = false)
     {
         var client = _httpClientFactory.CreateClient(ContestMachinesController.ControlServerClient);
         if (client.BaseAddress == null)
@@ -75,6 +76,11 @@ public partial class LabLoginController : ControllerBase
             }
 
             using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            if (onlyIfSet && (!json.RootElement.TryGetProperty("updated_at", out var updatedAt) || updatedAt.ValueKind == JsonValueKind.Null))
+            {
+                return null;
+            }
+
             var value = json.RootElement.TryGetProperty(field, out var property) ? property.GetString() : null;
             return string.IsNullOrWhiteSpace(value) ? null : value;
         }

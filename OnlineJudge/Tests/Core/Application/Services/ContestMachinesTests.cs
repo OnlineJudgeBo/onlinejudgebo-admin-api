@@ -214,12 +214,29 @@ public class ContestMachinesControllerTests
 
 public class LabLoginControllerTests
 {
-    private static LabLoginController Controller(LabLoginResult result)
+    private sealed class SettingsHandler(string homepageJson, string logoJson) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(request.RequestUri!.AbsolutePath.EndsWith("/homepage") ? homepageJson : logoJson),
+            });
+    }
+
+    private static readonly LabLoginResult Success = new()
+    {
+        Ok = true, UserId = "ana", DisplayName = "Ana", ContestId = 5,
+        Group = new ControlGroup("contest-5", "Parcial", "enroll-tok", "admin-tok"),
+    };
+
+    private static LabLoginController Controller(LabLoginResult result, HttpMessageHandler? controlServer = null)
     {
         var machines = new Mock<IContestMachinesService>();
         machines.Setup(item => item.LoginAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(result);
         var factory = new Mock<IHttpClientFactory>();
-        factory.Setup(item => item.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
+        factory.Setup(item => item.CreateClient(It.IsAny<string>())).Returns(controlServer == null
+            ? new HttpClient()
+            : new HttpClient(controlServer) { BaseAddress = new Uri("http://control:8090/") });
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Base:Url"] = "https://juez.example/" }).Build();
         return new LabLoginController(machines.Object, factory.Object, configuration).WithContext(new DefaultHttpContext());
     }
@@ -244,6 +261,32 @@ public class LabLoginControllerTests
         Assert.Equal("contest-5", Prop(region, "id"));
         Assert.Equal("enroll-tok", Prop(region, "enrollToken"));
         Assert.Null(Prop(region, "adminToken"));
+    }
+
+    [Fact]
+    public async Task Login_IgnoresTheControlServerDefaultHomepageButUsesItsLogo()
+    {
+        var controller = Controller(Success, new SettingsHandler(
+            "{\"url\": \"file:///usr/share/doc/contest/index.html\", \"updated_at\": null}",
+            "{\"url\": \"\", \"effective_url\": \"https://cdn.example/logo.svg\"}"));
+
+        var body = OkValue(await controller.LoginAsync(new LabLoginRequest { Username = "ana", Password = "x" }))!;
+
+        Assert.Equal("https://juez.example/oj/contest.php?cid=5", Prop(body, "homepage"));
+        Assert.Equal("https://cdn.example/logo.svg", Prop(body, "logoUrl"));
+    }
+
+    [Fact]
+    public async Task Login_UsesAHomepageSetForTheExam()
+    {
+        var controller = Controller(Success, new SettingsHandler(
+            "{\"url\": \"https://juez.example/oj/problemset.php\", \"updated_at\": \"2026-09-26T10:00:00Z\"}",
+            "{\"url\": \"\", \"effective_url\": \"\"}"));
+
+        var body = OkValue(await controller.LoginAsync(new LabLoginRequest { Username = "ana", Password = "x" }))!;
+
+        Assert.Equal("https://juez.example/oj/problemset.php", Prop(body, "homepage"));
+        Assert.Equal(string.Empty, Prop(body, "logoUrl"));
     }
 
     [Fact]
