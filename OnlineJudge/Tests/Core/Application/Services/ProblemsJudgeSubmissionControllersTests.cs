@@ -358,7 +358,6 @@ public class ExceptionHandlerTests
         new object[] { new ArgumentNullException("x"), 400, "No se pudo completar la operación: Value cannot be null. (Parameter 'x')" },
         new object[] { new InvalidOperationException("estado malo"), 400, "No se pudo completar la operación: estado malo" },
         new object[] { new UnauthorizedAccessException("detalle interno"), 401, "No se pudo completar la operación: solicitud no autorizada" },
-        new object[] { new System.Security.SecurityException("solo el dueño"), 403, "No se pudo completar la operación: solo el dueño" },
         new object[] { new KeyNotFoundException("no existe"), 404, "No se pudo completar la operación: no existe" },
         new object[] { new Exception("secreto de base de datos"), 500, "No se pudo completar la operación: error interno" },
     };

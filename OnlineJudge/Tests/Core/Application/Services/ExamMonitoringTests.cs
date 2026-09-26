@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Configuration;
-using System.Security;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -61,16 +60,15 @@ public class ExamMonitorServiceTests
     }
 
     [Fact]
-    public async Task Monitor_AllowsAdministratorsAndOwnersOnly()
+    public async Task Monitor_AllowsAnyStaffOfTheSite_NotOnlyTheOwner()
     {
         var contest = Contest(isExam: true);
         _contests.Setup(item => item.GetContestByIdAsync(5, 1)).ReturnsAsync(contest);
         _contests.Setup(item => item.GetExamActivityAsync(5, 1, contest.StartTime, contest.EndTime)).ReturnsAsync(new ExamActivity());
 
-        await Assert.ThrowsAsync<SecurityException>(() => Service.GetExamMonitorAsync(5,
-            new CurrentUser { UserId = "other-teacher", SiteId = 1, Role = UserRolesEnum.Docente }));
-        await Service.GetExamMonitorAsync(5,
-            new CurrentUser { UserId = "admin", SiteId = 1, Role = UserRolesEnum.Administrador });
+        await Service.GetExamMonitorAsync(5, new CurrentUser { UserId = "other-teacher", SiteId = 1, Role = UserRolesEnum.Docente });
+        await Service.GetExamMonitorAsync(5, new CurrentUser { UserId = "aux", SiteId = 1, Role = UserRolesEnum.Auxiliar });
+        await Service.GetExamMonitorAsync(5, new CurrentUser { UserId = "admin", SiteId = 1, Role = UserRolesEnum.Administrador });
     }
 
     [Fact]
