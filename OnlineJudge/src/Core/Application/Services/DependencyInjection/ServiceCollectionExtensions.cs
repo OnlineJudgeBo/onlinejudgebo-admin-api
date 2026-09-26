@@ -13,6 +13,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProblemService, ProblemService>();
         services.AddScoped<IProblemPackageService, ProblemPackageService>();
         services.AddScoped<ITopicService, TopicService>();
+        services.AddScoped<IProblemClassifierService, ProblemClassifierService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IContestService, ContestService>();
         services.AddScoped<IRoleService, RoleService>();

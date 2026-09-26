@@ -17,8 +17,9 @@ public class BocaImportControllerTests
     public async Task Confirm_RejectsMalformedStagingIdWithoutTouchingTheFilesystem(string maliciousStagingId)
     {
         var problemService = new Mock<IProblemService>();
+        var classifierService = new Mock<IProblemClassifierService>();
         var fileManager = new Mock<IFileSystemLocalManagerManager>();
-        var controller = CreateController(problemService.Object, fileManager.Object);
+        var controller = CreateController(problemService.Object, classifierService.Object, fileManager.Object);
 
         var result = await controller.Confirm(new BocaImportConfirmRequest
         {
@@ -40,13 +41,14 @@ public class BocaImportControllerTests
         return (IEnumerable<BocaImportConfirmResult>)property!.GetValue(value)!;
     }
 
-    private static BocaImportController CreateController(IProblemService problemService, IFileSystemLocalManagerManager fileManager)
+    private static BocaImportController CreateController(
+        IProblemService problemService, IProblemClassifierService classifierService, IFileSystemLocalManagerManager fileManager)
     {
         var httpContext = BuildAuthenticatedHttpContext();
         var accessor = new Mock<IHttpContextAccessor>();
         accessor.Setup(item => item.HttpContext).Returns(httpContext);
 
-        var controller = new BocaImportController(problemService, fileManager, new UserClaimsHelper(accessor.Object));
+        var controller = new BocaImportController(problemService, classifierService, fileManager, new UserClaimsHelper(accessor.Object));
         controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
         return controller;
     }

@@ -18,21 +18,22 @@ public class ProblemsControllerTests
 {
     private readonly Mock<IProblemService> _problems = new();
     private readonly Mock<IProblemPackageService> _packages = new();
+    private readonly Mock<IProblemClassifierService> _classifier = new();
 
     private ProblemsController Controller(string userId = "teacher", int siteId = 2, string role = "Docente")
     {
         var context = AuthenticatedContext(userId, siteId, role);
-        return new ProblemsController(_problems.Object, _packages.Object, Claims(context), ApiMapper).WithContext(context);
+        return new ProblemsController(_problems.Object, _packages.Object, _classifier.Object, Claims(context), ApiMapper).WithContext(context);
     }
 
     [Fact]
     public void Constructor_RejectsNullDependencies()
     {
         var claims = Claims(AuthenticatedContext());
-        Assert.Throws<ArgumentNullException>(() => new ProblemsController(null!, _packages.Object, claims, ApiMapper));
-        Assert.Throws<ArgumentNullException>(() => new ProblemsController(_problems.Object, null!, claims, ApiMapper));
-        Assert.Throws<ArgumentNullException>(() => new ProblemsController(_problems.Object, _packages.Object, null!, ApiMapper));
-        Assert.Throws<ArgumentNullException>(() => new ProblemsController(_problems.Object, _packages.Object, claims, null!));
+        Assert.Throws<ArgumentNullException>(() => new ProblemsController(null!, _packages.Object, _classifier.Object, claims, ApiMapper));
+        Assert.Throws<ArgumentNullException>(() => new ProblemsController(_problems.Object, null!, _classifier.Object, claims, ApiMapper));
+        Assert.Throws<ArgumentNullException>(() => new ProblemsController(_problems.Object, _packages.Object, _classifier.Object, null!, ApiMapper));
+        Assert.Throws<ArgumentNullException>(() => new ProblemsController(_problems.Object, _packages.Object, _classifier.Object, claims, null!));
     }
 
     [Fact]
