@@ -11,4 +11,5 @@ public interface IContestsRepository
     public Task<Contest> UpdateContestAsync(int contestId, Contest contest, int siteId);
     public Task<Contest> PromoteContestAsync(int contestId, int siteId);
     public Task<ExamActivity> GetExamActivityAsync(int contestId, int siteId, DateTime start, DateTime end);
+    public Task<Contest?> GetActiveExamForUserAsync(string userId, int siteId, DateTime now);
 }

@@ -97,6 +97,14 @@ builder.Services.AddFileSystemLocalManagerInfrastructureManager(builder.Configur
 builder.Services.AddAwsS3FileManager(builder.Configuration);
 builder.Services.AddIdeIntegrationInfrastructure(builder.Configuration);
 builder.Services.AddScoped<UserClaimsHelper>();
+builder.Services.AddHttpClient(OnlineJudgeAdminApi.Controllers.ContestMachinesController.ControlServerClient, client =>
+{
+    var url = builder.Configuration["ControlServer:Url"];
+    if (!string.IsNullOrWhiteSpace(url))
+    {
+        client.BaseAddress = new Uri(url.TrimEnd('/') + "/");
+    }
+});
 
 var app = builder.Build();
 
