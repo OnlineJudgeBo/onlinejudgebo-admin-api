@@ -130,17 +130,20 @@ public class ContestMachinesControllerTests
 {
     private static readonly ControlGroup Group = new("contest-5", "Parcial", "enroll-tok", "admin-tok");
 
+    // Answers GET admin/machines with this group's machines and records every other call.
     private sealed class StubHandler : HttpMessageHandler
     {
-        public HttpRequestMessage? Request { get; private set; }
-        public string? Body { get; private set; }
-        public HttpResponseMessage Response { get; set; } = new(HttpStatusCode.OK) { Content = new StringContent("{\"machines\":[]}", System.Text.Encoding.UTF8, "application/json") };
+        public List<(HttpRequestMessage Request, string? Body)> Forwarded { get; } = new();
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            Request = request;
-            Body = request.Content == null ? null : await request.Content.ReadAsStringAsync(cancellationToken);
-            return Response;
+            if (request.Method == HttpMethod.Get && request.RequestUri!.AbsolutePath == "/admin/machines")
+            {
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("{\"machines\":[{\"machine_id\":\"m1\"}]}") };
+            }
+
+            Forwarded.Add((request, request.Content == null ? null : await request.Content.ReadAsStringAsync(cancellationToken)));
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json") };
         }
     }
 
@@ -149,32 +152,89 @@ public class ContestMachinesControllerTests
         public HttpClient CreateClient(string name) => new(handler, disposeHandler: false) { BaseAddress = baseUrl == null ? null : new Uri(baseUrl) };
     }
 
-    private static (ContestMachinesController Controller, StubHandler Handler) Controller(string method = "GET", string body = "", string? baseUrl = "http://control:8090/")
+    private static (ContestMachinesController Controller, StubHandler Handler) Controller(
+        string method = "GET", string body = "", string query = "?group=contest-5", string? baseUrl = "http://control:8090/", string? superadminToken = "super-tok")
     {
         var machines = new Mock<IContestMachinesService>();
         machines.Setup(item => item.GetGroupAsync(5, 3)).ReturnsAsync(Group);
         var handler = new StubHandler();
         var context = AuthenticatedContext("teacher", 3, "Auxiliar");
         context.Request.Method = method;
-        context.Request.QueryString = new QueryString("?group=contest-5");
+        context.Request.QueryString = new QueryString(query);
         context.Request.Body = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(body));
         context.Request.ContentType = "application/json";
-        return (new ContestMachinesController(machines.Object, new Factory(handler, baseUrl), Claims(context)).WithContext(context), handler);
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["ControlServer:AdminToken"] = superadminToken }).Build();
+        return (new ContestMachinesController(machines.Object, new Factory(handler, baseUrl), configuration, Claims(context)).WithContext(context), handler);
     }
 
     [Fact]
     public async Task Forward_UsesTheGroupTokenAndKeepsPathQueryAndBody()
     {
-        var (controller, handler) = Controller("POST", "{\"action\":\"lock\"}");
+        var (controller, handler) = Controller("POST", "{\"action\":\"message\",\"target\":{\"group_id\":\"contest-5\"}}");
 
         var result = Assert.IsType<FileStreamResult>(await controller.ForwardAsync(5, "cmd"));
 
-        Assert.Equal(HttpMethod.Post, handler.Request!.Method);
-        Assert.Equal("http://control:8090/admin/cmd?group=contest-5", handler.Request.RequestUri!.ToString());
-        Assert.Equal("Bearer admin-tok", handler.Request.Headers.Authorization!.ToString());
-        Assert.Equal("{\"action\":\"lock\"}", handler.Body);
+        var (request, body) = Assert.Single(handler.Forwarded);
+        Assert.Equal(HttpMethod.Post, request.Method);
+        Assert.Equal("http://control:8090/admin/cmd?group=contest-5", request.RequestUri!.ToString());
+        Assert.Equal("Bearer admin-tok", request.Headers.Authorization!.ToString());
+        Assert.Contains("\"action\":\"message\"", body);
         Assert.StartsWith("application/json", result.ContentType);
-        Assert.Equal(200, controller.Response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("{\"action\":\"net-open\",\"target\":{\"group_id\":\"contest-5\"}}")]
+    [InlineData("{\"action\":\"collect-home\",\"target\":{\"machine_id\":\"m1\"}}")]
+    public async Task SuperadminCommands_ForThisExamUseTheSuperadminToken(string command)
+    {
+        var (controller, handler) = Controller("POST", command);
+
+        Assert.IsType<FileStreamResult>(await controller.ForwardAsync(5, "cmd"));
+
+        Assert.Equal("Bearer super-tok", Assert.Single(handler.Forwarded).Request.Headers.Authorization!.ToString());
+    }
+
+    [Theory]
+    [InlineData("{\"action\":\"net-open\",\"target\":{\"group_id\":\"contest-6\"}}")]
+    [InlineData("{\"action\":\"usb-unblock\",\"target\":{\"machine_id\":\"m9\"}}")]
+    [InlineData("{\"action\":\"set-allowlist\",\"target\":{\"all\":true},\"args\":{\"hosts\":[]}}")]
+    [InlineData("{\"action\":\"net-open\",\"target\":{}}")]
+    public async Task SuperadminCommands_OutsideThisExamAreRefused(string command)
+    {
+        var (controller, handler) = Controller("POST", command);
+
+        var result = Assert.IsType<ObjectResult>(await controller.ForwardAsync(5, "cmd"));
+
+        Assert.Equal(403, result.StatusCode);
+        Assert.Empty(handler.Forwarded);
+    }
+
+    [Fact]
+    public async Task Allowlist_IsPinnedToThisExamGroup()
+    {
+        var (getController, getHandler) = Controller(query: "?group=contest-6");
+        var (putController, putHandler) = Controller("PUT", "{\"group_id\":\"contest-6\",\"hosts\":[\"juez.example\"]}", query: "");
+
+        await getController.ForwardAsync(5, "allowlist");
+        await putController.ForwardAsync(5, "allowlist");
+
+        var get = Assert.Single(getHandler.Forwarded).Request;
+        Assert.Equal("http://control:8090/admin/allowlist?group=contest-5", get.RequestUri!.ToString());
+        Assert.Equal("Bearer super-tok", get.Headers.Authorization!.ToString());
+        var put = Assert.Single(putHandler.Forwarded);
+        Assert.Contains("\"group_id\":\"contest-5\"", put.Body);
+        Assert.Contains("juez.example", put.Body);
+    }
+
+    [Fact]
+    public async Task SuperadminOperations_NeedTheSuperadminToken()
+    {
+        var (controller, handler) = Controller(superadminToken: null);
+
+        var result = Assert.IsType<ObjectResult>(await controller.ForwardAsync(5, "allowlist"));
+
+        Assert.Equal(503, result.StatusCode);
+        Assert.Empty(handler.Forwarded);
     }
 
     [Theory]
@@ -187,7 +247,7 @@ public class ContestMachinesControllerTests
         var (controller, handler) = Controller();
 
         Assert.IsType<NotFoundResult>(await controller.ForwardAsync(5, path));
-        Assert.Null(handler.Request);
+        Assert.Empty(handler.Forwarded);
     }
 
     [Fact]
