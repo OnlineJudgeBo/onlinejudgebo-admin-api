@@ -23,6 +23,7 @@ public class ProblemClassifierService : IProblemClassifierService
     // that needs Opus-tier reasoning -- see the PDF statement transcription instead for
     // where that tier earns its cost.
     private const string Model = "claude-sonnet-5";
+    private const int MaxSuggestions = 2;
 
     private readonly ITopicRepository _topicRepository;
 
@@ -96,17 +97,23 @@ public class ProblemClassifierService : IProblemClassifierService
                     enunciado de un problema y la lista completa de clasificaciones que ya
                     existen en el sistema, cada una con su id. Elige únicamente
                     clasificaciones de esa lista que apliquen al problema; nunca inventes una
-                    clasificación ni un id que no esté en la lista. Elige como mucho 3, las más
-                    específicas y relevantes. Si ninguna aplica bien, devuelve una lista vacía en
-                    vez de forzar una que no encaje.
+                    clasificación ni un id que no esté en la lista. Si ninguna aplica bien,
+                    devuelve una lista vacía en vez de forzar una que no encaje.
 
                     Reglas para ser consistente:
-                    - Prefiere siempre la clasificación más específica. No agregues una general
-                      del mismo tema (por ejemplo "Matemáticas") si ya elegiste una más concreta
+                    - Clasifica según la solución más directa, la que haría un estudiante
+                      promedio, no según soluciones alternativas o más elaboradas.
+                    - Devuelve una sola clasificación. Agrega una segunda solo si esa solución
+                      necesita dos técnicas distintas y las dos son imprescindibles. Nunca más de 2.
+                    - Ordénalas de la más importante a la menos importante.
+                    - No elijas técnicas avanzadas (máscaras de bits, FFT, estructuras de datos
+                      avanzadas, programación dinámica compleja…) salvo que el problema no se pueda
+                      resolver sin ellas. Si el problema trata de cadenas y se resuelve
+                      recorriéndolas, clasifícalo en el tema de cadenas.
+                    - Prefiere la clasificación más específica. No agregues una general del mismo
+                      tema (por ejemplo "Matemáticas") si ya elegiste una más concreta
                       (por ejemplo "Aritmética básica").
                     - Usa "Ad hoc" solo si el problema no requiere ninguna técnica concreta de la lista.
-                    - Elige solo lo que la solución esperada realmente necesita, no técnicas
-                      que podrían usarse pero no hacen falta.
                     - Para cada una escribe en "reason" una frase corta en español que diga qué
                       parte del problema la justifica.
 
@@ -124,12 +131,16 @@ public class ProblemClassifierService : IProblemClassifierService
             }
 
             using var parsed = JsonDocument.Parse(json);
+            // Kept in the model's order (most important first) and capped, in case it returns more.
             var reasons = new Dictionary<int, string>();
             foreach (var item in parsed.RootElement.GetProperty("classifications").EnumerateArray())
             {
-                reasons[item.GetProperty("classificationId").GetInt32()] = item.GetProperty("reason").GetString() ?? string.Empty;
+                var id = item.GetProperty("classificationId").GetInt32();
+                if (reasons.Count < MaxSuggestions && !reasons.ContainsKey(id))
+                {
+                    reasons[id] = item.GetProperty("reason").GetString() ?? string.Empty;
+                }
             }
-            var suggestedIds = reasons.Keys.ToHashSet();
 
             return new ProblemClassificationSuggestion
             {
@@ -138,8 +149,8 @@ public class ProblemClassifierService : IProblemClassifierService
                 // only needs the id/name for the prompt) -- fill it in here so a caller
                 // formatting a "<Topic> > <Classification>" label, or merging this into
                 // the existing Topic/Classification picker, doesn't need a second lookup.
-                Classifications = options
-                    .Where(o => suggestedIds.Contains(o.classification.ClassificationId))
+                Classifications = reasons.Keys
+                    .Select(id => options.First(o => o.classification.ClassificationId == id))
                     .Select(o =>
                     {
                         o.classification.Topic ??= new Topic { TopicId = o.TopicId, Name = o.Name };
