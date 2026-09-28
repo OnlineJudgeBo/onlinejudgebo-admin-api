@@ -58,12 +58,13 @@ public class ContestMachinesService : IContestMachinesService
         var contest = await _contestRepository.GetActiveExamForUserAsync(user.UserId, SiteId, DateTime.Now);
         if (contest == null)
         {
-            return new LabLoginResult { Message = "No tienes un examen activo en este momento." };
+            return new LabLoginResult { Authenticated = true, Message = "No tienes un examen activo en este momento." };
         }
 
         return new LabLoginResult
         {
             Ok = true,
+            Authenticated = true,
             UserId = user.UserId,
             DisplayName = string.IsNullOrWhiteSpace(user.Nick) ? user.UserId : user.Nick,
             ContestId = contest.ContestId,

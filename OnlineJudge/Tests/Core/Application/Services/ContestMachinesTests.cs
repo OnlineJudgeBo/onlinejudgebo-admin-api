@@ -1,17 +1,17 @@
 using System.Net;
-using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Caching.Memory;
 using OnlineJudgeAdmin.Core.Application.Services.Implementations;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
 using OnlineJudgeAdmin.Infrastructure.Database.Implementations;
-using OnlineJudgeAdmin.Infrastructure.FileSystemLocalManager;
 using OnlineJudgeAdminApi.Controllers;
 using OnlineJudgeAdminApi.DataTransferObjects;
+using OnlineJudgeAdminApi.Infrastructure;
 using static ControllerTestSupport;
 
 public class ContestMachinesServiceTests
@@ -68,61 +68,87 @@ public class ContestMachinesServiceTests
         var noExam = await Service().LoginAsync("bob", "ok", "200.1.1.1");
 
         Assert.True(ok.Ok);
+        Assert.True(ok.Authenticated);
         Assert.Equal("Ana", ok.DisplayName);
         Assert.Equal(5, ok.ContestId);
         Assert.Equal("contest-5", ok.Group!.Id);
         Assert.False(wrongPassword.Ok);
+        Assert.False(wrongPassword.Authenticated);
         Assert.Equal("Usuario o contraseña incorrectos.", wrongPassword.Message);
         Assert.False(noExam.Ok);
+        Assert.True(noExam.Authenticated);
         Assert.Equal("No tienes un examen activo en este momento.", noExam.Message);
     }
 }
 
-public class ControlGroupFileStoreTests : IDisposable
+public class ControlGroupHttpStoreTests
 {
-    private readonly string _dir = Path.Combine(Path.GetTempPath(), "control-groups-" + Guid.NewGuid().ToString("N"));
-    private string File => Path.Combine(_dir, "groups.json");
-
-    private ControlGroupFileStore Store(string? lobby = null) => new(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+    private sealed class Handler(HttpStatusCode status = HttpStatusCode.OK) : HttpMessageHandler
     {
-        ["ControlServer:GroupsFile"] = File,
+        public List<(HttpMethod Method, string Path, string? Authorization, string Body)> Requests { get; } = new();
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Requests.Add((request.Method, request.RequestUri!.AbsolutePath, request.Headers.Authorization?.ToString(),
+                request.Content == null ? string.Empty : await request.Content.ReadAsStringAsync(cancellationToken)));
+            return new HttpResponseMessage(status) { Content = new StringContent("{}") };
+        }
+    }
+
+    private sealed class Factory(HttpMessageHandler handler, string? baseUrl = "http://control:8090/") : IHttpClientFactory
+    {
+        public HttpClient CreateClient(string name) => new(handler, disposeHandler: false)
+        {
+            BaseAddress = baseUrl == null ? null : new Uri(baseUrl),
+        };
+    }
+
+    private static ControlGroupHttpStore Store(Handler handler, string? lobby = null, string? url = "http://control:8090/", string? admin = "super-token") =>
+        new(new Factory(handler, url), new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+    {
         ["ControlServer:LobbyEnrollToken"] = lobby,
+        ["ControlServer:AdminToken"] = admin,
     }).Build());
 
     [Fact]
-    public async Task Ensure_AddsTheGroupAndKeepsTheOthers()
+    public async Task Ensure_RegistersTheExamAndOptionalLobbyWithoutExposingTokens()
     {
-        Directory.CreateDirectory(_dir);
-        await System.IO.File.WriteAllTextAsync(File, "{\"sede-icpc\": \"tok\"}");
+        var handler = new Handler();
 
-        await Store(lobby: "lobby-tok").EnsureAsync(new ControlGroup("contest-5", "Parcial", "enroll", "admin"));
-        await Store(lobby: "lobby-tok").EnsureAsync(new ControlGroup("contest-5", "Parcial", "enroll", "admin"));
+        await Store(handler, lobby: "lobby-token").EnsureAsync(new ControlGroup("contest-5", "Parcial", "enroll-token", "group-admin-token"));
 
-        var groups = JsonNode.Parse(await System.IO.File.ReadAllTextAsync(File))!.AsObject();
-        Assert.Equal("tok", groups["sede-icpc"]!.GetValue<string>());
-        Assert.Equal("enroll", groups["contest-5"]!["enroll_token"]!.GetValue<string>());
-        Assert.Equal("admin", groups["contest-5"]!["admin_token"]!.GetValue<string>());
-        Assert.Equal("Parcial", groups["contest-5"]!["label"]!.GetValue<string>());
-        Assert.Equal("lobby-tok", groups["lobby"]!["enroll_token"]!.GetValue<string>());
-        Assert.False(System.IO.File.Exists(File + ".tmp"));
+        Assert.Collection(handler.Requests,
+            exam =>
+            {
+                Assert.Equal(HttpMethod.Put, exam.Method);
+                Assert.Equal("/admin/groups/contest-5", exam.Path);
+                Assert.Equal("Bearer super-token", exam.Authorization);
+                Assert.Contains("\"enroll_token\":\"enroll-token\"", exam.Body);
+                Assert.Contains("\"admin_token\":\"group-admin-token\"", exam.Body);
+                Assert.Contains("\"label\":\"Parcial\"", exam.Body);
+            },
+            lobby =>
+            {
+                Assert.Equal("/admin/groups/lobby", lobby.Path);
+                Assert.Contains("\"enroll_token\":\"lobby-token\"", lobby.Body);
+                Assert.Contains("\"admin_token\":null", lobby.Body);
+            });
+    }
+
+    [Theory]
+    [InlineData(null, "super-token")]
+    [InlineData("http://control:8090/", null)]
+    public async Task Ensure_RequiresTheControlServerConfiguration(string? url, string? admin)
+    {
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Store(new Handler(), url: url, admin: admin)
+            .EnsureAsync(new ControlGroup("contest-1", "A", "enroll", "admin")));
     }
 
     [Fact]
-    public async Task Ensure_CreatesTheFileAndRequiresAPath()
+    public async Task Ensure_ReportsARejectedGroup()
     {
-        await Store().EnsureAsync(new ControlGroup("contest-1", "A", "e", "a"));
-
-        Assert.True(System.IO.File.Exists(File));
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            new ControlGroupFileStore(new ConfigurationBuilder().Build()).EnsureAsync(new ControlGroup("contest-1", "A", "e", "a")));
-    }
-
-    public void Dispose()
-    {
-        if (Directory.Exists(_dir))
-        {
-            Directory.Delete(_dir, recursive: true);
-        }
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Store(new Handler(HttpStatusCode.BadRequest))
+            .EnsureAsync(new ControlGroup("contest-1", "A", "enroll", "admin")));
     }
 }
 
@@ -243,6 +269,9 @@ public class ContestMachinesControllerTests
     [Theory]
     [InlineData("credentials")]
     [InlineData("events")]
+    [InlineData("session")]
+    [InlineData("teams")]
+    [InlineData("phase")]
     [InlineData("machines/../../enroll")]
     [InlineData("")]
     public async Task Forward_RejectsCredentialsEventsAndPathTricks(string path)
@@ -288,7 +317,7 @@ public class LabLoginControllerTests
 
     private static readonly LabLoginResult Success = new()
     {
-        Ok = true, UserId = "ana", DisplayName = "Ana", ContestId = 5,
+        Ok = true, Authenticated = true, UserId = "ana", DisplayName = "Ana", ContestId = 5,
         Group = new ControlGroup("contest-5", "Parcial", "enroll-tok", "admin-tok"),
     };
 
@@ -305,7 +334,7 @@ public class LabLoginControllerTests
             ["Base:Url"] = "https://juez.example/",
             ["ControlServer:LogoUrl"] = "https://juez.example/control/icpc-bolivia-logo.svg",
         }).Build();
-        return new LabLoginController(machines.Object, factory.Object, configuration).WithContext(new DefaultHttpContext());
+        return new LabLoginController(machines.Object, factory.Object, configuration, new MemoryCache(new MemoryCacheOptions())).WithContext(new DefaultHttpContext());
     }
 
     private static object? Prop(object body, string name) => body.GetType().GetProperty(name)?.GetValue(body);
@@ -315,7 +344,7 @@ public class LabLoginControllerTests
     {
         var controller = Controller(new LabLoginResult
         {
-            Ok = true, UserId = "ana maría", DisplayName = "Ana", ContestId = 5,
+            Ok = true, Authenticated = true, UserId = "ana maría", DisplayName = "Ana", ContestId = 5,
             Group = new ControlGroup("contest-5", "Parcial", "enroll-tok", "admin-tok"),
         });
 
@@ -362,12 +391,28 @@ public class LabLoginControllerTests
     [Fact]
     public async Task Login_FailureIsA200WithOkFalse()
     {
-        var controller = Controller(new LabLoginResult { Message = "No tienes un examen activo en este momento." });
+        var controller = Controller(new LabLoginResult { Authenticated = true, Message = "No tienes un examen activo en este momento." });
 
         var body = OkValue(await controller.LoginAsync(new LabLoginRequest { Username = "bob", Password = "x" }))!;
 
         Assert.Equal(false, Prop(body, "ok"));
         Assert.Equal("No tienes un examen activo en este momento.", Prop(body, "message"));
+    }
+
+    [Fact]
+    public async Task Login_BlocksAfterTenCredentialFailures()
+    {
+        var controller = Controller(new LabLoginResult { Message = "Usuario o contraseña incorrectos." });
+        var request = new LabLoginRequest { Username = "rate-limit-test", Password = "bad" };
+
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            var body = OkValue(await controller.LoginAsync(request))!;
+            Assert.Equal("Usuario o contraseña incorrectos.", Prop(body, "message"));
+        }
+
+        var blocked = OkValue(await controller.LoginAsync(request))!;
+        Assert.Equal("Demasiados intentos. Espera unos minutos.", Prop(blocked, "message"));
     }
 }
 

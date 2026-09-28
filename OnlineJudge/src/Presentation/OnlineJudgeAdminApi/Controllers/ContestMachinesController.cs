@@ -19,10 +19,13 @@ public class ContestMachinesController : ControllerBase
 {
     public const string ControlServerClient = "control-server";
 
-    // Team credentials stay out of Patito (students log in with their Patito account); SSE is replaced by polling.
-    private static readonly HashSet<string> BlockedSections = new(StringComparer.OrdinalIgnoreCase) { "credentials", "events" };
+    // Only what MachinesPage uses. New control-server admin endpoints stay private by default.
+    private static readonly HashSet<string> AllowedSections = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "alerts", "allowlist", "cmd", "commands", "homepage", "homes", "logo", "machines", "report",
+    };
 
-    // Mirror of SUPERADMIN_ONLY in control-server/server.py.
+    // Mirror of SUPERADMIN_ONLY in control-server/control/settings.py.
     private static readonly HashSet<string> SuperadminActions = new() { "unlock-root", "lock-root", "net-open", "usb-block", "usb-unblock", "collect-home", "set-allowlist" };
 
     private readonly IContestMachinesService _machinesService;
@@ -48,10 +51,11 @@ public class ContestMachinesController : ControllerBase
     [HttpGet("{**path}")]
     [HttpPost("{**path}")]
     [HttpPut("{**path}")]
+    [RequestSizeLimit(262_144)]
     public async Task<IActionResult> ForwardAsync(int contestId, string? path)
     {
         var segments = (path ?? string.Empty).Split('/', StringSplitOptions.RemoveEmptyEntries);
-        if (segments.Length == 0 || BlockedSections.Contains(segments[0]) || segments.Any(segment => segment is "." or ".."))
+        if (segments.Length == 0 || !AllowedSections.Contains(segments[0]) || segments.Any(segment => segment is "." or ".."))
         {
             return NotFound();
         }

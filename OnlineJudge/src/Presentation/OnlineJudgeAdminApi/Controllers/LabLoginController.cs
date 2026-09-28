@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
 using OnlineJudgeAdminApi.DataTransferObjects;
@@ -17,21 +18,50 @@ namespace OnlineJudgeAdminApi.Controllers;
 [AllowAnonymous]
 public partial class LabLoginController : ControllerBase
 {
+    private const int MaxFailedLogins = 10;
+    private static readonly TimeSpan FailedLoginWindow = TimeSpan.FromMinutes(5);
+    private static readonly object FailedLoginLock = new();
     private readonly IContestMachinesService _machinesService;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
+    private readonly IMemoryCache _cache;
 
-    public LabLoginController(IContestMachinesService machinesService, IHttpClientFactory httpClientFactory, IConfiguration configuration)
+    public LabLoginController(IContestMachinesService machinesService, IHttpClientFactory httpClientFactory, IConfiguration configuration, IMemoryCache cache)
     {
         _machinesService = machinesService ?? throw new ArgumentNullException(nameof(machinesService));
         _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+        _cache = cache ?? throw new ArgumentNullException(nameof(cache));
     }
 
     [HttpPost("login")]
     public async Task<IActionResult> LoginAsync(LabLoginRequest request)
     {
-        var result = await _machinesService.LoginAsync(request.Username?.Trim() ?? string.Empty, request.Password ?? string.Empty, ClientIpHelper.GetClientIp(HttpContext));
+        var username = request.Username?.Trim() ?? string.Empty;
+        var clientIp = ClientIpHelper.GetClientIp(HttpContext);
+        var failureKey = $"lab-login:{clientIp}:{username.ToLowerInvariant()}";
+        lock (FailedLoginLock)
+        {
+            if (_cache.TryGetValue<int>(failureKey, out var failures) && failures >= MaxFailedLogins)
+            {
+                return Ok(new { ok = false, message = "Demasiados intentos. Espera unos minutos." });
+            }
+        }
+
+        var result = await _machinesService.LoginAsync(username, request.Password ?? string.Empty, clientIp);
+        lock (FailedLoginLock)
+        {
+            if (result.Authenticated)
+            {
+                _cache.Remove(failureKey);
+            }
+            else
+            {
+                var failures = _cache.TryGetValue<int>(failureKey, out var count) ? count : 0;
+                _cache.Set(failureKey, failures + 1, FailedLoginWindow);
+            }
+        }
+
         // The ISO reads "ok" and "message" from a 200 response; any other status is shown as an HTTP error.
         if (!result.Ok || result.Group == null)
         {
