@@ -22,6 +22,19 @@ const string IdeLaunchTokenRoute = $"{IdeAnonymousRoutePrefix}/launch-token";
 
 var builder = WebApplication.CreateBuilder(args);
 
+// BOCA PDF transcription uses OpenRouter.
+if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENROUTER_API_KEY"))
+    && builder.Configuration["OpenRouter:ApiKey"] is { Length: > 0 } openRouterApiKey)
+{
+    Environment.SetEnvironmentVariable("OPENROUTER_API_KEY", openRouterApiKey);
+}
+
+if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENROUTER_BOCA_MODEL"))
+    && builder.Configuration["OpenRouter:BocaImportModel"] is { Length: > 0 } openRouterBocaModel)
+{
+    Environment.SetEnvironmentVariable("OPENROUTER_BOCA_MODEL", openRouterBocaModel);
+}
+
 // The Anthropic client reads ANTHROPIC_API_KEY; let Anthropic:ApiKey set it too.
 if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY"))
     && builder.Configuration["Anthropic:ApiKey"] is { Length: > 0 } anthropicApiKey)
