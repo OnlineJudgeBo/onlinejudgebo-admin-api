@@ -232,10 +232,11 @@ public static class BocaPackageReader
 
     private static string ToParagraphHtml(string text)
     {
-        var paragraphs = Regex.Split(text, @"\n\s*\n")
+        var normalizedText = text.Replace("\r\n", "\n").Replace('\r', '\n');
+        var paragraphs = Regex.Split(normalizedText, @"\n\s*\n")
             .Select(paragraph => paragraph.Trim())
             .Where(paragraph => paragraph.Length > 0)
-            .Select(paragraph => $"<p>{WebUtility.HtmlEncode(paragraph)}</p>");
+            .Select(paragraph => $"<p>{WebUtility.HtmlEncode(paragraph).Replace("\n", "<br>\n")}</p>");
 
         return string.Join('\n', paragraphs);
     }
