@@ -1,6 +1,6 @@
-using System.Text.Json;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
 
 namespace OnlineJudgeAdmin.BocaImporter;
 
@@ -25,34 +25,31 @@ public static class BocaStatementLlmReader
     // Same rule textually described to the model as the class-level rule above: it must
     // not appear as a rule the model could "interpret away" under some other framing.
     private const string SystemPrompt = """
-        Sos un transcriptor, no un editor. Se te da el PDF del enunciado de un problema
-        de programación competitiva. Tu única tarea es transcribir el texto EXACTAMENTE
-        como aparece, convertido a HTML con soporte MathJax, separado en las secciones
-        que ya existen en el documento.
+        Sos un transcriptor, no un editor. Transcribí fielmente el PDF y distribuí el contenido
+        únicamente en los campos que admite el formulario del problema: Description, Input,
+        Output y Hint. No inventes ni completes contenido que no aparezca en el documento.
 
-        Reglas estrictas, no negociables:
-        - No cambies ni una palabra del texto original. No parafrasees, no resumas, no
-          corrijas gramática ni ortografía, no agregues ni elimines palabras.
-        - No cambies el significado ni el estilo de redacción del problema.
-        - Preservá el idioma original tal cual está escrito.
-        - Convertí notación matemática a delimitadores MathJax: \( ... \) para inline,
-          \[ ... \] para bloques. Es la ÚNICA transformación de contenido permitida --
-          es notación, no texto, y solo aplica a lo que ya era notación matemática en
-          el PDF.
-        - Usá únicamente etiquetas HTML básicas (<p>, <ul>, <li>, <b>, <i>) para
-          reproducir la estructura visual del documento (párrafos, listas, énfasis). No
-          agregues contenido, encabezados ni explicaciones que no estén en el PDF.
-        - Donde el documento tenga una figura o imagen, insertá el comentario HTML
-          "<!-- figure -->" en el lugar exacto donde aparece en el orden de lectura --
-          no describas ni inventes el contenido de la imagen.
-        - Separá el contenido en las secciones estándar de un enunciado: todo el texto
-          antes de la sección de entrada va en "description"; la sección
-          "Entrada"/"Input" va en "input" (sin repetir el título de la sección); la
-          sección "Salida"/"Output" va en "output"; cualquier sección de
-          "Nota"/"Note"/"Aclaración" va en "hint". Los casos de ejemplo
-          (Sample Input/Output/Ejemplo) NO van en ninguna de estas cuatro secciones.
-        - Si una de las cuatro secciones no existe en el documento, devolvela como
-          cadena vacía -- nunca inventes contenido para completarla.
+        Reglas:
+        - No parafrasees, resumas, corrijas ni omitas texto. Conservá el idioma, datos, cifras,
+          condiciones y orden lógico originales.
+        - Description: historia, contexto, objetivo y restricciones generales del problema que
+          no sean parte del formato de entrada.
+        - Input: formato de entrada y restricciones sobre los datos ingresados (Entrada, Input,
+          Formato de entrada, Input Format).
+        - Output: formato de salida (Salida, Output, Formato de salida, Output Format).
+        - Hint: notas, observaciones, aclaraciones o explicación explícita (Nota, Note,
+          Observación, Explanation), solo si existen. No confundas la explicación de una muestra
+          con Hint.
+        - Las muestras/ejemplos (Sample Input/Output, Example, Ejemplo) no van en esos campos:
+          el importador BOCA carga los casos de muestra desde los archivos input/output del ZIP.
+        - No repitas los títulos de sección dentro de cada campo. No muevas contenido si cambia
+          su significado.
+        - Convertí notación matemática a delimitadores MathJax: \( ... \) inline y
+          \[ ... \] en bloque.
+        - Usá solo HTML básico (<p>, <ul>, <li>, <b>, <i>) para reflejar párrafos, listas y énfasis.
+        - Donde haya una figura, insertá "<!-- figure -->" en su posición; no describas ni inventes
+          su contenido.
+        - Si una sección no existe, devolvé cadena vacía. Respondé solo el JSON pedido.
         """;
 
     private static readonly Dictionary<string, JsonElement> ResponseSchema = new()
@@ -100,7 +97,7 @@ public static class BocaStatementLlmReader
                         role = "user",
                         content = new object[]
                         {
-                            new { type = "text", text = "Transcribí este enunciado siguiendo exactamente las reglas del system prompt." },
+                            new { type = "text", text = "Transcribí este enunciado siguiendo las reglas y los campos del formulario." },
                             new
                             {
                                 type = "file",
