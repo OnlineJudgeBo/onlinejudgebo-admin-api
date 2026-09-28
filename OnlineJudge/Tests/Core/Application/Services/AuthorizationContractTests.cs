@@ -104,10 +104,15 @@ public class AuthorizationContractTests
         ["ContestsController.CreateContestAsync [POST ]"] = "roles:Administrador,Auxiliar,Docente",
         ["ContestsController.GetAllContestAsync [GET ]"] = "roles:Administrador,Auxiliar,Docente",
         ["ContestsController.GetContestById [GET {contestId:int}]"] = "roles:Administrador,Auxiliar,Docente",
+        ["ContestMachinesController.GetGroupAsync [GET group]"] = "roles:Administrador,Auxiliar,Docente",
+        ["ContestMachinesController.ForwardAsync [GET {**path}|POST {**path}|PUT {**path}]"] = "roles:Administrador,Auxiliar,Docente",
+        ["LabLoginController.LoginAsync [POST login]"] = "anonymous",
         ["ContestsController.GetClientIp [GET client-ip]"] = "roles:Administrador,Auxiliar,Docente",
         ["ContestsController.GetExamMonitorAsync [GET {contestId:int}/exam-monitor]"] = "roles:Administrador,Auxiliar,Docente",
         ["ContestsController.PromoteContestAsync [PUT {contestId:int}/promote]"] = "roles:Administrador,Auxiliar,Docente",
         ["ContestsController.UpdateContestAsync [PUT {contestId:int}]"] = "roles:Administrador,Auxiliar,Docente",
+        ["ContestPackagesController.ExportAsync [GET {contestId:int}/export]"] = "roles:Administrador",
+        ["ContestPackagesController.ImportAsync [POST import]"] = "roles:Administrador",
         ["FileManagerController.DeleteFile [DELETE local-storage]"] = "roles:Administrador,Auxiliar,Docente",
         ["FileManagerController.GetFileContent [GET local-storage/content]"] = "roles:Administrador,Auxiliar,Docente",
         ["FileManagerController.GetFiles [GET local-storage]"] = "roles:Administrador,Auxiliar,Docente",
@@ -131,6 +136,7 @@ public class AuthorizationContractTests
         ["ProblemsController.CreateProblemAsync [POST ]"] = "roles:Administrador,Auxiliar,Docente",
         ["ProblemsController.DeleteProblemByIdAsync [DELETE {problemId:int}]"] = "roles:Administrador,Auxiliar,Docente",
         ["ProblemsController.ExportProblemAsync [GET {problemId:int}/export]"] = "roles:Administrador,Auxiliar,Docente & Administrador",
+        ["ProblemsController.AddClassificationsAsync [POST {problemId:int}/classifications]"] = "roles:Administrador,Auxiliar,Docente",
         ["ProblemsController.GetClassificationSuggestionsAsync [GET {problemId:int}/classification-suggestions]"] = "roles:Administrador,Auxiliar,Docente",
         ["ProblemsController.GetAllProblemsAsync [GET ]"] = "roles:Administrador,Auxiliar,Docente",
         ["ProblemsController.GetProblemByIdAsync [GET {problem_id}]"] = "roles:Administrador,Auxiliar,Docente",
@@ -224,6 +230,7 @@ public class AuthorizationContractTests
     [InlineData("RolesController")]
     [InlineData("ProblemsController.ExportProblemAsync")]
     [InlineData("ProblemsController.ImportProblemAsync")]
+    [InlineData("ContestPackagesController")]
     [InlineData("AcademicController.CreateLearningPath")]
     [InlineData("AcademicController.DeleteLearningPath")]
     public void AdministrationEndpoints_RequireAdministrator(string prefix)
@@ -245,7 +252,9 @@ public class AuthorizationContractTests
             || key.StartsWith("PublicAuthController.", StringComparison.Ordinal)
             || key.StartsWith("AcademicController.GetLearningPath", StringComparison.Ordinal)
             || key.Contains("/api/patito-ide/", StringComparison.Ordinal)
-            || key.StartsWith("IdeContextController.", StringComparison.Ordinal),
+            || key.StartsWith("IdeContextController.", StringComparison.Ordinal)
+            // The lab ISO logs in before it has any token; it validates the Patito password itself.
+            || key == "LabLoginController.LoginAsync [POST login]",
             $"Unexpected anonymous endpoint: {key}"));
     }
 }

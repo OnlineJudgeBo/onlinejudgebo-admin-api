@@ -67,7 +67,7 @@ public sealed class BocaImportController : ControllerBase
                 var extractDir = Path.Combine(stagingDir, "extracted");
                 ZipFile.ExtractToDirectory(zipPath, extractDir);
 
-                var (problem, needsReview, reasons, suggestedClassifications) = await BuildProblemAsync(extractDir, file.FileName);
+                var (problem, needsReview, reasons, suggestion) = await BuildProblemAsync(extractDir, file.FileName);
                 var testCaseCount = BocaPackageReader.ReadAllTestCases(extractDir).Count;
 
                 results.Add(new BocaImportPreviewResult
@@ -84,11 +84,12 @@ public sealed class BocaImportController : ControllerBase
                     DescriptionPreview = Truncate(problem.Description, 300),
                     SampleInputPreview = Truncate(problem.SampleInput, 300),
                     SampleOutputPreview = Truncate(problem.SampleOutput, 300),
-                    SuggestedClassifications = suggestedClassifications
+                    SuggestedClassifications = suggestion.Classifications
                         .Select(c => new BocaClassificationSuggestionDto
                         {
                             ClassificationId = c.ClassificationId,
                             Label = c.Topic is not null ? $"{c.Topic.Name} > {c.Name}" : c.Name,
+                            Reason = suggestion.Reasons.TryGetValue(c.ClassificationId, out var reason) ? reason : string.Empty,
                         })
                         .ToList(),
                 });
@@ -198,7 +199,7 @@ public sealed class BocaImportController : ControllerBase
         System.IO.File.Copy(originalZip, archivePath, overwrite: true);
     }
 
-    private async Task<(Problem Problem, bool NeedsReview, List<string> ReviewReasons, IReadOnlyList<Classification> SuggestedClassifications)> BuildProblemAsync(
+    private async Task<(Problem Problem, bool NeedsReview, List<string> ReviewReasons, ProblemClassificationSuggestion Suggestion)> BuildProblemAsync(
         string extractDir, string sourceName)
     {
         var reviewReasons = new List<string>();
@@ -232,7 +233,7 @@ public sealed class BocaImportController : ControllerBase
         };
 
         var suggestion = await _problemClassifierService.SuggestClassificationsAsync(problem);
-        return (problem, needsReview, reviewReasons, suggestion.Classifications.ToList());
+        return (problem, needsReview, reviewReasons, suggestion);
     }
 
     private static string? Truncate(string? value, int maxLength)

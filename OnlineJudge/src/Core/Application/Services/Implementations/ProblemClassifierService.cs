@@ -1,8 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using Anthropic;
-using Anthropic.Models.Messages;
-using AnthropicRole = Anthropic.Models.Messages.Role;
+using System.Net.Http.Headers;
+using System.Text;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
@@ -22,7 +21,9 @@ public class ProblemClassifierService : IProblemClassifierService
     // Picking among a fixed, known list is plain classification, not the kind of task
     // that needs Opus-tier reasoning -- see the PDF statement transcription instead for
     // where that tier earns its cost.
-    private const string Model = "claude-sonnet-5";
+    private const string DefaultModel = "google/gemini-3.1-flash-lite";
+    private const int MaxSuggestions = 2;
+    private static readonly HttpClient HttpClient = new();
 
     private readonly ITopicRepository _topicRepository;
 
@@ -32,7 +33,7 @@ public class ProblemClassifierService : IProblemClassifierService
     }
 
     public static bool IsConfigured =>
-        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY"));
+        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENROUTER_API_KEY"));
 
     public async Task<ProblemClassificationSuggestion> SuggestClassificationsAsync(Problem problem)
     {
@@ -56,8 +57,6 @@ public class ProblemClassifierService : IProblemClassifierService
 
         try
         {
-            AnthropicClient client = new();
-
             var optionsList = string.Join(
                 "\n",
                 options.Select(o => $"- id={o.classification.ClassificationId}: {o.Name} > {o.classification.Name}"));
@@ -67,47 +66,100 @@ public class ProblemClassifierService : IProblemClassifierService
                 ["type"] = JsonSerializer.SerializeToElement("object"),
                 ["properties"] = JsonSerializer.SerializeToElement(new
                 {
-                    classificationIds = new
+                    classifications = new
                     {
                         type = "array",
-                        items = new { type = "integer", @enum = options.Select(o => o.classification.ClassificationId).ToArray() },
+                        items = new
+                        {
+                            type = "object",
+                            properties = new
+                            {
+                                classificationId = new { type = "integer", @enum = options.Select(o => o.classification.ClassificationId).ToArray() },
+                                reason = new { type = "string" },
+                            },
+                            required = new[] { "classificationId", "reason" },
+                            additionalProperties = false,
+                        },
                     },
                 }),
-                ["required"] = JsonSerializer.SerializeToElement(new[] { "classificationIds" }),
+                ["required"] = JsonSerializer.SerializeToElement(new[] { "classifications" }),
                 ["additionalProperties"] = JsonSerializer.SerializeToElement(false),
             };
 
-            var response = await client.Messages.Create(new MessageCreateParams
+            var systemPrompt = $"""
+                Eres un clasificador de problemas de programación competitiva. Recibes el
+                enunciado de un problema y la lista completa de clasificaciones que ya
+                existen en el sistema, cada una con su id. Elige únicamente
+                clasificaciones de esa lista que apliquen al problema; nunca inventes una
+                clasificación ni un id que no esté en la lista. Si ninguna aplica bien,
+                devuelve una lista vacía en vez de forzar una que no encaje.
+
+                Reglas para ser consistente:
+                - Clasifica según la solución más directa, la que haría un estudiante
+                  promedio, no según soluciones alternativas o más elaboradas.
+                - Devuelve una sola clasificación. Agrega una segunda solo si esa solución
+                  necesita dos técnicas distintas y las dos son imprescindibles. Nunca más de 2.
+                - Ordénalas de la más importante a la menos importante.
+                - No elijas técnicas avanzadas (máscaras de bits, FFT, estructuras de datos
+                  avanzadas, programación dinámica compleja…) salvo que el problema no se pueda
+                  resolver sin ellas. Si el problema trata de cadenas y se resuelve
+                  recorriéndolas, clasifícalo en el tema de cadenas.
+                - Prefiere la clasificación más específica. No agregues una general del mismo
+                  tema (por ejemplo "Matemáticas") si ya elegiste una más concreta
+                  (por ejemplo "Aritmética básica").
+                - Usa "Ad hoc" solo si el problema no requiere ninguna técnica concreta de la lista.
+                - Para cada una escribe en "reason" una frase corta en español que diga qué
+                  parte del problema la justifica.
+
+                Clasificaciones disponibles:
+                {optionsList}
+                """;
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, "https://openrouter.ai/api/v1/chat/completions");
+            request.Headers.Authorization = new AuthenticationHeaderValue(
+                "Bearer", Environment.GetEnvironmentVariable("OPENROUTER_API_KEY"));
+            request.Content = new StringContent(JsonSerializer.Serialize(new
             {
-                Model = Model,
-                MaxTokens = 1024,
-                System = $"""
-                    Sos un clasificador de problemas de programación competitiva. Se te da el
-                    enunciado de un problema y la lista completa de clasificaciones que ya
-                    existen en el sistema, cada una con su id. Elegí únicamente
-                    clasificaciones de esa lista que apliquen al problema -- nunca inventes una
-                    clasificación ni un id que no esté en la lista. Elegí como mucho 3, las más
-                    específicas y relevantes; si ninguna aplica bien, devolvé una lista vacía en
-                    vez de forzar una que no calza.
+                model = Environment.GetEnvironmentVariable("OPENROUTER_CLASSIFIER_MODEL") ?? DefaultModel,
+                max_tokens = 1024,
+                messages = new[]
+                {
+                    new { role = "system", content = systemPrompt },
+                    new { role = "user", content = BuildStatementText(problem) }
+                },
+                response_format = new
+                {
+                    type = "json_schema",
+                    json_schema = new { name = "problem_classifications", strict = true, schema }
+                }
+            }), Encoding.UTF8, "application/json");
 
-                    Clasificaciones disponibles:
-                    {optionsList}
-                    """,
-                OutputConfig = new OutputConfig { Format = new JsonOutputFormat { Schema = schema } },
-                Messages = [new() { Role = AnthropicRole.User, Content = BuildStatementText(problem) }],
-            });
+            using HttpResponseMessage response = await HttpClient.SendAsync(request);
+            string responseBody = await response.Content.ReadAsStringAsync();
+            response.EnsureSuccessStatusCode();
 
-            var json = response.Content.Select(b => b.Value).OfType<TextBlock>().Select(t => t.Text).FirstOrDefault();
+            using var completion = JsonDocument.Parse(responseBody);
+            var json = completion.RootElement
+                .GetProperty("choices")[0]
+                .GetProperty("message")
+                .GetProperty("content")
+                .GetString();
             if (json is null)
             {
                 return Unavailable("No se pudo generar una sugerencia en este momento.");
             }
 
             using var parsed = JsonDocument.Parse(json);
-            var suggestedIds = parsed.RootElement.GetProperty("classificationIds")
-                .EnumerateArray()
-                .Select(e => e.GetInt32())
-                .ToHashSet();
+            // Kept in the model's order (most important first) and capped, in case it returns more.
+            var reasons = new Dictionary<int, string>();
+            foreach (var item in parsed.RootElement.GetProperty("classifications").EnumerateArray())
+            {
+                var id = item.GetProperty("classificationId").GetInt32();
+                if (reasons.Count < MaxSuggestions && !reasons.ContainsKey(id))
+                {
+                    reasons[id] = item.GetProperty("reason").GetString() ?? string.Empty;
+                }
+            }
 
             return new ProblemClassificationSuggestion
             {
@@ -116,14 +168,15 @@ public class ProblemClassifierService : IProblemClassifierService
                 // only needs the id/name for the prompt) -- fill it in here so a caller
                 // formatting a "<Topic> > <Classification>" label, or merging this into
                 // the existing Topic/Classification picker, doesn't need a second lookup.
-                Classifications = options
-                    .Where(o => suggestedIds.Contains(o.classification.ClassificationId))
+                Classifications = reasons.Keys
+                    .Select(id => options.First(o => o.classification.ClassificationId == id))
                     .Select(o =>
                     {
                         o.classification.Topic ??= new Topic { TopicId = o.TopicId, Name = o.Name };
                         return o.classification;
                     })
                     .ToList(),
+                Reasons = reasons,
             };
         }
         catch (Exception error)
@@ -139,12 +192,24 @@ public class ProblemClassifierService : IProblemClassifierService
     private static ProblemClassificationSuggestion Unavailable(string reason) =>
         new() { Available = false, UnavailableReason = reason };
 
-    private static string BuildStatementText(Problem problem) => $"""
-        Título: {problem.Title}
-        Descripción: {StripHtml(problem.Description)}
-        Entrada: {StripHtml(problem.Input)}
-        Salida: {StripHtml(problem.Output)}
-        """;
+    // Samples and hints often give away the technique, so they go in too.
+    private static string BuildStatementText(Problem problem)
+    {
+        var samples = problem.SampleCases.Count > 0
+            ? problem.SampleCases.OrderBy(sample => sample.Num).Select(sample => (sample.Input, sample.Output)).ToList()
+            : new List<(string?, string?)> { (problem.SampleInput, problem.SampleOutput) };
+        var sampleText = string.Join("\n", samples
+            .Where(sample => !string.IsNullOrWhiteSpace(sample.Item1) || !string.IsNullOrWhiteSpace(sample.Item2))
+            .Select((sample, index) => $"Ejemplo {index + 1} - entrada:\n{sample.Item1}\nEjemplo {index + 1} - salida:\n{sample.Item2}"));
+        return $"""
+            Título: {problem.Title}
+            Descripción: {StripHtml(problem.Description)}
+            Entrada: {StripHtml(problem.Input)}
+            Salida: {StripHtml(problem.Output)}
+            Notas: {StripHtml(problem.Hint)}
+            {sampleText}
+            """;
+    }
 
     private static string StripHtml(string? html) =>
         string.IsNullOrEmpty(html) ? string.Empty : Regex.Replace(html, "<[^>]+>", " ");

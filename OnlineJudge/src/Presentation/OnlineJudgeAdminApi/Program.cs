@@ -15,6 +15,8 @@ using Microsoft.EntityFrameworkCore;
 using OnlineJudgeAdminApi.ExceptionHandler;
 using OnlineJudgeAdminApi.Helpers;
 using OnlineJudgeAdmin.Infrastructure.Database.Models;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
+using OnlineJudgeAdminApi.Infrastructure;
 
 
 const string IdeAnonymousRoutePrefix = "/api/patito-ide";
@@ -22,7 +24,7 @@ const string IdeLaunchTokenRoute = $"{IdeAnonymousRoutePrefix}/launch-token";
 
 var builder = WebApplication.CreateBuilder(args);
 
-// BOCA PDF transcription uses OpenRouter.
+// BOCA PDF transcription uses OpenRouter; keep its key configurable through appsettings too.
 if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENROUTER_API_KEY"))
     && builder.Configuration["OpenRouter:ApiKey"] is { Length: > 0 } openRouterApiKey)
 {
@@ -35,11 +37,10 @@ if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENROUTER_BOCA_MOD
     Environment.SetEnvironmentVariable("OPENROUTER_BOCA_MODEL", openRouterBocaModel);
 }
 
-// The Anthropic client reads ANTHROPIC_API_KEY; let Anthropic:ApiKey set it too.
-if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY"))
-    && builder.Configuration["Anthropic:ApiKey"] is { Length: > 0 } anthropicApiKey)
+if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENROUTER_CLASSIFIER_MODEL"))
+    && builder.Configuration["OpenRouter:ClassifierModel"] is { Length: > 0 } openRouterClassifierModel)
 {
-    Environment.SetEnvironmentVariable("ANTHROPIC_API_KEY", anthropicApiKey);
+    Environment.SetEnvironmentVariable("OPENROUTER_CLASSIFIER_MODEL", openRouterClassifierModel);
 }
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -99,6 +100,7 @@ builder.Services.AddControllers()
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddMemoryCache();
 
 //builder.Services.AddHttpContextAccessor();
 builder.Services.AddAutoMapper(_ => { }, Assembly.GetExecutingAssembly());
@@ -107,9 +109,18 @@ builder.Services.AddApplicationValidators();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddApplicationServices(builder.Configuration);
 builder.Services.AddFileSystemLocalManagerInfrastructureManager(builder.Configuration);
+builder.Services.AddSingleton<IControlGroupStore, ControlGroupHttpStore>();
 builder.Services.AddAwsS3FileManager(builder.Configuration);
 builder.Services.AddIdeIntegrationInfrastructure(builder.Configuration);
 builder.Services.AddScoped<UserClaimsHelper>();
+builder.Services.AddHttpClient(OnlineJudgeAdminApi.Controllers.ContestMachinesController.ControlServerClient, client =>
+{
+    var url = builder.Configuration["ControlServer:Url"];
+    if (!string.IsNullOrWhiteSpace(url))
+    {
+        client.BaseAddress = new Uri(url.TrimEnd('/') + "/");
+    }
+});
 
 var app = builder.Build();
 

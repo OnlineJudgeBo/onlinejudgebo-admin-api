@@ -216,6 +216,44 @@ public class ProblemServiceTests
         fileSystem.Verify(item => item.DeleteFile("1000", "1.in"), Times.Never);
     }
 
+    private static Mock<ITopicRepository> TopicsWith(params int[] classificationIds)
+    {
+        var topics = new Mock<ITopicRepository>();
+        topics.Setup(item => item.GetAllTopicsAsync()).ReturnsAsync(new[]
+        {
+            new Topic { TopicId = 1, Classifications = classificationIds.Select(id => new Classification { ClassificationId = id, TopicId = 1 }).ToList() },
+        });
+        return topics;
+    }
+
+    [Fact]
+    public async Task AddClassificationsAsync_AddsOnlyTheMissingOnesAndReturnsTheFullList()
+    {
+        var problems = new Mock<IProblemRepository>();
+        problems.SetupSequence(item => item.GetProblemByIdAsync(7, 1))
+            .ReturnsAsync(new Problem { ProblemId = 7, Classifications = new List<Classification> { new() { ClassificationId = 10 } } })
+            .ReturnsAsync(new Problem { ProblemId = 7, Classifications = new List<Classification> { new() { ClassificationId = 10 }, new() { ClassificationId = 11 } } });
+        var topics = TopicsWith(10, 11, 12);
+
+        var result = await CreateService(problems.Object, topics.Object).AddClassificationsAsync(7, new[] { 10, 11, 11 }, 1);
+
+        topics.Verify(item => item.AddClassificationsToProblemAsync(7, It.Is<IEnumerable<Classification>>(added =>
+            added.Select(c => c.ClassificationId).SequenceEqual(new[] { 11 }))), Times.Once);
+        Assert.Equal(new[] { 10, 11 }, result.Select(c => c.ClassificationId));
+    }
+
+    [Fact]
+    public async Task AddClassificationsAsync_RejectsUnknownClassificationsAndMissingProblems()
+    {
+        var problems = new Mock<IProblemRepository>();
+        problems.Setup(item => item.GetProblemByIdAsync(7, 1)).ReturnsAsync(new Problem { ProblemId = 7 });
+        var topics = TopicsWith(10);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => CreateService(problems.Object, topics.Object).AddClassificationsAsync(7, new[] { 99 }, 1));
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => CreateService(problems.Object, topics.Object).AddClassificationsAsync(8, new[] { 10 }, 1));
+        topics.Verify(item => item.AddClassificationsToProblemAsync(It.IsAny<int>(), It.IsAny<IEnumerable<Classification>>()), Times.Never);
+    }
+
     private static ProblemService CreateService(
         IProblemRepository? problemRepository = null,
         ITopicRepository? topicRepository = null,
