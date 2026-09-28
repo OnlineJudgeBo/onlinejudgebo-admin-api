@@ -1,6 +1,6 @@
 using System.Text.Json;
-using Anthropic;
-using Anthropic.Models.Messages;
+using System.Net.Http.Headers;
+using System.Text;
 
 namespace OnlineJudgeAdmin.BocaImporter;
 
@@ -19,7 +19,8 @@ public sealed record BocaStatementSections(
 
 public static class BocaStatementLlmReader
 {
-    private const string Model = "claude-opus-5";
+    private const string DefaultModel = "google/gemini-3.1-flash-lite";
+    private static readonly HttpClient HttpClient = new();
 
     // Same rule textually described to the model as the class-level rule above: it must
     // not appear as a rule the model could "interpret away" under some other framing.
@@ -69,7 +70,7 @@ public static class BocaStatementLlmReader
     };
 
     public static bool IsConfigured =>
-        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY"));
+        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENROUTER_API_KEY"));
 
     // Returns null on any failure (missing key, API error, malformed response) so the
     // caller falls back to the plain pdftotext path -- an import must never fail, or
@@ -83,40 +84,56 @@ public static class BocaStatementLlmReader
 
         try
         {
-            AnthropicClient client = new();
             string base64Pdf = Convert.ToBase64String(await File.ReadAllBytesAsync(pdfPath));
-
-            var response = await client.Messages.Create(new MessageCreateParams
+            using var request = new HttpRequestMessage(HttpMethod.Post, "https://openrouter.ai/api/v1/chat/completions");
+            request.Headers.Authorization = new AuthenticationHeaderValue(
+                "Bearer", Environment.GetEnvironmentVariable("OPENROUTER_API_KEY"));
+            request.Content = new StringContent(JsonSerializer.Serialize(new
             {
-                Model = Model,
-                MaxTokens = 16000,
-                System = SystemPrompt,
-                OutputConfig = new OutputConfig
+                model = Environment.GetEnvironmentVariable("OPENROUTER_BOCA_MODEL") ?? DefaultModel,
+                max_tokens = 16000,
+                messages = new object[]
                 {
-                    Format = new JsonOutputFormat { Schema = ResponseSchema },
-                },
-                Messages =
-                [
-                    new()
+                    new { role = "system", content = SystemPrompt },
+                    new
                     {
-                        Role = Role.User,
-                        Content = new List<ContentBlockParam>
+                        role = "user",
+                        content = new object[]
                         {
-                            new DocumentBlockParam { Source = new Base64PdfSource { Data = base64Pdf } },
-                            new TextBlockParam
+                            new { type = "text", text = "Transcribí este enunciado siguiendo exactamente las reglas del system prompt." },
+                            new
                             {
-                                Text = "Transcribí este enunciado siguiendo exactamente las reglas del system prompt.",
-                            },
-                        },
-                    },
-                ],
-            });
+                                type = "file",
+                                file = new
+                                {
+                                    filename = Path.GetFileName(pdfPath),
+                                    file_data = $"data:application/pdf;base64,{base64Pdf}"
+                                }
+                            }
+                        }
+                    }
+                },
+                plugins = new object[]
+                {
+                    new { id = "file-parser", pdf = new { engine = "cloudflare-ai" } }
+                },
+                response_format = new
+                {
+                    type = "json_schema",
+                    json_schema = new { name = "boca_statement_sections", strict = true, schema = ResponseSchema }
+                }
+            }), Encoding.UTF8, "application/json");
 
-            string? json = response.Content
-                .Select(b => b.Value)
-                .OfType<TextBlock>()
-                .Select(t => t.Text)
-                .FirstOrDefault();
+            using HttpResponseMessage response = await HttpClient.SendAsync(request);
+            string responseBody = await response.Content.ReadAsStringAsync();
+            response.EnsureSuccessStatusCode();
+
+            using JsonDocument completion = JsonDocument.Parse(responseBody);
+            string? json = completion.RootElement
+                .GetProperty("choices")[0]
+                .GetProperty("message")
+                .GetProperty("content")
+                .GetString();
             if (json is null)
             {
                 return null;

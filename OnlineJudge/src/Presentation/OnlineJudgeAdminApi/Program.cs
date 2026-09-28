@@ -24,11 +24,23 @@ const string IdeLaunchTokenRoute = $"{IdeAnonymousRoutePrefix}/launch-token";
 
 var builder = WebApplication.CreateBuilder(args);
 
-// The Anthropic client reads ANTHROPIC_API_KEY; let Anthropic:ApiKey set it too.
-if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY"))
-    && builder.Configuration["Anthropic:ApiKey"] is { Length: > 0 } anthropicApiKey)
+// BOCA PDF transcription uses OpenRouter; keep its key configurable through appsettings too.
+if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENROUTER_API_KEY"))
+    && builder.Configuration["OpenRouter:ApiKey"] is { Length: > 0 } openRouterApiKey)
 {
-    Environment.SetEnvironmentVariable("ANTHROPIC_API_KEY", anthropicApiKey);
+    Environment.SetEnvironmentVariable("OPENROUTER_API_KEY", openRouterApiKey);
+}
+
+if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENROUTER_BOCA_MODEL"))
+    && builder.Configuration["OpenRouter:BocaImportModel"] is { Length: > 0 } openRouterBocaModel)
+{
+    Environment.SetEnvironmentVariable("OPENROUTER_BOCA_MODEL", openRouterBocaModel);
+}
+
+if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENROUTER_CLASSIFIER_MODEL"))
+    && builder.Configuration["OpenRouter:ClassifierModel"] is { Length: > 0 } openRouterClassifierModel)
+{
+    Environment.SetEnvironmentVariable("OPENROUTER_CLASSIFIER_MODEL", openRouterClassifierModel);
 }
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

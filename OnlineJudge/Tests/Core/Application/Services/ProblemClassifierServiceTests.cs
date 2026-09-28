@@ -4,7 +4,7 @@ using OnlineJudgeAdmin.Core.Domain.Models;
 
 public class ProblemClassifierServiceTests
 {
-    // Never calls the Anthropic API in this suite -- both cases here short-circuit
+    // Never calls the OpenRouter API in this suite -- both cases here short-circuit
     // before any network call, matching how BocaImportControllerTests only exercises
     // the guard rails rather than the live PDF transcription.
     [Fact]
@@ -13,10 +13,10 @@ public class ProblemClassifierServiceTests
         var topicRepository = new Mock<ITopicRepository>();
         var service = new ProblemClassifierService(topicRepository.Object);
 
-        var original = Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY");
+        var original = Environment.GetEnvironmentVariable("OPENROUTER_API_KEY");
         try
         {
-            Environment.SetEnvironmentVariable("ANTHROPIC_API_KEY", null);
+            Environment.SetEnvironmentVariable("OPENROUTER_API_KEY", null);
 
             var suggestion = await service.SuggestClassificationsAsync(new Problem { Title = "Sum of two numbers" });
 
@@ -26,7 +26,7 @@ public class ProblemClassifierServiceTests
         }
         finally
         {
-            Environment.SetEnvironmentVariable("ANTHROPIC_API_KEY", original);
+            Environment.SetEnvironmentVariable("OPENROUTER_API_KEY", original);
         }
     }
 
@@ -37,10 +37,10 @@ public class ProblemClassifierServiceTests
         topicRepository.Setup(r => r.GetAllTopicsAsync()).ReturnsAsync(new List<Topic>());
         var service = new ProblemClassifierService(topicRepository.Object);
 
-        var original = Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY");
+        var original = Environment.GetEnvironmentVariable("OPENROUTER_API_KEY");
         try
         {
-            Environment.SetEnvironmentVariable("ANTHROPIC_API_KEY", "test-key");
+            Environment.SetEnvironmentVariable("OPENROUTER_API_KEY", "test-key");
 
             var suggestion = await service.SuggestClassificationsAsync(new Problem { Title = "Sum of two numbers" });
 
@@ -49,7 +49,7 @@ public class ProblemClassifierServiceTests
         }
         finally
         {
-            Environment.SetEnvironmentVariable("ANTHROPIC_API_KEY", original);
+            Environment.SetEnvironmentVariable("OPENROUTER_API_KEY", original);
         }
     }
 }

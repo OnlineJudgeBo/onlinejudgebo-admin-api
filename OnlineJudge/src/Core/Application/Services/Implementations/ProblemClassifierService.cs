@@ -1,8 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using Anthropic;
-using Anthropic.Models.Messages;
-using AnthropicRole = Anthropic.Models.Messages.Role;
+using System.Net.Http.Headers;
+using System.Text;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
@@ -22,8 +21,9 @@ public class ProblemClassifierService : IProblemClassifierService
     // Picking among a fixed, known list is plain classification, not the kind of task
     // that needs Opus-tier reasoning -- see the PDF statement transcription instead for
     // where that tier earns its cost.
-    private const string Model = "claude-sonnet-5";
+    private const string DefaultModel = "google/gemini-3.1-flash-lite";
     private const int MaxSuggestions = 2;
+    private static readonly HttpClient HttpClient = new();
 
     private readonly ITopicRepository _topicRepository;
 
@@ -33,7 +33,7 @@ public class ProblemClassifierService : IProblemClassifierService
     }
 
     public static bool IsConfigured =>
-        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY"));
+        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENROUTER_API_KEY"));
 
     public async Task<ProblemClassificationSuggestion> SuggestClassificationsAsync(Problem problem)
     {
@@ -57,8 +57,6 @@ public class ProblemClassifierService : IProblemClassifierService
 
         try
         {
-            AnthropicClient client = new();
-
             var optionsList = string.Join(
                 "\n",
                 options.Select(o => $"- id={o.classification.ClassificationId}: {o.Name} > {o.classification.Name}"));
@@ -88,43 +86,64 @@ public class ProblemClassifierService : IProblemClassifierService
                 ["additionalProperties"] = JsonSerializer.SerializeToElement(false),
             };
 
-            var response = await client.Messages.Create(new MessageCreateParams
+            var systemPrompt = $"""
+                Eres un clasificador de problemas de programación competitiva. Recibes el
+                enunciado de un problema y la lista completa de clasificaciones que ya
+                existen en el sistema, cada una con su id. Elige únicamente
+                clasificaciones de esa lista que apliquen al problema; nunca inventes una
+                clasificación ni un id que no esté en la lista. Si ninguna aplica bien,
+                devuelve una lista vacía en vez de forzar una que no encaje.
+
+                Reglas para ser consistente:
+                - Clasifica según la solución más directa, la que haría un estudiante
+                  promedio, no según soluciones alternativas o más elaboradas.
+                - Devuelve una sola clasificación. Agrega una segunda solo si esa solución
+                  necesita dos técnicas distintas y las dos son imprescindibles. Nunca más de 2.
+                - Ordénalas de la más importante a la menos importante.
+                - No elijas técnicas avanzadas (máscaras de bits, FFT, estructuras de datos
+                  avanzadas, programación dinámica compleja…) salvo que el problema no se pueda
+                  resolver sin ellas. Si el problema trata de cadenas y se resuelve
+                  recorriéndolas, clasifícalo en el tema de cadenas.
+                - Prefiere la clasificación más específica. No agregues una general del mismo
+                  tema (por ejemplo "Matemáticas") si ya elegiste una más concreta
+                  (por ejemplo "Aritmética básica").
+                - Usa "Ad hoc" solo si el problema no requiere ninguna técnica concreta de la lista.
+                - Para cada una escribe en "reason" una frase corta en español que diga qué
+                  parte del problema la justifica.
+
+                Clasificaciones disponibles:
+                {optionsList}
+                """;
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, "https://openrouter.ai/api/v1/chat/completions");
+            request.Headers.Authorization = new AuthenticationHeaderValue(
+                "Bearer", Environment.GetEnvironmentVariable("OPENROUTER_API_KEY"));
+            request.Content = new StringContent(JsonSerializer.Serialize(new
             {
-                Model = Model,
-                MaxTokens = 1024,
-                System = $"""
-                    Eres un clasificador de problemas de programación competitiva. Recibes el
-                    enunciado de un problema y la lista completa de clasificaciones que ya
-                    existen en el sistema, cada una con su id. Elige únicamente
-                    clasificaciones de esa lista que apliquen al problema; nunca inventes una
-                    clasificación ni un id que no esté en la lista. Si ninguna aplica bien,
-                    devuelve una lista vacía en vez de forzar una que no encaje.
+                model = Environment.GetEnvironmentVariable("OPENROUTER_CLASSIFIER_MODEL") ?? DefaultModel,
+                max_tokens = 1024,
+                messages = new[]
+                {
+                    new { role = "system", content = systemPrompt },
+                    new { role = "user", content = BuildStatementText(problem) }
+                },
+                response_format = new
+                {
+                    type = "json_schema",
+                    json_schema = new { name = "problem_classifications", strict = true, schema }
+                }
+            }), Encoding.UTF8, "application/json");
 
-                    Reglas para ser consistente:
-                    - Clasifica según la solución más directa, la que haría un estudiante
-                      promedio, no según soluciones alternativas o más elaboradas.
-                    - Devuelve una sola clasificación. Agrega una segunda solo si esa solución
-                      necesita dos técnicas distintas y las dos son imprescindibles. Nunca más de 2.
-                    - Ordénalas de la más importante a la menos importante.
-                    - No elijas técnicas avanzadas (máscaras de bits, FFT, estructuras de datos
-                      avanzadas, programación dinámica compleja…) salvo que el problema no se pueda
-                      resolver sin ellas. Si el problema trata de cadenas y se resuelve
-                      recorriéndolas, clasifícalo en el tema de cadenas.
-                    - Prefiere la clasificación más específica. No agregues una general del mismo
-                      tema (por ejemplo "Matemáticas") si ya elegiste una más concreta
-                      (por ejemplo "Aritmética básica").
-                    - Usa "Ad hoc" solo si el problema no requiere ninguna técnica concreta de la lista.
-                    - Para cada una escribe en "reason" una frase corta en español que diga qué
-                      parte del problema la justifica.
+            using HttpResponseMessage response = await HttpClient.SendAsync(request);
+            string responseBody = await response.Content.ReadAsStringAsync();
+            response.EnsureSuccessStatusCode();
 
-                    Clasificaciones disponibles:
-                    {optionsList}
-                    """,
-                OutputConfig = new OutputConfig { Format = new JsonOutputFormat { Schema = schema } },
-                Messages = [new() { Role = AnthropicRole.User, Content = BuildStatementText(problem) }],
-            });
-
-            var json = response.Content.Select(b => b.Value).OfType<TextBlock>().Select(t => t.Text).FirstOrDefault();
+            using var completion = JsonDocument.Parse(responseBody);
+            var json = completion.RootElement
+                .GetProperty("choices")[0]
+                .GetProperty("message")
+                .GetProperty("content")
+                .GetString();
             if (json is null)
             {
                 return Unavailable("No se pudo generar una sugerencia en este momento.");
