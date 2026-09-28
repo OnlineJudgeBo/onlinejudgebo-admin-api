@@ -15,6 +15,8 @@ using Microsoft.EntityFrameworkCore;
 using OnlineJudgeAdminApi.ExceptionHandler;
 using OnlineJudgeAdminApi.Helpers;
 using OnlineJudgeAdmin.Infrastructure.Database.Models;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
+using OnlineJudgeAdminApi.Infrastructure;
 
 
 const string IdeAnonymousRoutePrefix = "/api/patito-ide";
@@ -86,6 +88,7 @@ builder.Services.AddControllers()
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddMemoryCache();
 
 //builder.Services.AddHttpContextAccessor();
 builder.Services.AddAutoMapper(_ => { }, Assembly.GetExecutingAssembly());
@@ -94,6 +97,7 @@ builder.Services.AddApplicationValidators();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddApplicationServices(builder.Configuration);
 builder.Services.AddFileSystemLocalManagerInfrastructureManager(builder.Configuration);
+builder.Services.AddSingleton<IControlGroupStore, ControlGroupHttpStore>();
 builder.Services.AddAwsS3FileManager(builder.Configuration);
 builder.Services.AddIdeIntegrationInfrastructure(builder.Configuration);
 builder.Services.AddScoped<UserClaimsHelper>();
