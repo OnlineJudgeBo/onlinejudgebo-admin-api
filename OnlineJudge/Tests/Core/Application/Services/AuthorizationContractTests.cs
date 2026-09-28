@@ -111,6 +111,8 @@ public class AuthorizationContractTests
         ["ContestsController.GetExamMonitorAsync [GET {contestId:int}/exam-monitor]"] = "roles:Administrador,Auxiliar,Docente",
         ["ContestsController.PromoteContestAsync [PUT {contestId:int}/promote]"] = "roles:Administrador,Auxiliar,Docente",
         ["ContestsController.UpdateContestAsync [PUT {contestId:int}]"] = "roles:Administrador,Auxiliar,Docente",
+        ["ContestPackagesController.ExportAsync [GET {contestId:int}/export]"] = "roles:Administrador",
+        ["ContestPackagesController.ImportAsync [POST import]"] = "roles:Administrador",
         ["FileManagerController.DeleteFile [DELETE local-storage]"] = "roles:Administrador,Auxiliar,Docente",
         ["FileManagerController.GetFileContent [GET local-storage/content]"] = "roles:Administrador,Auxiliar,Docente",
         ["FileManagerController.GetFiles [GET local-storage]"] = "roles:Administrador,Auxiliar,Docente",
@@ -228,6 +230,7 @@ public class AuthorizationContractTests
     [InlineData("RolesController")]
     [InlineData("ProblemsController.ExportProblemAsync")]
     [InlineData("ProblemsController.ImportProblemAsync")]
+    [InlineData("ContestPackagesController")]
     [InlineData("AcademicController.CreateLearningPath")]
     [InlineData("AcademicController.DeleteLearningPath")]
     public void AdministrationEndpoints_RequireAdministrator(string prefix)
