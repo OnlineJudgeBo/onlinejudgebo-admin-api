@@ -122,7 +122,7 @@ public class BocaPackageReaderTests
 
         var description = await BocaPackageReader.ReadDescriptionAsync(package.Root, "desc.txt");
 
-        Assert.Equal("<p>Linea &lt;uno&gt;\ncontinua</p>\n<p>Segundo &amp; final</p>", description.Html);
+        Assert.Equal("<p>Linea &lt;uno&gt;<br>\ncontinua</p>\n<p>Segundo &amp; final</p>", description.Html);
         Assert.False(description.NeedsReview);
     }
 
