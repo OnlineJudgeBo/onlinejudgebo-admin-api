@@ -122,6 +122,7 @@ public class ProblemClassifierService : IProblemClassifierService
             {
                 model = Environment.GetEnvironmentVariable("OPENROUTER_CLASSIFIER_MODEL") ?? DefaultModel,
                 max_tokens = 1024,
+                provider = new { require_parameters = true },
                 messages = new[]
                 {
                     new { role = "system", content = systemPrompt },
@@ -139,25 +140,40 @@ public class ProblemClassifierService : IProblemClassifierService
             response.EnsureSuccessStatusCode();
 
             using var completion = JsonDocument.Parse(responseBody);
-            var json = completion.RootElement
-                .GetProperty("choices")[0]
-                .GetProperty("message")
-                .GetProperty("content")
-                .GetString();
-            if (json is null)
+            if (!completion.RootElement.TryGetProperty("choices", out var choices)
+                || choices.ValueKind != JsonValueKind.Array
+                || choices.GetArrayLength() == 0
+                || choices[0].ValueKind != JsonValueKind.Object
+                || !choices[0].TryGetProperty("message", out var message)
+                || message.ValueKind != JsonValueKind.Object
+                || !message.TryGetProperty("content", out var content)
+                || content.ValueKind != JsonValueKind.String
+                || content.GetString() is not { } json)
             {
                 return Unavailable("No se pudo generar una sugerencia en este momento.");
             }
 
             using var parsed = JsonDocument.Parse(json);
+            if (!parsed.RootElement.TryGetProperty("classifications", out var classifications)
+                || classifications.ValueKind != JsonValueKind.Array)
+            {
+                return Unavailable("No se pudo generar una sugerencia en este momento.");
+            }
+
             // Kept in the model's order (most important first) and capped, in case it returns more.
             var reasons = new Dictionary<int, string>();
-            foreach (var item in parsed.RootElement.GetProperty("classifications").EnumerateArray())
+            foreach (var item in classifications.EnumerateArray())
             {
-                var id = item.GetProperty("classificationId").GetInt32();
-                if (reasons.Count < MaxSuggestions && !reasons.ContainsKey(id))
+                if (item.ValueKind == JsonValueKind.Object
+                    && item.TryGetProperty("classificationId", out var classificationId)
+                    && classificationId.TryGetInt32(out var id)
+                    && item.TryGetProperty("reason", out var reason)
+                    && reason.ValueKind == JsonValueKind.String
+                    && options.Any(o => o.classification.ClassificationId == id)
+                    && reasons.Count < MaxSuggestions
+                    && !reasons.ContainsKey(id))
                 {
-                    reasons[id] = item.GetProperty("reason").GetString() ?? string.Empty;
+                    reasons[id] = reason.GetString() ?? string.Empty;
                 }
             }
 
