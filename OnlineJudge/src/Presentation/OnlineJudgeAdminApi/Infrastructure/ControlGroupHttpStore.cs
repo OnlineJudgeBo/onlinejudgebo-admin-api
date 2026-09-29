@@ -1,5 +1,5 @@
 using System.Net.Http.Headers;
-using System.Net.Http.Json;
+using System.Text.Json;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
 using OnlineJudgeAdmin.Core.Domain.Models;
 using OnlineJudgeAdminApi.Controllers;
@@ -36,13 +36,14 @@ public sealed class ControlGroupHttpStore(IHttpClientFactory httpClientFactory, 
     {
         using var request = new HttpRequestMessage(HttpMethod.Put, $"admin/groups/{Uri.EscapeDataString(id)}")
         {
-            Content = JsonContent.Create(new
+            Content = new ByteArrayContent(JsonSerializer.SerializeToUtf8Bytes(new
             {
                 enroll_token = enrollToken,
                 admin_token = groupAdminToken,
                 label,
-            }),
+            })),
         };
+        request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         HttpResponseMessage response;
