@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using OnlineJudgeAdmin.Core.Application.Services.Implementations;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 using OnlineJudgeAdmin.Core.Domain.Models;
@@ -11,7 +12,7 @@ public class ProblemClassifierServiceTests
     public async Task SuggestClassificationsAsync_WithoutApiKey_ReturnsUnavailable()
     {
         var topicRepository = new Mock<ITopicRepository>();
-        var service = new ProblemClassifierService(topicRepository.Object);
+        var service = new ProblemClassifierService(topicRepository.Object, NullLogger<ProblemClassifierService>.Instance);
 
         var original = Environment.GetEnvironmentVariable("OPENROUTER_API_KEY");
         try
@@ -35,7 +36,7 @@ public class ProblemClassifierServiceTests
     {
         var topicRepository = new Mock<ITopicRepository>();
         topicRepository.Setup(r => r.GetAllTopicsAsync()).ReturnsAsync(new List<Topic>());
-        var service = new ProblemClassifierService(topicRepository.Object);
+        var service = new ProblemClassifierService(topicRepository.Object, NullLogger<ProblemClassifierService>.Instance);
 
         var original = Environment.GetEnvironmentVariable("OPENROUTER_API_KEY");
         try

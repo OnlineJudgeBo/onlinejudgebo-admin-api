@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Net.Http.Headers;
 using System.Text;
+using Microsoft.Extensions.Logging;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
@@ -26,10 +27,12 @@ public class ProblemClassifierService : IProblemClassifierService
     private static readonly HttpClient HttpClient = new();
 
     private readonly ITopicRepository _topicRepository;
+    private readonly ILogger<ProblemClassifierService> _logger;
 
-    public ProblemClassifierService(ITopicRepository topicRepository)
+    public ProblemClassifierService(ITopicRepository topicRepository, ILogger<ProblemClassifierService> logger)
     {
         _topicRepository = topicRepository ?? throw new ArgumentNullException(nameof(topicRepository));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public static bool IsConfigured =>
@@ -39,6 +42,7 @@ public class ProblemClassifierService : IProblemClassifierService
     {
         if (!IsConfigured)
         {
+            _logger.LogWarning("OpenRouter classifier unavailable: API key is not configured.");
             // Deliberately doesn't name the env var or the provider here: this string
             // reaches the admin verbatim as a toast (see EditProblemPage.jsx), and the
             // whole point of calling this "clasificación automática" in the UI is to not
@@ -52,6 +56,7 @@ public class ProblemClassifierService : IProblemClassifierService
             .ToList();
         if (options.Count == 0)
         {
+            _logger.LogWarning("OpenRouter classifier unavailable: no classifications are registered.");
             return Unavailable("No hay clasificaciones registradas todavía.");
         }
 
@@ -115,12 +120,15 @@ public class ProblemClassifierService : IProblemClassifierService
                 {optionsList}
                 """;
 
+            var model = Environment.GetEnvironmentVariable("OPENROUTER_CLASSIFIER_MODEL") ?? DefaultModel;
+            _logger.LogInformation("Requesting classification suggestions from OpenRouter. Model={Model}; CandidateCount={CandidateCount}", model, options.Count);
+
             using var request = new HttpRequestMessage(HttpMethod.Post, "https://openrouter.ai/api/v1/chat/completions");
             request.Headers.Authorization = new AuthenticationHeaderValue(
                 "Bearer", Environment.GetEnvironmentVariable("OPENROUTER_API_KEY"));
             request.Content = new StringContent(JsonSerializer.Serialize(new
             {
-                model = Environment.GetEnvironmentVariable("OPENROUTER_CLASSIFIER_MODEL") ?? DefaultModel,
+                model,
                 max_tokens = 1024,
                 provider = new { require_parameters = true },
                 messages = new[]
@@ -137,9 +145,19 @@ public class ProblemClassifierService : IProblemClassifierService
 
             using HttpResponseMessage response = await HttpClient.SendAsync(request);
             string responseBody = await response.Content.ReadAsStringAsync();
-            response.EnsureSuccessStatusCode();
+            var requestId = response.Headers.TryGetValues("x-openrouter-request-id", out var requestIds)
+                ? requestIds.FirstOrDefault()
+                : null;
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("OpenRouter classifier request failed. StatusCode={StatusCode}; Model={Model}; RequestId={RequestId}",
+                    (int)response.StatusCode, model, requestId ?? "unavailable");
+                return Unavailable("No se pudo generar una sugerencia en este momento.");
+            }
 
             using var completion = JsonDocument.Parse(responseBody);
+            var completionId = completion.RootElement.TryGetProperty("id", out var idElement) ? idElement.GetString() : requestId;
+            var responseModel = completion.RootElement.TryGetProperty("model", out var modelElement) ? modelElement.GetString() : model;
             if (!completion.RootElement.TryGetProperty("choices", out var choices)
                 || choices.ValueKind != JsonValueKind.Array
                 || choices.GetArrayLength() == 0
@@ -150,6 +168,8 @@ public class ProblemClassifierService : IProblemClassifierService
                 || content.ValueKind != JsonValueKind.String
                 || content.GetString() is not { } json)
             {
+                _logger.LogWarning("OpenRouter classifier returned an invalid completion shape. Model={Model}; RequestId={RequestId}",
+                    responseModel, completionId ?? "unavailable");
                 return Unavailable("No se pudo generar una sugerencia en este momento.");
             }
 
@@ -157,10 +177,13 @@ public class ProblemClassifierService : IProblemClassifierService
             if (!parsed.RootElement.TryGetProperty("classifications", out var classifications)
                 || classifications.ValueKind != JsonValueKind.Array)
             {
+                _logger.LogWarning("OpenRouter classifier response is missing a classifications array. Model={Model}; RequestId={RequestId}",
+                    responseModel, completionId ?? "unavailable");
                 return Unavailable("No se pudo generar una sugerencia en este momento.");
             }
 
             // Kept in the model's order (most important first) and capped, in case it returns more.
+            var returnedCount = classifications.GetArrayLength();
             var reasons = new Dictionary<int, string>();
             foreach (var item in classifications.EnumerateArray())
             {
@@ -175,6 +198,12 @@ public class ProblemClassifierService : IProblemClassifierService
                 {
                     reasons[id] = reason.GetString() ?? string.Empty;
                 }
+            }
+
+            if (reasons.Count == 0)
+            {
+                _logger.LogWarning("OpenRouter classifier produced no applicable suggestions. Model={Model}; RequestId={RequestId}; CandidateCount={CandidateCount}; ReturnedCount={ReturnedCount}",
+                    responseModel, completionId ?? "unavailable", options.Count, returnedCount);
             }
 
             return new ProblemClassificationSuggestion
@@ -200,7 +229,7 @@ public class ProblemClassifierService : IProblemClassifierService
             // error.Message can name the provider/SDK in its wording (timeouts, auth
             // failures, etc.) -- logged for whoever runs this, never handed to the
             // Unavailable() string the admin's toast displays verbatim.
-            Console.WriteLine($"ProblemClassifierService.SuggestClassificationsAsync failed: {error.Message}");
+            _logger.LogError(error, "OpenRouter classifier failed while processing the response.");
             return Unavailable("No se pudo generar una sugerencia en este momento.");
         }
     }
