@@ -59,7 +59,14 @@ public sealed class ControlGroupHttpStore(IHttpClientFactory httpClientFactory, 
         {
             if (!response.IsSuccessStatusCode)
             {
-                throw new InvalidOperationException($"El control de máquinas rechazó el grupo '{id}' ({(int)response.StatusCode}).");
+                var detail = await response.Content.ReadAsStringAsync();
+                if (detail.Length > 512)
+                {
+                    detail = detail[..512];
+                }
+
+                throw new InvalidOperationException(
+                    $"El control de máquinas rechazó el grupo '{id}' ({(int)response.StatusCode}): {detail}");
             }
         }
     }
