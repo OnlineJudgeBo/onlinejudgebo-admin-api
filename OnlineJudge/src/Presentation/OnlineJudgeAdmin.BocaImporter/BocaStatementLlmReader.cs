@@ -89,6 +89,7 @@ public static class BocaStatementLlmReader
             {
                 model = Environment.GetEnvironmentVariable("OPENROUTER_BOCA_MODEL") ?? DefaultModel,
                 max_tokens = 16000,
+                provider = new { require_parameters = true },
                 messages = new object[]
                 {
                     new { role = "system", content = SystemPrompt },
