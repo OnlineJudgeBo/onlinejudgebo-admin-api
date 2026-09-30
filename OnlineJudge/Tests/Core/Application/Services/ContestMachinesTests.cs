@@ -75,8 +75,11 @@ public class ContestMachinesServiceTests
         Assert.False(wrongPassword.Ok);
         Assert.False(wrongPassword.Authenticated);
         Assert.Equal("Usuario o contraseña incorrectos.", wrongPassword.Message);
-        Assert.False(noExam.Ok);
+        Assert.True(noExam.Ok);
         Assert.True(noExam.Authenticated);
+        Assert.Equal("bob", noExam.UserId);
+        Assert.Equal("bob", noExam.DisplayName);
+        Assert.Null(noExam.Group);
         Assert.Equal("No tienes un examen activo en este momento.", noExam.Message);
     }
 }
@@ -389,13 +392,26 @@ public class LabLoginControllerTests
     }
 
     [Fact]
-    public async Task Login_FailureIsA200WithOkFalse()
+    public async Task Login_WithoutActiveExamSucceedsWithoutAContestGroup()
     {
-        var controller = Controller(new LabLoginResult { Authenticated = true, Message = "No tienes un examen activo en este momento." });
+        var controller = Controller(new LabLoginResult
+        {
+            Ok = true,
+            Authenticated = true,
+            UserId = "bob",
+            DisplayName = "Bob",
+            Message = "No tienes un examen activo en este momento.",
+        });
 
         var body = OkValue(await controller.LoginAsync(new LabLoginRequest { Username = "bob", Password = "x" }))!;
 
-        Assert.Equal(false, Prop(body, "ok"));
+        Assert.Equal(true, Prop(body, "ok"));
+        Assert.Equal(true, Prop(body, "authenticated"));
+        Assert.Equal(false, Prop(body, "hasActiveExam"));
+        Assert.Equal("bob", Prop(body, "userId"));
+        Assert.Equal("Bob", Prop(body, "displayName"));
+        Assert.Equal("bob", Prop(Prop(body, "team")!, "id"));
+        Assert.Null(Prop(body, "region"));
         Assert.Equal("No tienes un examen activo en este momento.", Prop(body, "message"));
     }
 
