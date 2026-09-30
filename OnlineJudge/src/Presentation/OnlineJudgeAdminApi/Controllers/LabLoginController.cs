@@ -62,7 +62,25 @@ public partial class LabLoginController : ControllerBase
             }
         }
 
-        // The ISO reads "ok" and "message" from a 200 response; any other status is shown as an HTTP error.
+        // Valid credentials without an active exam still grant desktop access,
+        // but no contest group/token is returned to the ISO.
+        if (result.Authenticated && result.Group == null)
+        {
+            var guestBaseUrl = (_configuration["Base:Url"] ?? string.Empty).TrimEnd('/');
+            return Ok(new
+            {
+                ok = true,
+                authenticated = true,
+                hasActiveExam = false,
+                userId = result.UserId,
+                displayName = result.DisplayName,
+                homepage = guestBaseUrl.Length > 0 ? $"{guestBaseUrl}/oj/index.php" : string.Empty,
+                team = new { id = TeamId(result.UserId), name = result.DisplayName },
+                message = result.Message,
+            });
+        }
+
+        // Invalid credentials are the only failed login outcome.
         if (!result.Ok || result.Group == null)
         {
             return Ok(new { ok = false, message = result.Message });
@@ -78,6 +96,8 @@ public partial class LabLoginController : ControllerBase
         return Ok(new
         {
             ok = true,
+            authenticated = true,
+            hasActiveExam = true,
             userId = result.UserId,
             displayName = result.DisplayName,
             homepage,
