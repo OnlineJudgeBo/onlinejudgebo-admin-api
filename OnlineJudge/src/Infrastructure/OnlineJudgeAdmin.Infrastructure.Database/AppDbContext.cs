@@ -27,6 +27,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<DbProgrammingLanguage> ProgrammingLanguages { get; set; }
     public virtual DbSet<DbRole> Roles { get; set; }
     public virtual DbSet<DbSolution> Solutions { get; set; }
+    public virtual DbSet<DbSimilarCode> SimilarCodes { get; set; }
     public virtual DbSet<DbSourceCode> SourceCodes { get; set; }
     public virtual DbSet<DbTopic> Topics { get; set; }
     public virtual DbSet<DbUser> Users { get; set; }
@@ -244,6 +245,27 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Name)
                 .HasColumnType("varchar(100)")
                 .HasColumnName("name");
+        });
+
+        modelBuilder.Entity<DbSimilarCode>(entity =>
+        {
+            entity.HasKey(e => new { e.SolutionId, e.SimilarSId })
+                .HasName("PRIMARY");
+
+            entity.ToTable("similar_code")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_general_ci");
+
+            entity.Property(e => e.SolutionId)
+                .HasColumnType("int(11)")
+                .HasColumnName("solution_id");
+
+            entity.Property(e => e.SimilarSId)
+                .HasColumnType("int(11)")
+                .HasColumnName("similar_s_id");
+
+            entity.Property(e => e.Percentage)
+                .HasColumnName("percentage");
         });
 
         modelBuilder.Entity<DbContestSite>(entity =>

@@ -320,4 +320,18 @@ public class ContestsRepository : IContestsRepository
                 .ToList()
         };
     }
+
+    public async Task<IReadOnlyCollection<ContestSimilarityItem>> GetSimilarityAsync(int contestId, int siteId)
+    {
+        return await (
+            from similar in _context.SimilarCodes
+            join solution in _context.Solutions on similar.SolutionId equals solution.SolutionId
+            join other in _context.Solutions on similar.SimilarSId equals other.SolutionId
+            // Rows written before the kernel left out own submissions can pair a user with themselves.
+            where solution.ContestId == contestId && solution.SiteId == siteId && solution.UserId != other.UserId
+            select new ContestSimilarityItem(
+                solution.ProblemId, solution.Num, solution.SolutionId, solution.UserId,
+                other.SolutionId, other.UserId, similar.Percentage)
+        ).ToListAsync();
+    }
 }
