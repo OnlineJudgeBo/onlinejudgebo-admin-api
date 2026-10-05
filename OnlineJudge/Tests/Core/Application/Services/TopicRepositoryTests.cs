@@ -121,6 +121,29 @@ public class TopicRepositoryTests
     }
 
     [Fact]
+    public async Task AddClassificationsToProblemAsync_SkipsClassificationsMissingInThisJudge()
+    {
+        using AppDbContext context = CreateContext();
+        var repository = new TopicRepository(context, CreateMapper());
+        DbProblem problem = await SeedProblemAsync(context);
+        DbTopic topic = await SeedTopicAsync(context, "Graphs");
+        context.Classifications.Add(new DbClassification { TopicId = topic.TopicId, Name = "BFS" });
+        await context.SaveChangesAsync();
+        int existingId = (await context.Classifications.SingleAsync()).ClassificationId;
+
+        await repository.AddClassificationsToProblemAsync(problem.ProblemId!.Value, new[]
+        {
+            new Classification { ClassificationId = existingId },
+            new Classification { ClassificationId = existingId + 999 },
+        });
+
+        DbProblem reloaded = await context.Problems
+            .Include(p => p.Classifications)
+            .SingleAsync(p => p.ProblemId == problem.ProblemId);
+        Assert.Equal(new[] { "BFS" }, reloaded.Classifications.Select(c => c.Name));
+    }
+
+    [Fact]
     public async Task RemoveAllClassificationsFromProblemAsync_ClearsClassifications()
     {
         using AppDbContext context = CreateContext();

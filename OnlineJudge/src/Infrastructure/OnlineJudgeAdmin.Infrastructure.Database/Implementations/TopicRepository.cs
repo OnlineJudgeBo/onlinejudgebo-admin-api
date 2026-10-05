@@ -50,7 +50,11 @@ public class TopicRepository : ITopicRepository
         {
             var classificationDb = await _context.Classifications
                 .FirstOrDefaultAsync(c => c.ClassificationId == classification.ClassificationId);
-            problem.Classifications.Add(classificationDb);
+            // A package imported from another judge can carry classification ids that do not exist here.
+            if (classificationDb != null)
+            {
+                problem.Classifications.Add(classificationDb);
+            }
         }
         await _context.SaveChangesAsync();
     }
