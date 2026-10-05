@@ -52,8 +52,9 @@ public static class ExamActivityAnalyzer
             .OrderBy(item => item.Time)
             .ToList();
         bool IsLab(string ip) => labNetworks.Any(network => network.Contains(IPAddress.Parse(ip)));
-        bool IsProxy(string ip) => !IsLab(ip) && DockerNetwork.Contains(IPAddress.Parse(ip));
-        // Proxy IPs say nothing about where the student was: listed, but left out of every alert.
+        // 0.0.0.0 is what the API stores when it could not read an IPv4 address (IPv6 client).
+        bool IsProxy(string ip) => ip == "0.0.0.0" || (!IsLab(ip) && DockerNetwork.Contains(IPAddress.Parse(ip)));
+        // Proxy and unknown IPs say nothing about where the student was: listed, but left out of every alert.
         var alertEvents = events.Where(item => !IsProxy(item.Ip)).ToList();
         var alertEventsByUser = alertEvents
             .GroupBy(item => item.UserId, StringComparer.OrdinalIgnoreCase)
@@ -119,7 +120,7 @@ public static class ExamActivityAnalyzer
             {
                 Code = "IP_CAPTURE",
                 Severity = "medium",
-                Message = "Algunas IPs son de la red interna de Docker (proxy): el juez no está registrando la IP real del estudiante.",
+                Message = "Algunas IPs son de la red interna de Docker (proxy) o 0.0.0.0 (no registrada, p. ej. IPv6): el juez no está guardando la IP real del estudiante.",
                 Ips = dockerIps
             });
         }

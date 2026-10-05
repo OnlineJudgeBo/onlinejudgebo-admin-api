@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using System.IO.Compression;
 using System.Net;
 using System.Text;
@@ -286,6 +288,8 @@ public class ClientIpHelperTests
     [InlineData("203.0.113.9", "198.51.100.4", "198.51.100.4")]
     [InlineData(null, "198.51.100.4", "198.51.100.4")]
     [InlineData(null, "::1", "0.0.0.0")]
+    [InlineData("203.0.113.9", "::ffff:172.18.0.2", "203.0.113.9")]
+    [InlineData(null, "::ffff:198.51.100.4", "198.51.100.4")]
     [InlineData("2001:db8::1", "172.18.0.2", "0.0.0.0")]
     [InlineData("not-an-ip-but-very-long", "172.18.0.2", "0.0.0.0")]
     [InlineData(" , 10.0.0.1", "172.18.0.2", "0.0.0.0")]
@@ -302,6 +306,28 @@ public class ClientIpHelperTests
         {
             context.Connection.RemoteIpAddress = IPAddress.Parse(remoteIp);
         }
+
+        Assert.Equal(expected, OnlineJudgeAdminApi.Helpers.ClientIpHelper.GetClientIp(context));
+    }
+
+    [Theory]
+    [InlineData("10.5.0.0/16, 192.0.2.7", "10.5.0.2", "203.0.113.9")]
+    [InlineData("10.5.0.0/16, 192.0.2.7", "192.0.2.7", "203.0.113.9")]
+    [InlineData("10.5.0.0/16", "172.18.0.2", "172.18.0.2")]
+    [InlineData("garbage", "172.18.0.2", "203.0.113.9")]
+    public void GetClientIp_TrustsForwardedHeaderOnlyFromConfiguredProxies(string trustedProxies, string remoteIp, string expected)
+    {
+        var configuration = new Microsoft.Extensions.Configuration.ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["ClientIp:TrustedProxies"] = trustedProxies })
+            .Build();
+        var context = new DefaultHttpContext
+        {
+            RequestServices = new Microsoft.Extensions.DependencyInjection.ServiceCollection()
+                .AddSingleton<Microsoft.Extensions.Configuration.IConfiguration>(configuration)
+                .BuildServiceProvider()
+        };
+        context.Request.Headers["X-Forwarded-For"] = "203.0.113.9";
+        context.Connection.RemoteIpAddress = IPAddress.Parse(remoteIp);
 
         Assert.Equal(expected, OnlineJudgeAdminApi.Helpers.ClientIpHelper.GetClientIp(context));
     }
