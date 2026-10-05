@@ -137,6 +137,16 @@ public class ExamActivityAnalyzerTests
     }
 
     [Fact]
+    public void UnrecordedIpsOnlyRaiseCaptureWarning()
+    {
+        var result = Analyze(null, new[] { "ana", "bob" }, Login("ana", "0.0.0.0", 0), Login("bob", "0.0.0.0", 1), Submit("bob", "181.1.1.1", 2));
+
+        var alert = Assert.Single(result.Alerts);
+        Assert.Equal("IP_CAPTURE", alert.Code);
+        Assert.Equal(new[] { "0.0.0.0" }, alert.Ips);
+    }
+
+    [Fact]
     public void UnknownOrEmptyIpsAreIgnored()
     {
         var result = Analyze(null, new[] { "ana" }, Login("ana", "", 0), Login("ana", "unknown", 1), Submit("ana", "181.1.1.1", 2));
