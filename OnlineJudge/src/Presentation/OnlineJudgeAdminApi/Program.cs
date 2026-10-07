@@ -31,6 +31,12 @@ if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENROUTER_API_KEY"
     Environment.SetEnvironmentVariable("OPENROUTER_API_KEY", openRouterApiKey);
 }
 
+if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENROUTER_BOCA_PDF_ENGINE"))
+    && builder.Configuration["OpenRouter:BocaPdfEngine"] is { Length: > 0 } openRouterBocaPdfEngine)
+{
+    Environment.SetEnvironmentVariable("OPENROUTER_BOCA_PDF_ENGINE", openRouterBocaPdfEngine);
+}
+
 if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENROUTER_BOCA_MODEL"))
     && builder.Configuration["OpenRouter:BocaImportModel"] is { Length: > 0 } openRouterBocaModel)
 {
