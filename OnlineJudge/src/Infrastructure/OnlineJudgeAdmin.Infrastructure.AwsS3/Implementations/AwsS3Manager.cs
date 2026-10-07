@@ -37,7 +37,9 @@ public class AwsS3Manager : IAwsS3FileManager
             };
 
             await fileTransferUtility.UploadAsync(uploadRequest);
-            return $"https://{bucketName}.s3.{_s3Client.Config.RegionEndpoint.SystemName}.amazonaws.com/{keyName}";
+            // Keys can carry spaces and accents (contest names): escape each path segment.
+            var path = string.Join('/', keyName.Split('/').Select(Uri.EscapeDataString));
+            return $"https://{bucketName}.s3.{_s3Client.Config.RegionEndpoint.SystemName}.amazonaws.com/{path}";
         }
         catch (AmazonS3Exception e)
         {

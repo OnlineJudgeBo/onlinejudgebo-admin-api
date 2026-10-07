@@ -72,6 +72,21 @@ public class FileManagerControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task UploadOfficialContestPdfAsync_OnlyAcceptsPdfContent()
+    {
+        var fileManagerService = new Mock<IFileManagerService>();
+        fileManagerService.Setup(item => item.UploadOfficialContestPdfAsync("Final 2026", It.IsAny<string>())).ReturnsAsync("https://files/final.pdf");
+        var controller = CreateController(fileManagerService: fileManagerService.Object);
+
+        var rejected = await controller.UploadOfficialContestPdfAsync(BuildFormFile("statements.pdf", "<html>not a pdf</html>"), "Final 2026");
+        var accepted = await controller.UploadOfficialContestPdfAsync(BuildFormFile("statements.pdf", "%PDF-1.4 content"), "Final 2026");
+
+        Assert.IsType<BadRequestObjectResult>(rejected);
+        Assert.IsType<OkObjectResult>(accepted);
+        fileManagerService.Verify(item => item.UploadOfficialContestPdfAsync("Final 2026", It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
     public async Task S3UploadFileContentAsync_StripsPathFromMaliciousFileName()
     {
         var fileManagerService = new Mock<IFileManagerService>();

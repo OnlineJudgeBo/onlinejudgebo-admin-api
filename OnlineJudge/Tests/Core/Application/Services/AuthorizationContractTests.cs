@@ -120,6 +120,7 @@ public class AuthorizationContractTests
         ["FileManagerController.GetFiles [GET local-storage]"] = "roles:Administrador,Auxiliar,Docente",
         ["FileManagerController.GetFilesAc [GET local-storage/ac]"] = "roles:Administrador,Auxiliar,Docente",
         ["FileManagerController.S3UploadFileContentAsync [POST cloud-storage]"] = "roles:Administrador,Auxiliar,Docente",
+        ["FileManagerController.UploadOfficialContestPdfAsync [POST cloud-storage/official-contest]"] = "roles:Administrador,Auxiliar,Docente",
         ["FileManagerController.SaveFileContentAsync [POST local-storage]"] = "roles:Administrador,Auxiliar,Docente",
         ["IdeContextController.GetContextAsync [GET context]"] = "anonymous",
         ["IdeLaunchTokenController.CreateLaunchToken [POST launch-token]"] = "authenticated",
