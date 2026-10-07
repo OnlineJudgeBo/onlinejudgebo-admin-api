@@ -81,9 +81,10 @@ public static class BocaPackageReader
         var descPath = Path.Combine(problemDir, "description", descFile);
         var isPdf = string.Equals(Path.GetExtension(descPath), ".pdf", StringComparison.OrdinalIgnoreCase);
 
+        string? aiFailure = null;
         if (isPdf)
         {
-            var sections = await BocaStatementLlmReader.TryReadAsync(descPath);
+            (var sections, aiFailure) = await BocaStatementLlmReader.TryReadAsync(descPath);
             if (sections is not null)
             {
                 // Always flagged, regardless of how clean the transcription looks: this
@@ -110,7 +111,7 @@ public static class BocaPackageReader
             return new BocaDescription(string.Empty, true, isPdf ? "PDF produced no extractable text" : "description file is empty");
         }
 
-        return new BocaDescription(html, isPdf, isPdf ? "sourced from PDF" : null);
+        return new BocaDescription(html, isPdf, isPdf ? $"sourced from PDF as plain text; AI transcription not used: {aiFailure}" : null);
     }
 
     // Well under MySQL's 65,535-byte TEXT column limit, generous for an actual sample.
