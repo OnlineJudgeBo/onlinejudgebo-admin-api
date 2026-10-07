@@ -82,9 +82,21 @@ public static class BocaPackageReader
         var isPdf = string.Equals(Path.GetExtension(descPath), ".pdf", StringComparison.OrdinalIgnoreCase);
 
         string? aiFailure = null;
+        string? pdfText = null;
+        Exception? pdfTextError = null;
         if (isPdf)
         {
-            (var sections, aiFailure) = await BocaStatementLlmReader.TryReadAsync(descPath);
+            // Exact characters for the model, and the whole statement when the model is unavailable.
+            try
+            {
+                pdfText = RunAndCaptureOutput("pdftotext", ["-layout", descPath, "-"], problemDir);
+            }
+            catch (Exception error) when (error is System.ComponentModel.Win32Exception or InvalidOperationException)
+            {
+                pdfTextError = error;
+            }
+
+            (var sections, aiFailure) = await BocaStatementLlmReader.TryReadAsync(descPath, pdfText);
             if (sections is not null)
             {
                 // Always flagged, regardless of how clean the transcription looks: this
@@ -101,7 +113,7 @@ public static class BocaPackageReader
         }
 
         var rawText = isPdf
-            ? RunAndCaptureOutput("pdftotext", ["-layout", descPath, "-"], problemDir)
+            ? pdfText ?? throw pdfTextError!
             : File.ReadAllText(descPath);
 
         var html = ToParagraphHtml(rawText);
