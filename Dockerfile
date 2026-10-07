@@ -15,6 +15,9 @@ RUN dotnet publish "OnlineJudge/src/Presentation/OnlineJudgeAdminApi/OnlineJudge
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 
+# The BOCA importer reads PDF statements with pdftotext.
+RUN apt-get update && apt-get install -y --no-install-recommends poppler-utils && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 COPY --from=publish /app/publish .
