@@ -45,6 +45,10 @@ public static class BocaStatementLlmReader
         Reglas:
         - No parafrasees, resumas, corrijas ni omitas texto. Conservá el idioma, datos, cifras,
           condiciones y orden lógico originales.
+        - No inventes nada: ni frases, ni restricciones, ni ejemplos, ni aclaraciones propias.
+          No traduzcas, no corrijas ortografía ni redacción y no agregues comentarios.
+        - Si una parte no se puede leer, insertá "<!-- ilegible -->" en su lugar; nunca la
+          adivines ni la completes.
         - Description: historia, contexto, objetivo y restricciones generales del problema que
           no sean parte del formato de entrada.
         - Input: formato de entrada y restricciones sobre los datos ingresados (Entrada, Input,
