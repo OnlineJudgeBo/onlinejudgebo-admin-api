@@ -69,14 +69,15 @@ public static class BocaStatementLlmReader
     public static bool IsConfigured =>
         !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENROUTER_API_KEY"));
 
-    // Returns null on any failure (missing key, API error, malformed response) so the
+    // Returns no sections on any failure (missing key, API error, malformed response) so the
     // caller falls back to the plain pdftotext path -- an import must never fail, or
-    // silently corrupt content, because the transcription step had a bad day.
-    public static async Task<BocaStatementSections?> TryReadAsync(string pdfPath)
+    // silently corrupt content, because the transcription step had a bad day. The failure
+    // text is logged and shown to the importer, who otherwise cannot tell why it was skipped.
+    public static async Task<(BocaStatementSections? Sections, string? Failure)> TryReadAsync(string pdfPath)
     {
         if (!IsConfigured)
         {
-            return null;
+            return Failed("OPENROUTER_API_KEY is not configured");
         }
 
         try
@@ -124,7 +125,10 @@ public static class BocaStatementLlmReader
 
             using HttpResponseMessage response = await HttpClient.SendAsync(request);
             string responseBody = await response.Content.ReadAsStringAsync();
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                return Failed($"OpenRouter answered {(int)response.StatusCode}: {responseBody[..Math.Min(responseBody.Length, 300)]}");
+            }
 
             using JsonDocument completion = JsonDocument.Parse(responseBody);
             string? json = completion.RootElement
@@ -134,22 +138,27 @@ public static class BocaStatementLlmReader
                 .GetString();
             if (json is null)
             {
-                return null;
+                return Failed("OpenRouter returned an empty answer");
             }
 
             using JsonDocument parsed = JsonDocument.Parse(json);
             JsonElement root = parsed.RootElement;
-            return new BocaStatementSections(
+            return (new BocaStatementSections(
                 DescriptionHtml: root.GetProperty("description").GetString() ?? "",
                 InputHtml: root.GetProperty("input").GetString() ?? "",
                 OutputHtml: root.GetProperty("output").GetString() ?? "",
                 HintHtml: root.GetProperty("hint").GetString() ?? ""
-            );
+            ), null);
         }
         catch (Exception error)
         {
-            Console.WriteLine($"  ! LLM statement transcription failed, falling back to pdftotext: {error.Message}");
-            return null;
+            return Failed(error.Message);
         }
+    }
+
+    private static (BocaStatementSections? Sections, string? Failure) Failed(string reason)
+    {
+        Console.WriteLine($"  ! LLM statement transcription failed, falling back to pdftotext: {reason}");
+        return (null, reason);
     }
 }
