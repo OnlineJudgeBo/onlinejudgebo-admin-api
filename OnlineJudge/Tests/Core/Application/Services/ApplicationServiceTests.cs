@@ -86,6 +86,24 @@ public class ApplicationServiceTests
         repository.Verify(item => item.UpdateClassification(classification, 10), Times.Once);
     }
 
+    [Theory]
+    [InlineData("2026_div_1", "officialContests/2026_div_1.pdf")]
+    [InlineData("  Sesión de Práctica - CBP 2026.PDF ", "officialContests/Sesión de Práctica - CBP 2026.pdf")]
+    [InlineData("../../etc/passwd", "officialContests/....etcpasswd.pdf")]
+    public async Task FileManagerService_UploadOfficialContestPdfAsync_StoresItUnderTheContestName(string contestName, string expectedKey)
+    {
+        var awsS3 = new Mock<IAwsS3FileManager>();
+        awsS3.Setup(item => item.S3UploadFileAsync("judge-bucket", expectedKey, "statements.pdf")).ReturnsAsync("https://files/statements.pdf");
+        var bucketSection = new Mock<IConfigurationSection>();
+        bucketSection.SetupGet(item => item.Value).Returns("judge-bucket");
+        var configuration = new Mock<IConfiguration>();
+        configuration.Setup(item => item.GetSection("Base:BucketName")).Returns(bucketSection.Object);
+        var service = new FileManagerService(awsS3.Object, Mock.Of<IFileSystemLocalManagerManager>(), configuration.Object, Mock.Of<IValidator<Problem>>());
+
+        Assert.Equal("https://files/statements.pdf", await service.UploadOfficialContestPdfAsync(contestName, "statements.pdf"));
+        await Assert.ThrowsAsync<ArgumentException>(() => service.UploadOfficialContestPdfAsync(" / ", "statements.pdf"));
+    }
+
     [Fact]
     public async Task FileManagerService_S3UploadFileAsync_UsesConfiguredBucketAndGeneratedKey()
     {

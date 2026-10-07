@@ -55,6 +55,45 @@ public class FileManagerController : ControllerBase
         return Ok(await _fileManagerService.S3UploadFileAsync(path));
     }
 
+    // PDF with every statement of an official contest, stored under the contest name.
+    [HttpPost("cloud-storage/official-contest")]
+    [RequestSizeLimit(50_000_000)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 50_000_000)]
+    public async Task<IActionResult> UploadOfficialContestPdfAsync(IFormFile file, [FromForm] string name)
+    {
+        var header = new byte[5];
+        if (file == null || file.Length < header.Length)
+        {
+            return BadRequest(new ErrorDetails { StatusCode = 400, Message = "Sube un archivo PDF." });
+        }
+
+        // The object is published as-is, so check the content and not just the extension.
+        await using (var content = file.OpenReadStream())
+        {
+            await content.ReadExactlyAsync(header);
+        }
+
+        if (!header.AsSpan().SequenceEqual("%PDF-"u8))
+        {
+            return BadRequest(new ErrorDetails { StatusCode = 400, Message = "El archivo no es un PDF." });
+        }
+
+        var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.pdf");
+        try
+        {
+            await using (var stream = new FileStream(path, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            return Ok(new { url = await _fileManagerService.UploadOfficialContestPdfAsync(name, path) });
+        }
+        finally
+        {
+            System.IO.File.Delete(path);
+        }
+    }
+
     [HttpGet("local-storage")]
     public async Task<IActionResult> GetFiles(int problemId)
     {
