@@ -269,7 +269,7 @@ public class PublicController : ControllerBase
     private static string BuildContestReportCsv(ContestReportResponse report)
     {
         var builder = new StringBuilder();
-        builder.AppendLine("rank,userId,nick,school,solved,submissions,accepted,accuracy,firstSubmitUtc,lastSubmitUtc");
+        builder.AppendLine("rank,userId,nick,school,solved,submissions,accepted,accuracy,firstSubmitUtc,lastSubmitUtc,points");
 
         foreach (var item in report.Items)
         {
@@ -282,7 +282,8 @@ public class PublicController : ControllerBase
             builder.Append(item.Accepted).Append(',');
             builder.Append(item.Accuracy.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append(',');
             builder.Append(item.FirstSubmitUtc?.ToString("O") ?? string.Empty).Append(',');
-            builder.Append(item.LastSubmitUtc?.ToString("O") ?? string.Empty).AppendLine();
+            builder.Append(item.LastSubmitUtc?.ToString("O") ?? string.Empty).Append(',');
+            builder.Append(item.Points.ToString(System.Globalization.CultureInfo.InvariantCulture)).AppendLine();
         }
 
         return builder.ToString();

@@ -219,6 +219,36 @@ public partial class PublicRepository
             .ThenBy(item => item.UserId)
             .ToList();
 
+        if (contest.Obi)
+        {
+            // A problem is worth its best submission; ties go to the earlier best submissions, then to fewer submissions.
+            var scored = await OfficialSolutions()
+                .Where(solution => solution.SiteId == siteId && solution.ContestId == contestId)
+                .Select(solution => new { solution.UserId, solution.ProblemId, solution.PassRate, solution.InDate })
+                .ToListAsync();
+            var bestByUser = scored
+                .GroupBy(solution => solution.UserId)
+                .ToDictionary(
+                    user => user.Key,
+                    user => user
+                        .GroupBy(solution => solution.ProblemId)
+                        .Select(problem => problem.OrderByDescending(solution => solution.PassRate).ThenBy(solution => solution.InDate).First())
+                        .Where(best => best.PassRate > 0)
+                        .ToList());
+            foreach (var item in items)
+            {
+                item.Points = Math.Round(bestByUser[item.UserId].Sum(best => best.PassRate) * 100m, 2);
+                item.Solved = bestByUser[item.UserId].Count(best => best.PassRate >= 1m);
+            }
+
+            items = items
+                .OrderByDescending(item => item.Points)
+                .ThenBy(item => bestByUser[item.UserId].Sum(best => (best.InDate - contest.StartTime).TotalSeconds))
+                .ThenBy(item => item.Submissions)
+                .ThenBy(item => item.UserId)
+                .ToList();
+        }
+
         for (var index = 0; index < items.Count; index++)
         {
             items[index].Rank = index + 1;
@@ -249,6 +279,7 @@ public partial class PublicRepository
             DurationMinutes = Math.Max(1, (int)Math.Round((contest.EndTime - contest.StartTime).TotalMinutes)),
             IsPrivate = contest.Private != 0,
             IsPromoted = isPromotedContest,
+            IsPointsContest = contest.Obi,
             ProblemCount = problemCount,
             ParticipantCount = participantIds.Count,
             TotalSubmissions = submissionStats.Sum(item => item.Submissions),
