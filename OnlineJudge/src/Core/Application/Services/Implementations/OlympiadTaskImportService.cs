@@ -18,6 +18,7 @@ public sealed record TaskStatement(string Description, string Input, string Outp
 //   input/input<i>.txt             test inputs, output/output<i>.txt the answers
 //   gen/GEN                        "# ST: <points>" opens a subtask; every other line is one test
 //   check/checker.cpp              optional checker (cor/correttore.cpp is also accepted)
+//   sol/grader.cpp, sol/*.h        optional grader and its public headers
 //   statement/statement.pdf        optional statement (testo/testo.pdf is also accepted)
 //
 // TPS, the IOI task preparation system (problem.json), after running "tps gen"
@@ -25,9 +26,11 @@ public sealed record TaskStatement(string Description, string Input, string Outp
 //   subtasks.json                  score of each subtask; score 0 marks the samples
 //   tests/<name>.in, <name>.out    generated tests, tests/mapping lists "<subtask> <test>"
 //   checker/checker.cpp            checker, with its own CMS-compatible checker/testlib.h
+//   grader/cpp/grader.cpp, *.h     grader and its public headers, unless has_grader is false
 //   statement/                     index.md or a PDF
 //
-// Only batch tasks whose solutions are whole programs on standard input and output are supported.
+// Only batch tasks are supported. A task with a grader is solved by writing a function and only
+// accepts C++: the judge compiles the submission together with grader.cpp.
 public sealed class OlympiadTaskImportService(IProblemService problems, IFileSystemLocalManagerManager files)
 {
     private const int MaxSamples = 5;
@@ -52,6 +55,8 @@ public sealed class OlympiadTaskImportService(IProblemService problems, IFileSys
         public string? Checker;
         // Compiled next to the checker: TPS ships a testlib.h of its own.
         public string? CheckerHeader;
+        // grader.cpp first, then the headers submissions include.
+        public List<string> Grader = [];
         public string? StatementPdf;
         public string? StatementText;
     }
@@ -110,6 +115,11 @@ public sealed class OlympiadTaskImportService(IProblemService problems, IFileSys
                 groups = task.Groups.Select(group => new ProblemScoreGroup { Name = group.Name, Points = group.Points, Type = group.Type, Tests = group.Tests }),
             }, JsonOptions));
 
+            foreach (var (path, index) in task.Grader.Select((path, index) => (path, index)))
+            {
+                files.WriteToFile(folder, index == 0 ? "grader.cpp" : Path.GetFileName(path), File.ReadAllText(path));
+            }
+
             if (task.Checker != null)
             {
                 files.WriteToFile(folder, "checker_cms.cpp", File.ReadAllText(task.Checker));
@@ -154,6 +164,7 @@ public sealed class OlympiadTaskImportService(IProblemService problems, IFileSys
             Checker = FirstExisting(Path.Combine(root, "check", "checker.cpp"), Path.Combine(root, "cor", "correttore.cpp")),
             StatementPdf = FirstExisting(Path.Combine(root, "statement", "statement.pdf"), Path.Combine(root, "testo", "testo.pdf")),
         };
+        task.Grader = GraderFiles(Path.Combine(root, "sol"), "grader.cpp", required: false);
         if (task.Checker == null && FirstExisting(Path.Combine(root, "check", "checker"), Path.Combine(root, "cor", "correttore")) != null)
         {
             throw new InvalidDataException("El checker solo está como binario; incluye su código fuente como check/checker.cpp.");
@@ -227,12 +238,7 @@ public sealed class OlympiadTaskImportService(IProblemService problems, IFileSys
         }
 
         // TPS defaults has_grader to true: the contestant writes a function and the grader owns main().
-        if (!problem.RootElement.TryGetProperty("has_grader", out var grader) || grader.ValueKind != JsonValueKind.False)
-        {
-            throw new InvalidDataException(
-                "La tarea usa grader (has_grader): los participantes implementan una función. " +
-                "Aquí las soluciones son programas completos; publica la tarea con \"has_grader\": false.");
-        }
+        var hasGrader = !problem.RootElement.TryGetProperty("has_grader", out var grader) || grader.ValueKind != JsonValueKind.False;
 
         var testsDir = Path.Combine(root, "tests");
         var mappingFile = Path.Combine(testsDir, "mapping");
@@ -251,6 +257,11 @@ public sealed class OlympiadTaskImportService(IProblemService problems, IFileSys
                 ? Directory.GetFiles(Path.Combine(root, "statement"), "*.pdf").OrderBy(path => path, StringComparer.Ordinal).FirstOrDefault()
                 : null,
         };
+        if (hasGrader)
+        {
+            task.Grader = GraderFiles(Path.Combine(root, "grader", "cpp"), (Text(problem.RootElement, "grader_name") ?? "grader") + ".cpp", required: true);
+        }
+
         var markdown = Path.Combine(root, "statement", "index.md");
         task.StatementText = File.Exists(markdown) ? File.ReadAllText(markdown) : null;
 
@@ -338,6 +349,20 @@ public sealed class OlympiadTaskImportService(IProblemService problems, IFileSys
         }
 
         return task;
+    }
+
+    // The C++ grader of a task and the headers next to it. Other languages have no grader here.
+    private static List<string> GraderFiles(string directory, string graderFile, bool required)
+    {
+        var grader = Path.Combine(directory, graderFile);
+        if (!File.Exists(grader))
+        {
+            return required
+                ? throw new InvalidDataException($"La tarea usa grader pero falta {Path.GetFileName(directory)}/{graderFile}. Solo se admiten graders de C++.")
+                : [];
+        }
+
+        return [grader, .. Directory.GetFiles(directory, "*.h").OrderBy(path => path, StringComparer.Ordinal)];
     }
 
     private static List<(decimal Points, int Tests)> ReadCmsSubtasks(string genPath)

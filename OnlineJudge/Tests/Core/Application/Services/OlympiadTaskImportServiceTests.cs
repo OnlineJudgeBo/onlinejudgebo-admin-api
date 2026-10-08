@@ -126,7 +126,6 @@ public class OlympiadTaskImportServiceTests
 
     [Theory]
     [InlineData("\"has_grader\": true", true)]
-    [InlineData("\"description\": \"sin has_grader\"", true)]
     [InlineData("\"has_grader\": false, \"type\": \"Communication\"", true)]
     [InlineData("\"has_grader\": false", false)]
     public async Task Import_RejectsTpsTasksItCannotJudge(string problemExtra, bool withTests)
@@ -140,6 +139,27 @@ public class OlympiadTaskImportServiceTests
         await Assert.ThrowsAsync<InvalidDataException>(() => Import(entries));
 
         Assert.Null(_created);
+    }
+
+    [Fact]
+    public async Task Import_InstallsTheGraderAndItsHeaders()
+    {
+        var tps = Tps("\"description\": \"has_grader por defecto\", \"grader_name\": \"stub\"");
+        tps["grader/cpp/stub.cpp"] = "// tps grader";
+        tps["grader/cpp/suma.h"] = "// tps header";
+        tps["grader/java/grader.java"] = "// ignored";
+        await Import(tps);
+        Assert.Equal("// tps grader", _written["grader.cpp"]);
+        Assert.Equal("// tps header", _written["suma.h"]);
+        Assert.DoesNotContain("grader.java", _written.Keys);
+
+        _written.Clear();
+        var cms = Task(1);
+        cms["suma/sol/grader.cpp"] = "// cms grader";
+        cms["suma/sol/suma.h"] = "// cms header";
+        await Import(cms);
+        Assert.Equal("// cms grader", _written["grader.cpp"]);
+        Assert.Equal("// cms header", _written["suma.h"]);
     }
 
     [Fact]
