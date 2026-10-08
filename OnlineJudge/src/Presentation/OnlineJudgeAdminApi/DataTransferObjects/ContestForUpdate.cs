@@ -21,6 +21,9 @@ public partial class ContestForUpdate
 
     public bool IsExam { get; set; }
 
+    // Points contest (IOI style): every test is judged and the ranking adds scores.
+    public bool Obi { get; set; }
+
     public string? ExamLabIps { get; set; }
 
     public virtual ICollection<ProblemForContestCreation> SelectedProblem { get; set; }
