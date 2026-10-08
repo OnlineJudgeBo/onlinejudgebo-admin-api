@@ -14,9 +14,10 @@ namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
 //   round-trip source when re-importing into this same system - statement/<lang>/problem.md
 //   and problem.html are a best-effort, portable *rendition* for viewing elsewhere, not
 //   used for reimport, since HTML-with-embedded-images has no lossless ICPC-native slot.
-// - Spj=='Y' problems can't be exported: onlinejudge-kernel's "spj" binary uses HUSTOJ's own
-//   ABI (spj input output user_output), not the ICPC output_validator interface, and shipping
-//   the raw binary with a `validation: default` lie would be worse than refusing.
+// - A special judge travels only as testlib source: data/{problem_id}/checker.cpp is shipped as
+//   output_validators/checker/checker.cpp and the kernel compiles it where it lands. A Spj=='Y'
+//   problem that only has the legacy HUSTOJ "spj" binary (own ABI: spj input output user_output)
+//   can't be exported: shipping a raw binary under a `validation` lie would be worse than refusing.
 // - data/sample and data/secret keep the judge's own "<n>.in"/"<n>.out" names instead of
 //   ICPC's "<n>.ans" for the answer file: these files are meant to be reusable directly
 //   against onlinejudge-kernel's data/{problem_id}/ layout, by explicit request - not just
@@ -25,6 +26,11 @@ namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
 public class ProblemPackageService : IProblemPackageService
 {
     private const string StatementLanguage = "es";
+    private const string CheckerFile = "checker.cpp";
+    private const string CheckerEntry = "output_validators/checker/checker.cpp";
+
+    // Checker source, its build products and the legacy binary: never test data.
+    private static readonly string[] CheckerFiles = [CheckerFile, "checker", "checker.log", "spj"];
 
     private readonly IProblemService _problemService;
     private readonly IFileSystemLocalManagerManager _fileManager;
@@ -40,17 +46,23 @@ public class ProblemPackageService : IProblemPackageService
         var problem = await _problemService.GetProblemByIdAsync(problemId, siteId)
             ?? throw new KeyNotFoundException($"Problema {problemId} no encontrado.");
 
-        if (string.Equals(problem.Spj, "Y", StringComparison.OrdinalIgnoreCase))
+        var hasSpecialJudge = string.Equals(problem.Spj, "Y", StringComparison.OrdinalIgnoreCase);
+        if (hasSpecialJudge && !(_fileManager.ListFiles(problemId.ToString()) ?? Array.Empty<string>()).Contains(CheckerFile))
         {
             throw new InvalidOperationException(
-                "No se puede exportar un problema con juez especial (Spj=Y): el checker de este juez " +
-                "usa una interfaz propia (HUSTOJ), incompatible con el output_validator de ICPC.");
+                "No se puede exportar un problema con juez especial sin checker.cpp: el binario spj " +
+                "usa la interfaz de HUSTOJ, incompatible con el output_validator de ICPC.");
         }
 
         using var stream = new MemoryStream();
         using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
         {
-            WriteEntry(archive, "problem.yaml", BuildProblemYaml(problem));
+            WriteEntry(archive, "problem.yaml", BuildProblemYaml(problem, hasSpecialJudge));
+            if (hasSpecialJudge)
+            {
+                WriteEntry(archive, CheckerEntry, _fileManager.ReadFile(problemId.ToString(), CheckerFile));
+            }
+
             WriteEntry(archive, "metadata.json", BuildMetadataJson(problem));
 
             foreach (var sample in GetSampleCasesWithLegacyFallback(problem))
@@ -106,9 +118,9 @@ public class ProblemPackageService : IProblemPackageService
         var files = _fileManager.ListFiles(problemId.ToString()) ?? Array.Empty<string>();
         foreach (var fileName in files)
         {
-            if (SampleFileNamePattern.IsMatch(fileName))
+            if (SampleFileNamePattern.IsMatch(fileName) || CheckerFiles.Contains(fileName))
             {
-                continue; // already covered by data/sample from ProblemSample rows.
+                continue; // samples come from ProblemSample rows, the checker has its own entry.
             }
 
             var bytes = _fileManager.ReadFile(problemId.ToString(), fileName);
@@ -120,7 +132,7 @@ public class ProblemPackageService : IProblemPackageService
         }
     }
 
-    private static string BuildProblemYaml(Problem problem)
+    private static string BuildProblemYaml(Problem problem, bool hasSpecialJudge)
     {
         var name = YamlEscape(problem.Title ?? string.Empty);
         var source = YamlEscape(!string.IsNullOrWhiteSpace(problem.Source) ? problem.Source : problem.OriginSource ?? string.Empty);
@@ -129,7 +141,7 @@ public class ProblemPackageService : IProblemPackageService
             $"name: \"{name}\"\n" +
             $"uuid: {Guid.NewGuid()}\n" +
             $"source: \"{source}\"\n" +
-            "validation: default\n" +
+            $"validation: {(hasSpecialJudge ? "custom" : "default")}\n" +
             "limits:\n" +
             $"  time_limit: {problem.TimeLimit ?? 1}\n" +
             $"  memory: {problem.MemoryLimit ?? 128}\n";
@@ -309,9 +321,18 @@ public class ProblemPackageService : IProblemPackageService
             ZipFile.ExtractToDirectory(zipPath, extractDir);
 
             var problem = BuildProblemFromPackage(extractDir);
+            // The checker source is what makes a problem special-judged; the kernel compiles it on first use.
+            var checkerPath = Path.Combine(extractDir, "output_validators", "checker", CheckerFile);
+            var hasChecker = File.Exists(checkerPath);
+            problem.Spj = hasChecker ? "Y" : "N";
             var created = await _problemService.CreateProblemAsync(userId, problem, siteId);
 
             WriteSecretTestData(extractDir, created.ProblemId!.Value);
+            if (hasChecker)
+            {
+                _fileManager.CreateFolder(created.ProblemId.Value.ToString());
+                _fileManager.WriteToFile(created.ProblemId.Value.ToString(), CheckerFile, File.ReadAllText(checkerPath));
+            }
 
             return created;
         }
