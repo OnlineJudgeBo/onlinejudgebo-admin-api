@@ -189,6 +189,39 @@ public class PublicRepositoryContestsTests
     }
 
     [Fact]
+    public async Task ContestReport_RanksPointsContestsByBestSubmissionThenTimeThenSubmissions()
+    {
+        using var seed = new JudgeSeed();
+        var p1 = seed.Problem("P1");
+        var p2 = seed.Problem("P2");
+        var contest = seed.Contest("Olimpiada", Now.AddHours(-2), Now.AddHours(1));
+        seed.Db.Contests.Single(item => item.ContestId == contest).Obi = true;
+        seed.ContestProblem(contest, p1, 0).ContestProblem(contest, p2, 1);
+        void Submit(string user, int problem, decimal passRate, int minute)
+        {
+            var id = seed.Solution(user, problem, (short)(passRate >= 1 ? 4 : 6), Now.AddMinutes(-120 + minute), contestId: contest);
+            seed.Db.Solutions.Single(item => item.SolutionId == id).PassRate = passRate;
+        }
+
+        Submit("ana", p1, 0.40m, 10);
+        Submit("ana", p1, 0.50m, 30);   // best 50 at minute 30, 3 submissions
+        Submit("ana", p1, 0.45m, 40);
+        Submit("bob", p1, 0.50m, 20);   // 50 at minute 20
+        Submit("carl", p1, 0.50m, 20);  // 50 at minute 20, one more submission than bob
+        Submit("carl", p1, 0.10m, 25);
+        Submit("dana", p1, 1.00m, 90);  // 133.33
+        Submit("dana", p2, 0.3333m, 95);
+        seed.Save();
+
+        var report = await seed.PublicRepository().GetContestReportAsync(1, contest);
+
+        Assert.True(report.IsPointsContest);
+        Assert.Equal(new[] { "dana", "bob", "carl", "ana" }, report.Items.Select(item => item.UserId));
+        Assert.Equal(new[] { 133.33m, 50m, 50m, 50m }, report.Items.Select(item => item.Points));
+        Assert.Equal(1, report.Items.First().Solved);
+    }
+
+    [Fact]
     public async Task ContestReport_OwnerAndCsvFlags()
     {
         using var seed = new JudgeSeed();

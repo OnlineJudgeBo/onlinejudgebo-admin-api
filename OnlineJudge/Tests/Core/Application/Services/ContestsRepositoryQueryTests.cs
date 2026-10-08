@@ -56,6 +56,17 @@ public class ContestsRepositoryQueryTests
     }
 
     [Fact]
+    public async Task GetContestById_ReturnsThePointsContestFlag()
+    {
+        using var seed = new JudgeSeed();
+        var id = seed.Contest("Olimpiada", Now, Now.AddHours(1));
+        seed.Db.Contests.Single(contest => contest.ContestId == id).Obi = true;
+        seed.Save();
+
+        Assert.True((await Repository(seed).GetContestByIdAsync(id, 1)).Obi);
+    }
+
+    [Fact]
     public async Task GetContestById_LoadsProblemsUsersAndLanguagesForSiteOnly()
     {
         using var seed = new JudgeSeed();
