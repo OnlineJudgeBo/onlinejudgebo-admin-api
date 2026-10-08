@@ -29,13 +29,19 @@ public class ProblemPackageService : IProblemPackageService
     private const string StatementLanguage = "es";
     private const string CheckerFolder = "output_validators/checker";
     private const string ScoringFile = "scoring.json";
+    private const string GraderFolder = "grader/cpp";
+    private const string GraderFile = "grader.cpp";
 
     // What makes a problem special-judged, and what is compiled next to it.
     private static readonly string[] CheckerSources = ["checker.cpp", "checker_cms.cpp"];
     private static readonly string[] CheckerSupportFiles = ["testlib.h"];
 
     // Checker files, their build products, the legacy binary and the scoring groups: never test data.
-    private static readonly string[] NonTestFiles = [.. CheckerSources, .. CheckerSupportFiles, "checker", "checker.log", "spj", ScoringFile];
+    private static readonly string[] NonTestFiles = [.. CheckerSources, .. CheckerSupportFiles, "checker", "checker.log", "spj", ScoringFile, GraderFile];
+
+    // The grader compiled with every submission and the headers submissions include.
+    private static bool IsGraderFile(string name) =>
+        name == GraderFile || (name.EndsWith(".h", StringComparison.Ordinal) && !CheckerSupportFiles.Contains(name));
 
     private readonly IProblemService _problemService;
     private readonly IFileSystemLocalManagerManager _fileManager;
@@ -75,6 +81,14 @@ public class ProblemPackageService : IProblemPackageService
             if (folderFiles.Contains(ScoringFile))
             {
                 WriteEntry(archive, ScoringFile, _fileManager.ReadFile(problemId.ToString(), ScoringFile));
+            }
+
+            if (folderFiles.Contains(GraderFile))
+            {
+                foreach (var name in folderFiles.Where(IsGraderFile))
+                {
+                    WriteEntry(archive, $"{GraderFolder}/{name}", _fileManager.ReadFile(problemId.ToString(), name));
+                }
             }
 
             WriteEntry(archive, "metadata.json", BuildMetadataJson(problem));
@@ -132,9 +146,9 @@ public class ProblemPackageService : IProblemPackageService
         var files = _fileManager.ListFiles(problemId.ToString()) ?? Array.Empty<string>();
         foreach (var fileName in files)
         {
-            if (SampleFileNamePattern.IsMatch(fileName) || NonTestFiles.Contains(fileName))
+            if (SampleFileNamePattern.IsMatch(fileName) || NonTestFiles.Contains(fileName) || IsGraderFile(fileName))
             {
-                continue; // samples come from ProblemSample rows; checker and scoring have their own entries.
+                continue; // samples come from ProblemSample rows; checker, scoring and grader have their own entries.
             }
 
             var bytes = _fileManager.ReadFile(problemId.ToString(), fileName);
@@ -350,6 +364,16 @@ public class ProblemPackageService : IProblemPackageService
                 foreach (var name in checkerFiles)
                 {
                     _fileManager.WriteToFile(folder, name, File.ReadAllText(Path.Combine(checkerDir, name)));
+                }
+            }
+
+            var graderDir = Path.Combine(extractDir, "grader", "cpp");
+            if (File.Exists(Path.Combine(graderDir, GraderFile)))
+            {
+                _fileManager.CreateFolder(folder);
+                foreach (var file in Directory.GetFiles(graderDir).Where(file => IsGraderFile(Path.GetFileName(file))))
+                {
+                    _fileManager.WriteToFile(folder, Path.GetFileName(file), File.ReadAllText(file));
                 }
             }
 
