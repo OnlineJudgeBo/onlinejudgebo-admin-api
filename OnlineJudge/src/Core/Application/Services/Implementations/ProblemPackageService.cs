@@ -17,7 +17,7 @@ namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
 // - A special judge travels only as source: data/{problem_id}/checker.cpp (testlib) or
 //   checker_cms.cpp (CMS convention, with its own testlib.h when it has one) is shipped under
 //   output_validators/checker/ and the kernel compiles it where it lands. A Spj=='Y'
-//   problem that only has the legacy HUSTOJ "spj" binary (own ABI: spj input output user_output)
+//   problem that only has the legacy "spj" binary (own ABI: spj input output user_output)
 //   can't be exported: shipping a raw binary under a `validation` lie would be worse than refusing.
 // - data/sample and data/secret keep the judge's own "<n>.in"/"<n>.out" names instead of
 //   ICPC's "<n>.ans" for the answer file: these files are meant to be reusable directly
@@ -63,7 +63,7 @@ public class ProblemPackageService : IProblemPackageService
         {
             throw new InvalidOperationException(
                 "No se puede exportar un problema con juez especial sin checker.cpp: el binario spj " +
-                "usa la interfaz de HUSTOJ, incompatible con el output_validator de ICPC.");
+                "usa una interfaz propia del juez, incompatible con el output_validator de ICPC.");
         }
 
         using var stream = new MemoryStream();
