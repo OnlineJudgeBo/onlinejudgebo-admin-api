@@ -12,12 +12,21 @@ namespace OnlineJudgeAdminApi.Controllers;
 public sealed class ProblemScoringController : ControllerBase
 {
     private readonly ProblemScoringService _scoring;
+    private readonly ProblemReviewService _review;
     private readonly CurrentUser _currentUser;
 
-    public ProblemScoringController(ProblemScoringService scoring, UserClaimsHelper claims)
+    public ProblemScoringController(ProblemScoringService scoring, ProblemReviewService review, UserClaimsHelper claims)
     {
+        _review = review ?? throw new ArgumentNullException(nameof(review));
         _scoring = scoring ?? throw new ArgumentNullException(nameof(scoring));
         _currentUser = (claims ?? throw new ArgumentNullException(nameof(claims))).GetUserContextRole();
+    }
+
+    // The administrator reviews the problems of every site; teachers and assistants, those of their own.
+    [HttpGet("review")]
+    public async Task<IActionResult> ReviewAsync()
+    {
+        return Ok(await _review.ReviewAsync(_currentUser.Role == UserRolesEnum.Administrador ? null : _currentUser.SiteId));
     }
 
     [HttpGet("{problemId:int}/scoring")]

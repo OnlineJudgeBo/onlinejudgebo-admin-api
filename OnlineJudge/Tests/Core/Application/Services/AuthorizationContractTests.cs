@@ -114,6 +114,7 @@ public class AuthorizationContractTests
         ["ContestPackagesController.ExportAsync [GET {contestId:int}/export]"] = "roles:Administrador",
         ["ContestPackagesController.ImportAsync [POST import]"] = "roles:Administrador",
         ["TaskImportController.ImportAsync [POST import-task]"] = "roles:Administrador",
+        ["ProblemScoringController.ReviewAsync [GET review]"] = "roles:Administrador,Auxiliar,Docente",
         ["ProblemScoringController.GetAsync [GET {problemId:int}/scoring]"] = "roles:Administrador,Auxiliar,Docente",
         ["ProblemScoringController.SaveAsync [PUT {problemId:int}/scoring]"] = "roles:Administrador,Auxiliar,Docente",
         ["ContestSimilarityController.GetAsync [GET {contestId:int}/similarity]"] = "roles:Administrador,Auxiliar,Docente",

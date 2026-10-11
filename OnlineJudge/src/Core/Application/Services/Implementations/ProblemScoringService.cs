@@ -96,7 +96,7 @@ public sealed class ProblemScoringService(IProblemService problems, IFileSystemL
     }
 
     // Judge tests are the .in files; the public samples are not scored.
-    private static List<string> AvailableTests(IReadOnlyList<string> fileNames) =>
+    internal static List<string> AvailableTests(IReadOnlyList<string> fileNames) =>
         fileNames
             .Where(name => name.EndsWith(".in", StringComparison.Ordinal))
             .Select(name => name[..^3])
