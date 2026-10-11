@@ -59,5 +59,39 @@ public class FileSystemLocalManagerManager : IFileSystemLocalManagerManager
                     + folderName + Path.DirectorySeparatorChar + fileName;
         File.Delete(path);
     }
-}
 
+    public bool FileExists(string folderName, string fileName) => File.Exists(Resolve(folderName, fileName));
+
+    public async Task SaveFileAsync(string folderName, string fileName, Stream content)
+    {
+        var path = Resolve(folderName, fileName);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await using var stream = new FileStream(path, FileMode.Create);
+        await content.CopyToAsync(stream);
+    }
+
+    // Rejects any fileName that would resolve outside the folder (e.g. "../../etc/passwd") -
+    // Path.Combine alone does not stop ".." segments from escaping the intended directory.
+    private string Resolve(string folderName, string fileName)
+    {
+        if (string.IsNullOrWhiteSpace(_path))
+        {
+            throw new InvalidOperationException("FileSettings:ProblemsFilePath must be configured.");
+        }
+
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            throw new ArgumentException("El nombre del archivo es requerido.");
+        }
+
+        var folder = Path.Combine(_path, folderName);
+        var fullDirectory = Path.GetFullPath(folder + Path.DirectorySeparatorChar);
+        var fullPath = Path.GetFullPath(Path.Combine(folder, fileName));
+        if (!fullPath.StartsWith(fullDirectory, StringComparison.Ordinal))
+        {
+            throw new ArgumentException("Ruta de archivo inválida.");
+        }
+
+        return fullPath;
+    }
+}

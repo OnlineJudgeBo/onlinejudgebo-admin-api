@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
+using OnlineJudgeAdmin.Core.Application.Services.Implementations;
+using OnlineJudgeAdmin.Infrastructure.FileSystemLocalManager;
 using OnlineJudgeAdminApi.Controllers;
 using OnlineJudgeAdminApi.Helpers;
 
@@ -137,10 +139,9 @@ public class FileManagerControllerTests : IDisposable
 
         return new FileManagerController(
             fileManagerService ?? Mock.Of<IFileManagerService>(),
-            problemService ?? Mock.Of<IProblemService>(),
+            new ProblemFilesService(problemService ?? Mock.Of<IProblemService>(), new FileSystemLocalManagerManager(configuration.Object)),
             Mock.Of<IMapper>(),
-            CreateClaimsHelper(siteId, role),
-            configuration.Object);
+            CreateClaimsHelper(siteId, role));
     }
 
     private static IProblemService ProblemServiceReturning(int problemId, int siteId, bool exists)
