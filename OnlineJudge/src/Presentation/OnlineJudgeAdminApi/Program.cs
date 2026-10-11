@@ -17,7 +17,6 @@ using OnlineJudgeAdminApi.ExceptionHandler;
 using OnlineJudgeAdminApi.Helpers;
 using OnlineJudgeAdmin.Infrastructure.Database.Models;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
-using OnlineJudgeAdminApi.Infrastructure;
 
 
 const string IdeAnonymousRoutePrefix = "/api/patito-ide";
@@ -116,20 +115,12 @@ builder.Services.AddApplicationValidators();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddApplicationServices(builder.Configuration);
 builder.Services.AddFileSystemLocalManagerInfrastructureManager(builder.Configuration);
-builder.Services.AddSingleton<IControlGroupStore, ControlGroupHttpStore>();
 builder.Services.AddAwsS3FileManager(builder.Configuration);
 builder.Services.AddIdeIntegrationInfrastructure(builder.Configuration);
 builder.Services.AddHttpInfrastructure();
 builder.Services.AddScoped<IEmailSender, OnlineJudgeAdmin.Infrastructure.Email.SmtpEmailSender>();
 builder.Services.AddScoped<UserClaimsHelper>();
-builder.Services.AddHttpClient(OnlineJudgeAdminApi.Controllers.ContestMachinesController.ControlServerClient, client =>
-{
-    var url = builder.Configuration["ControlServer:Url"];
-    if (!string.IsNullOrWhiteSpace(url))
-    {
-        client.BaseAddress = new Uri(url.TrimEnd('/') + "/");
-    }
-});
+builder.Services.AddControlServer(builder.Configuration);
 
 var app = builder.Build();
 

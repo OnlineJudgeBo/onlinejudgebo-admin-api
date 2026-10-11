@@ -2,16 +2,16 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
 using OnlineJudgeAdmin.Core.Domain.Models;
-using OnlineJudgeAdminApi.Controllers;
+using Microsoft.Extensions.Configuration;
 
-namespace OnlineJudgeAdminApi.Infrastructure;
+namespace OnlineJudgeAdmin.Infrastructure.Http;
 
 // control-server owns groups.json; Patito only asks it to provision an exam group.
 public sealed class ControlGroupHttpStore(IHttpClientFactory httpClientFactory, IConfiguration configuration) : IControlGroupStore
 {
     public async Task EnsureAsync(ControlGroup group)
     {
-        var client = httpClientFactory.CreateClient(ContestMachinesController.ControlServerClient);
+        var client = httpClientFactory.CreateClient(ControlServerHttpClient.ClientName);
         if (client.BaseAddress == null)
         {
             throw new InvalidOperationException("ControlServer:Url is not configured.");
