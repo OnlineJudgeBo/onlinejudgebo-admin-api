@@ -90,6 +90,48 @@ public class ProblemRepository : IProblemRepository
         return _mapper.Map<IEnumerable<Problem>>(problems);
     }
 
+    public async Task<List<ProblemReview>> GetProblemsForReviewAsync(int? siteId)
+    {
+        var rows = await _context.Problems
+            .Where(p => siteId == null
+                ? p.ProblemSites.Any(site => site.IsActive)
+                : p.ProblemSites.Any(site => site.SiteId == siteId && site.IsActive))
+            .OrderByDescending(p => p.ProblemId)
+            .Select(p => new
+            {
+                p.ProblemId,
+                p.Title,
+                p.Description,
+                p.Input,
+                p.Output,
+                p.SampleInput,
+                p.Spj,
+                p.Defunct,
+                p.Accepted,
+                Samples = p.SampleCases.Count,
+                Sites = p.ProblemSites.Where(site => site.IsActive).Select(site => site.Site.Name).ToList(),
+            }).ToListAsync();
+
+        return rows.Select(row => new ProblemReview
+        {
+            ProblemId = row.ProblemId ?? 0,
+            Title = row.Title,
+            Sites = row.Sites,
+            Hidden = row.Defunct == "Y",
+            HasDescription = HasText(row.Description),
+            HasInput = HasText(row.Input),
+            HasOutput = HasText(row.Output),
+            // Old problems keep a single sample in the plain fields.
+            Samples = row.Samples > 0 ? row.Samples : string.IsNullOrWhiteSpace(row.SampleInput) ? 0 : 1,
+            SpecialJudge = row.Spj == "Y",
+            Accepted = row.Accepted ?? 0,
+        }).ToList();
+
+        // The editor leaves markup behind in a field that was emptied.
+        static bool HasText(string? html) =>
+            !string.IsNullOrWhiteSpace(System.Text.RegularExpressions.Regex.Replace(html ?? string.Empty, "<[^>]*>|&nbsp;", string.Empty));
+    }
+
     public async Task<IEnumerable<Problem>> SearchProblemForAdminAsync(string searchTerm, int siteId)
     {
         IQueryable<DbProblem> query = _context.Problems

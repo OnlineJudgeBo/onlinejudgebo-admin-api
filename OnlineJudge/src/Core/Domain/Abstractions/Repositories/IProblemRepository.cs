@@ -6,6 +6,9 @@ public interface IProblemRepository
 {
     public Task<IEnumerable<Problem>> GetAllProblemsAsync(int siteId);
     public Task<IEnumerable<Problem>> GetAllProblemsForAdminAsync(int siteId);
+
+    // Facts for the problem review; without a site, the problems of every site.
+    public Task<List<ProblemReview>> GetProblemsForReviewAsync(int? siteId);
     public Task<Problem> GetProblemByIdAsync(int problemId, int? siteId = null);
     public Task<Problem> CreateProblemAsync(Problem problem, int siteId);
     public Task<Problem> UpdateProblemAsync(string userId, int problemId, Problem problem, int siteId);
