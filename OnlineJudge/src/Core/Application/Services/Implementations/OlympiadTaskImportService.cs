@@ -43,7 +43,6 @@ public sealed class OlympiadTaskImportService(IProblemService problems, IFileSys
 
     private static readonly Regex SubtaskLine = new(@"^#\s*ST:\s*(\d+(?:\.\d+)?)", RegexOptions.Compiled);
     private const string Braces = @"\{(?>[^{}]+|\{(?<open>)|\}(?<-open>))*(?(open)(?!))\}";
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { WriteIndented = true };
 
     private sealed record TaskTest(string Name, string Input, string Output);
 
@@ -117,10 +116,8 @@ public sealed class OlympiadTaskImportService(IProblemService problems, IFileSys
                 files.WriteToFile(folder, test.Name + ".out", File.ReadAllText(test.Output));
             }
 
-            files.WriteToFile(folder, ProblemScoringService.FileName, JsonSerializer.Serialize(new
-            {
-                groups = task.Groups.Select(group => new ProblemScoreGroup { Name = group.Name, Points = group.Points, Type = group.Type, Tests = group.Tests }),
-            }, JsonOptions));
+            files.WriteToFile(folder, ProblemScoringRules.FileName, ProblemScoringRules.Serialize(
+                task.Groups.Select(group => new ProblemScoreGroup { Name = group.Name, Points = group.Points, Type = group.Type, Tests = group.Tests })));
 
             foreach (var (name, path) in task.Grader)
             {
