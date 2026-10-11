@@ -96,7 +96,7 @@ public sealed class FileManagerControllerStorageTests : IDisposable
     [Fact]
     public async Task S3Upload_RequiresFileAndDelegates()
     {
-        _files.Setup(item => item.S3UploadFileAsync(It.IsAny<string>())).ReturnsAsync("https://bucket/1.png");
+        _files.Setup(item => item.S3UploadFileAsync(It.IsAny<Stream>(), "1.png")).ReturnsAsync("https://bucket/1.png");
         var controller = Controller();
 
         Assert.IsType<ContentResult>(await controller.S3UploadFileContentAsync(null!));

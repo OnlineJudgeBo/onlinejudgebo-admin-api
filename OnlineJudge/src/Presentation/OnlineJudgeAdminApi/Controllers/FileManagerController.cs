@@ -37,14 +37,8 @@ public class FileManagerController : ControllerBase
             return Content("No file uploaded.");
         }
 
-        var path = Path.Combine(Path.GetTempPath(), Path.GetFileName(file.FileName));
-
-        using (var stream = new FileStream(path, FileMode.Create))
-        {
-            await file.CopyToAsync(stream);
-        }
-
-        return Ok(await _fileManagerService.S3UploadFileAsync(path));
+        await using var content = file.OpenReadStream();
+        return Ok(await _fileManagerService.S3UploadFileAsync(content, Path.GetFileName(file.FileName)));
     }
 
     // PDF with every statement of an official contest, stored under the contest name.
@@ -70,20 +64,8 @@ public class FileManagerController : ControllerBase
             return BadRequest(new ErrorDetails { StatusCode = 400, Message = "El archivo no es un PDF." });
         }
 
-        var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.pdf");
-        try
-        {
-            await using (var stream = new FileStream(path, FileMode.Create))
-            {
-                await file.CopyToAsync(stream);
-            }
-
-            return Ok(new { url = await _fileManagerService.UploadOfficialContestPdfAsync(name, path) });
-        }
-        finally
-        {
-            System.IO.File.Delete(path);
-        }
+        await using var pdf = file.OpenReadStream();
+        return Ok(new { url = await _fileManagerService.UploadOfficialContestPdfAsync(name, pdf) });
     }
 
     [HttpGet("local-storage")]

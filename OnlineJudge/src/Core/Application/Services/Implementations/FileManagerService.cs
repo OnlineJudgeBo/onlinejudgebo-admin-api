@@ -25,7 +25,7 @@ public class FileManagerService : IFileManagerService
     }
 
     // The statements of an official contest live at officialContests/<contest name>.pdf in the bucket.
-    public async Task<string> UploadOfficialContestPdfAsync(string contestName, string filePath)
+    public async Task<string> UploadOfficialContestPdfAsync(string contestName, Stream content)
     {
         // The name becomes an object key: keep it a single file name.
         string name = string.Concat((contestName ?? string.Empty).Where(c => !char.IsControl(c) && c is not ('/' or '\\'))).Trim();
@@ -40,14 +40,14 @@ public class FileManagerService : IFileManagerService
         }
 
         string bucketName = _configuration.GetSection("Base:BucketName").Value;
-        return await _awsS3FileManager.S3UploadFileAsync(bucketName, $"officialContests/{name}.pdf", filePath);
+        return await _awsS3FileManager.S3UploadFileAsync(bucketName, $"officialContests/{name}.pdf", content, "statements.pdf");
     }
 
-    public async Task<string> S3UploadFileAsync(string filePath)
+    public async Task<string> S3UploadFileAsync(Stream content, string fileName)
     {
         Guid newGuid = Guid.NewGuid();
         string bucketName = _configuration.GetSection("Base:BucketName").Value;
-        return await _awsS3FileManager.S3UploadFileAsync(bucketName, newGuid.ToString(), filePath);
+        return await _awsS3FileManager.S3UploadFileAsync(bucketName, newGuid.ToString(), content, fileName);
     }
 
     public void CreateFolder(string folderName)

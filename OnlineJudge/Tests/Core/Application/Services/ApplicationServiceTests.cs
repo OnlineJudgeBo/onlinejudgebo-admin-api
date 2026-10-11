@@ -93,15 +93,15 @@ public class ApplicationServiceTests
     public async Task FileManagerService_UploadOfficialContestPdfAsync_StoresItUnderTheContestName(string contestName, string expectedKey)
     {
         var awsS3 = new Mock<IAwsS3FileManager>();
-        awsS3.Setup(item => item.S3UploadFileAsync("judge-bucket", expectedKey, "statements.pdf")).ReturnsAsync("https://files/statements.pdf");
+        awsS3.Setup(item => item.S3UploadFileAsync("judge-bucket", expectedKey, Stream.Null, "statements.pdf")).ReturnsAsync("https://files/statements.pdf");
         var bucketSection = new Mock<IConfigurationSection>();
         bucketSection.SetupGet(item => item.Value).Returns("judge-bucket");
         var configuration = new Mock<IConfiguration>();
         configuration.Setup(item => item.GetSection("Base:BucketName")).Returns(bucketSection.Object);
         var service = new FileManagerService(awsS3.Object, Mock.Of<IFileSystemLocalManagerManager>(), configuration.Object, Mock.Of<IValidator<Problem>>());
 
-        Assert.Equal("https://files/statements.pdf", await service.UploadOfficialContestPdfAsync(contestName, "statements.pdf"));
-        await Assert.ThrowsAsync<ArgumentException>(() => service.UploadOfficialContestPdfAsync(" / ", "statements.pdf"));
+        Assert.Equal("https://files/statements.pdf", await service.UploadOfficialContestPdfAsync(contestName, Stream.Null));
+        await Assert.ThrowsAsync<ArgumentException>(() => service.UploadOfficialContestPdfAsync(" / ", Stream.Null));
     }
 
     [Fact]
@@ -111,8 +111,8 @@ public class ApplicationServiceTests
         string? capturedKey = null;
         var awsS3 = new Mock<IAwsS3FileManager>();
         awsS3
-            .Setup(item => item.S3UploadFileAsync(It.IsAny<string>(), It.IsAny<string>(), "solution.zip"))
-            .Callback<string, string, string>((bucket, key, _) =>
+            .Setup(item => item.S3UploadFileAsync(It.IsAny<string>(), It.IsAny<string>(), Stream.Null, "solution.zip"))
+            .Callback<string, string, Stream, string>((bucket, key, _, _) =>
             {
                 capturedBucket = bucket;
                 capturedKey = key;
@@ -124,7 +124,7 @@ public class ApplicationServiceTests
         configuration.Setup(item => item.GetSection("Base:BucketName")).Returns(bucketSection.Object);
         var service = new FileManagerService(awsS3.Object, Mock.Of<IFileSystemLocalManagerManager>(), configuration.Object, Mock.Of<IValidator<Problem>>());
 
-        var url = await service.S3UploadFileAsync("solution.zip");
+        var url = await service.S3UploadFileAsync(Stream.Null, "solution.zip");
 
         Assert.Equal("https://files/solution.zip", url);
         Assert.Equal("judge-bucket", capturedBucket);
