@@ -8,9 +8,6 @@ using OnlineJudgeAdmin.Core.Domain.Models;
 
 namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
 
-// Statement sections, read from the task's LaTeX source or transcribed from its PDF.
-public sealed record TaskStatement(string Description, string Input, string Output, string Hint);
-
 // Imports an olympiad task as a new problem. The format is detected from the zip:
 //
 // CMS, Italian YAML layout (task.yaml)
@@ -39,7 +36,7 @@ public sealed record TaskStatement(string Description, string Input, string Outp
 //
 // Only batch tasks are supported. A task with a grader is solved by writing a function: the judge
 // builds the submission with the grader of its language (grader.cpp, grader.java or grader.py).
-public sealed class OlympiadTaskImportService(IProblemService problems, IFileSystemLocalManagerManager files)
+public sealed class OlympiadTaskImportService(IProblemService problems, IFileSystemLocalManagerManager files, IStatementPdfReader statements) : IOlympiadTaskImportService
 {
     private const int MaxSamples = 5;
     private const int MaxSampleBytes = 20_000;
@@ -71,7 +68,7 @@ public sealed class OlympiadTaskImportService(IProblemService problems, IFileSys
         public string? StatementText;
     }
 
-    public async Task<Problem> ImportAsync(string userId, Stream zipStream, int siteId, Func<string, Task<TaskStatement?>>? readStatement = null)
+    public async Task<Problem> ImportAsync(string userId, Stream zipStream, int siteId)
     {
         var stagingDir = Path.Combine(Path.GetTempPath(), "task-import", Guid.NewGuid().ToString("N"));
         try
@@ -86,7 +83,7 @@ public sealed class OlympiadTaskImportService(IProblemService problems, IFileSys
                 : Find(stagingDir, "problem.json") is { } tps ? ReadTpsTask(tps)
                 : throw new InvalidDataException("El paquete no contiene task.yaml (CMS) ni problem.json (TPS).");
 
-            var statement = task.Statement ?? (task.StatementPdf != null && readStatement != null ? await readStatement(task.StatementPdf) : null);
+            var statement = task.Statement ?? (task.StatementPdf != null ? await statements.ReadAsync(task.StatementPdf) : null);
             var description = statement?.Description
                 ?? (task.StatementText != null
                     ? $"<pre style=\"white-space: pre-wrap\">{System.Net.WebUtility.HtmlEncode(task.StatementText)}</pre>"

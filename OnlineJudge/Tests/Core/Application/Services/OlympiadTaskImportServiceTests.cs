@@ -33,7 +33,13 @@ public class OlympiadTaskImportServiceTests
         }
 
         stream.Position = 0;
-        return new OlympiadTaskImportService(_problems.Object, _files.Object).ImportAsync("admin", stream, 1, readStatement);
+        var statements = new Mock<IStatementPdfReader>();
+        if (readStatement != null)
+        {
+            statements.Setup(item => item.ReadAsync(It.IsAny<string>())).Returns(readStatement);
+        }
+
+        return new OlympiadTaskImportService(_problems.Object, _files.Object, statements.Object).ImportAsync("admin", stream, 1);
     }
 
     private static Dictionary<string, string> Task(int tests, string gen = "", string yaml = "")
