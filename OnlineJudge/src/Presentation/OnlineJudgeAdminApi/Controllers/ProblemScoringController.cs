@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using OnlineJudgeAdmin.Core.Application.Services.Implementations;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
 using OnlineJudgeAdminApi.Helpers;
 
@@ -11,11 +11,11 @@ namespace OnlineJudgeAdminApi.Controllers;
 [Authorize(Roles = AuthorizationRoles.AdministradorDocenteAuxiliar)]
 public sealed class ProblemScoringController : ControllerBase
 {
-    private readonly ProblemScoringService _scoring;
-    private readonly ProblemReviewService _review;
+    private readonly IProblemScoringService _scoring;
+    private readonly IProblemReviewService _review;
     private readonly CurrentUser _currentUser;
 
-    public ProblemScoringController(ProblemScoringService scoring, ProblemReviewService review, UserClaimsHelper claims)
+    public ProblemScoringController(IProblemScoringService scoring, IProblemReviewService review, UserClaimsHelper claims)
     {
         _review = review ?? throw new ArgumentNullException(nameof(review));
         _scoring = scoring ?? throw new ArgumentNullException(nameof(scoring));

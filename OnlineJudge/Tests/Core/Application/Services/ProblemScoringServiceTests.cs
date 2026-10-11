@@ -27,7 +27,7 @@ public class ProblemScoringServiceTests
     [InlineData("s1.01", "s1_01", false)]
     public void Matches_FollowsGlobRules(string pattern, string test, bool expected)
     {
-        Assert.Equal(expected, ProblemScoringService.Matches(pattern, test));
+        Assert.Equal(expected, ProblemScoringRules.Matches(pattern, test));
     }
 
     [Fact]
@@ -43,7 +43,7 @@ public class ProblemScoringServiceTests
 
         Assert.Equal(new[] { "s1_01", "s1_02", "s2_01" }, saved.AvailableTests);
         Assert.Equal(new[] { "Grupo 1", "Difícil" }, saved.Groups.Select(group => group.Name));
-        var roundTrip = ProblemScoringService.Parse(Encoding.UTF8.GetBytes(written!));
+        var roundTrip = ProblemScoringRules.Parse(Encoding.UTF8.GetBytes(written!));
         Assert.Equal(new[] { "sum", "min" }, roundTrip.Groups.Select(group => group.Type));
         Assert.Equal(new[] { "s2_*" }, roundTrip.Groups[1].Tests);
         Assert.Contains("\"groups\"", written);

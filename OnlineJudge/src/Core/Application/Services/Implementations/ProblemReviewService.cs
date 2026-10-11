@@ -1,11 +1,12 @@
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
 
 namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
 
 // Read-only check of every problem: what is missing in its statement and in its judge files.
-public sealed class ProblemReviewService(IProblemRepository problems, IFileSystemLocalManagerManager files)
+public sealed class ProblemReviewService(IProblemRepository problems, IFileSystemLocalManagerManager files) : IProblemReviewService
 {
     private static readonly string[] Checkers = ["checker.cpp", "checker_cms.cpp", "spj"];
 
@@ -34,7 +35,7 @@ public sealed class ProblemReviewService(IProblemRepository problems, IFileSyste
         var names = files.ListFiles(folder);
         var inputs = names.Where(name => name.EndsWith(".in", StringComparison.Ordinal)).Select(name => name[..^3]).ToList();
         var outputs = names.Where(name => name.EndsWith(".out", StringComparison.Ordinal)).Select(name => name[..^4]).ToList();
-        var tests = ProblemScoringService.AvailableTests(names);
+        var tests = ProblemScoringRules.AvailableTests(names);
         review.Tests = tests.Count;
 
         if (inputs.Count == 0)
@@ -61,15 +62,15 @@ public sealed class ProblemReviewService(IProblemRepository problems, IFileSyste
             Add("no-checker", "Juez especial sin checker");
         }
 
-        if (names.Contains(ProblemScoringService.FileName))
+        if (names.Contains(ProblemScoringRules.FileName))
         {
-            var groups = ProblemScoringService.Parse(files.ReadFile(folder, ProblemScoringService.FileName)).Groups;
+            var groups = ProblemScoringRules.Parse(files.ReadFile(folder, ProblemScoringRules.FileName)).Groups;
             if (groups.Sum(group => group.Points) is var total && total != 100)
             {
                 Add("subtasks", $"Las subtareas suman {total:0.##} puntos, no 100");
             }
 
-            foreach (var group in groups.Where(group => !tests.Any(test => (group.Tests ?? []).Any(pattern => ProblemScoringService.Matches(pattern, test)))))
+            foreach (var group in groups.Where(group => !tests.Any(test => (group.Tests ?? []).Any(pattern => ProblemScoringRules.Matches(pattern, test)))))
             {
                 Add("subtasks", $"La subtarea {group.Name} no toma ningún caso");
             }

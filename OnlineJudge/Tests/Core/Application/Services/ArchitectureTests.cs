@@ -80,6 +80,7 @@ public class ArchitectureTests
                      let dependency = parameter.ParameterType
                      where (dependency.Namespace ?? string.Empty).StartsWith(Abstractions + ".Repositories", StringComparison.Ordinal)
                          || (dependency.Namespace ?? string.Empty).StartsWith("OnlineJudgeAdmin.Infrastructure", StringComparison.Ordinal)
+                         || (dependency.Namespace ?? string.Empty).StartsWith("OnlineJudgeAdmin.Core.Application", StringComparison.Ordinal)
                          || dependency == typeof(IHttpClientFactory)
                          || dependency == typeof(HttpClient)
                      select $"{type.Name} -> {dependency.Name}";

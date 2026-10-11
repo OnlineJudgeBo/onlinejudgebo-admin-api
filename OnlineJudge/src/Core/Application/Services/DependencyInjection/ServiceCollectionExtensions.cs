@@ -16,11 +16,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProblemClassifierService, ProblemClassifierService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IContestService, ContestService>();
-        services.AddScoped<ContestPackageService>();
-        services.AddScoped<ProblemScoringService>();
-        services.AddScoped<ProblemReviewService>();
+        services.AddScoped<IContestPackageService, ContestPackageService>();
+        services.AddScoped<IProblemScoringService, ProblemScoringService>();
+        services.AddScoped<IProblemReviewService, ProblemReviewService>();
         services.AddScoped<IOlympiadTaskImportService, OlympiadTaskImportService>();
-        services.AddScoped<ContestSimilarityService>();
+        services.AddScoped<IContestSimilarityService, ContestSimilarityService>();
         services.AddScoped<IContestMachinesService, ContestMachinesService>();
         services.AddScoped<IMachinesPanelService, MachinesPanelService>();
         services.AddScoped<IRoleService, RoleService>();

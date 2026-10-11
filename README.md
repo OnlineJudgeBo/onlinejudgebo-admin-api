@@ -135,7 +135,7 @@ Los controllers deben quedar cortos. No pongas consultas de EF Core ni reglas de
 - `Application` solo depende de `Domain`.
 - Cada proyecto de `Infrastructure` solo depende de `Domain`.
 - `Core` no usa librerías de red, correo, web, base de datos ni nube (`HttpClient`, `SmtpClient`, ASP.NET, EF Core, AWS).
-- Los controllers no reciben repositorios, clases de infraestructura ni `IHttpClientFactory`.
+- Los controllers no reciben repositorios, clases de infraestructura, servicios concretos ni `IHttpClientFactory`; solo interfaces de `Domain/Abstractions`.
 
 Si un servicio necesita algo de afuera (una API, correo, disco), se declara una interfaz en
 `Domain/Abstractions/Infrastructure`, se implementa en un proyecto de `Infrastructure` y se registra en `Program.cs`.

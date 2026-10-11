@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using OnlineJudgeAdmin.Core.Application.Services.Implementations;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
 using OnlineJudgeAdminApi.Helpers;
 
@@ -11,10 +11,10 @@ namespace OnlineJudgeAdminApi.Controllers;
 [Authorize(Roles = AuthorizationRoles.AdministradorDocenteAuxiliar)]
 public sealed class ContestSimilarityController : ControllerBase
 {
-    private readonly ContestSimilarityService _similarity;
+    private readonly IContestSimilarityService _similarity;
     private readonly CurrentUser _currentUser;
 
-    public ContestSimilarityController(ContestSimilarityService similarity, UserClaimsHelper claims)
+    public ContestSimilarityController(IContestSimilarityService similarity, UserClaimsHelper claims)
     {
         _similarity = similarity ?? throw new ArgumentNullException(nameof(similarity));
         _currentUser = (claims ?? throw new ArgumentNullException(nameof(claims))).GetUserContextRole();

@@ -9,7 +9,7 @@ namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
 public sealed class ContestPackageService(
     IContestService contests,
     IProblemPackageService problems,
-    IProgrammingLanguageService languages)
+    IProgrammingLanguageService languages) : IContestPackageService
 {
     private const int MaxProblems = 500;
     private const long MaxProblemPackageBytes = 200_000_000;

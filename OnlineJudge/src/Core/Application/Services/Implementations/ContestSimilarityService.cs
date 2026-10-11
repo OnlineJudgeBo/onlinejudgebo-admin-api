@@ -1,12 +1,13 @@
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
 
 namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
 
 // Similarity is computed by the judge kernel (Dolos). This only leaves the request file that
 // judged watches in the shared data folder and reads what the kernel wrote to similar_code.
-public sealed class ContestSimilarityService(IContestsRepository contests, IFileSystemLocalManagerManager files)
+public sealed class ContestSimilarityService(IContestsRepository contests, IFileSystemLocalManagerManager files) : IContestSimilarityService
 {
     private const string RequestFile = "similarity.request";
 

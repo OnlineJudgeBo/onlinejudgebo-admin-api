@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using OnlineJudgeAdmin.Core.Application.Services.Implementations;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
 using OnlineJudgeAdminApi.DataTransferObjects;
 using OnlineJudgeAdminApi.Helpers;
@@ -13,10 +13,10 @@ namespace OnlineJudgeAdminApi.Controllers;
 [Authorize(Roles = AuthorizationRoles.Administrador)]
 public sealed class ContestPackagesController : ControllerBase
 {
-    private readonly ContestPackageService _packages;
+    private readonly IContestPackageService _packages;
     private readonly CurrentUser _currentUser;
 
-    public ContestPackagesController(ContestPackageService packages, UserClaimsHelper claims)
+    public ContestPackagesController(IContestPackageService packages, UserClaimsHelper claims)
     {
         _packages = packages ?? throw new ArgumentNullException(nameof(packages));
         _currentUser = (claims ?? throw new ArgumentNullException(nameof(claims))).GetUserContextRole();

@@ -79,7 +79,7 @@ public class OlympiadTaskImportServiceTests
         Assert.Equal("in1", _written["s01_002.in"]);
         Assert.Equal("out2", _written["s02_001.out"]);
         Assert.Equal("// cms checker", _written["checker_cms.cpp"]);
-        var scoring = ProblemScoringService.Parse(Encoding.UTF8.GetBytes(_written["scoring.json"]));
+        var scoring = ProblemScoringRules.Parse(Encoding.UTF8.GetBytes(_written["scoring.json"]));
         Assert.Equal(new[] { 30m, 70m }, scoring.Groups.Select(group => group.Points));
         Assert.All(scoring.Groups, group => Assert.Equal("min", group.Type));
         Assert.Equal(new[] { "s02_*" }, scoring.Groups[1].Tests);
@@ -123,7 +123,7 @@ public class OlympiadTaskImportServiceTests
         Assert.Equal("in 2-01", _written["2-01.in"]);
         Assert.Equal("// tps checker", _written["checker_cms.cpp"]);
         Assert.Equal("// tps testlib", _written["testlib.h"]);
-        var scoring = ProblemScoringService.Parse(Encoding.UTF8.GetBytes(_written["scoring.json"]));
+        var scoring = ProblemScoringRules.Parse(Encoding.UTF8.GetBytes(_written["scoring.json"]));
         Assert.Equal(new[] { "easy", "full" }, scoring.Groups.Select(group => group.Name));
         Assert.Equal(new[] { 40m, 60m }, scoring.Groups.Select(group => group.Points));
         Assert.Equal(new[] { "0-01", "1-01", "2-01" }, scoring.Groups[1].Tests);
@@ -159,7 +159,7 @@ public class OlympiadTaskImportServiceTests
         Assert.Equal("// exported checker", _written["checker_cms.cpp"]);
         Assert.Equal("// exported testlib", _written["testlib.h"]);
         Assert.DoesNotContain("grader.cpp", _written.Keys);
-        var scoring = ProblemScoringService.Parse(Encoding.UTF8.GetBytes(_written["scoring.json"]));
+        var scoring = ProblemScoringRules.Parse(Encoding.UTF8.GetBytes(_written["scoring.json"]));
         Assert.Equal(new[] { "small", "full" }, scoring.Groups.Select(group => group.Name));
         Assert.Equal(new[] { 30m, 70m }, scoring.Groups.Select(group => group.Points));
         Assert.Equal(new[] { "1-01", "2-01" }, scoring.Groups[1].Tests);
@@ -258,7 +258,7 @@ public class OlympiadTaskImportServiceTests
         await Import(Task(4));
 
         Assert.Equal("N", _created!.Spj);
-        var group = Assert.Single(ProblemScoringService.Parse(Encoding.UTF8.GetBytes(_written["scoring.json"])).Groups);
+        var group = Assert.Single(ProblemScoringRules.Parse(Encoding.UTF8.GetBytes(_written["scoring.json"])).Groups);
         Assert.Equal((100m, "sum"), (group.Points, group.Type));
         Assert.Contains("s01_004.in", _written.Keys);
     }
