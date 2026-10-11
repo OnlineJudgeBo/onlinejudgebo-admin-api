@@ -1,8 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Net.Http.Headers;
-using System.Text;
 using Microsoft.Extensions.Logging;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
@@ -24,23 +23,21 @@ public class ProblemClassifierService : IProblemClassifierService
     // where that tier earns its cost.
     private const string DefaultModel = "google/gemini-3.1-flash-lite";
     private const int MaxSuggestions = 2;
-    private static readonly HttpClient HttpClient = new();
 
     private readonly ITopicRepository _topicRepository;
     private readonly ILogger<ProblemClassifierService> _logger;
+    private readonly IChatCompletionClient _chat;
 
-    public ProblemClassifierService(ITopicRepository topicRepository, ILogger<ProblemClassifierService> logger)
+    public ProblemClassifierService(ITopicRepository topicRepository, ILogger<ProblemClassifierService> logger, IChatCompletionClient chat)
     {
+        _chat = chat ?? throw new ArgumentNullException(nameof(chat));
         _topicRepository = topicRepository ?? throw new ArgumentNullException(nameof(topicRepository));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public static bool IsConfigured =>
-        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENROUTER_API_KEY"));
-
     public async Task<ProblemClassificationSuggestion> SuggestClassificationsAsync(Problem problem)
     {
-        if (!IsConfigured)
+        if (!_chat.IsConfigured)
         {
             _logger.LogWarning("OpenRouter classifier unavailable: API key is not configured.");
             // Deliberately doesn't name the env var or the provider here: this string
@@ -123,50 +120,17 @@ public class ProblemClassifierService : IProblemClassifierService
             var model = Environment.GetEnvironmentVariable("OPENROUTER_CLASSIFIER_MODEL") ?? DefaultModel;
             _logger.LogInformation("Requesting classification suggestions from OpenRouter. Model={Model}; CandidateCount={CandidateCount}", model, options.Count);
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, "https://openrouter.ai/api/v1/chat/completions");
-            request.Headers.Authorization = new AuthenticationHeaderValue(
-                "Bearer", Environment.GetEnvironmentVariable("OPENROUTER_API_KEY"));
-            request.Content = new StringContent(JsonSerializer.Serialize(new
-            {
-                model,
-                max_tokens = 1024,
-                provider = new { require_parameters = true },
-                messages = new[]
-                {
-                    new { role = "system", content = systemPrompt },
-                    new { role = "user", content = BuildStatementText(problem) }
-                },
-                response_format = new
-                {
-                    type = "json_schema",
-                    json_schema = new { name = "problem_classifications", strict = true, schema }
-                }
-            }), Encoding.UTF8, "application/json");
-
-            using HttpResponseMessage response = await HttpClient.SendAsync(request);
-            string responseBody = await response.Content.ReadAsStringAsync();
-            var requestId = response.Headers.TryGetValues("x-openrouter-request-id", out var requestIds)
-                ? requestIds.FirstOrDefault()
-                : null;
-            if (!response.IsSuccessStatusCode)
+            var completion = await _chat.CompleteJsonAsync(model, systemPrompt, BuildStatementText(problem), "problem_classifications", schema);
+            var completionId = completion.RequestId;
+            var responseModel = completion.Model;
+            if (!completion.Success)
             {
                 _logger.LogError("OpenRouter classifier request failed. StatusCode={StatusCode}; Model={Model}; RequestId={RequestId}",
-                    (int)response.StatusCode, model, requestId ?? "unavailable");
+                    completion.StatusCode, model, completionId ?? "unavailable");
                 return Unavailable("No se pudo generar una sugerencia en este momento.");
             }
 
-            using var completion = JsonDocument.Parse(responseBody);
-            var completionId = completion.RootElement.TryGetProperty("id", out var idElement) ? idElement.GetString() : requestId;
-            var responseModel = completion.RootElement.TryGetProperty("model", out var modelElement) ? modelElement.GetString() : model;
-            if (!completion.RootElement.TryGetProperty("choices", out var choices)
-                || choices.ValueKind != JsonValueKind.Array
-                || choices.GetArrayLength() == 0
-                || choices[0].ValueKind != JsonValueKind.Object
-                || !choices[0].TryGetProperty("message", out var message)
-                || message.ValueKind != JsonValueKind.Object
-                || !message.TryGetProperty("content", out var content)
-                || content.ValueKind != JsonValueKind.String
-                || content.GetString() is not { } json)
+            if (completion.Content is not { } json)
             {
                 _logger.LogWarning("OpenRouter classifier returned an invalid completion shape. Model={Model}; RequestId={RequestId}",
                     responseModel, completionId ?? "unavailable");

@@ -46,8 +46,11 @@ public class ProblemPackageService : IProblemPackageService
     private readonly IProblemService _problemService;
     private readonly IFileSystemLocalManagerManager _fileManager;
 
-    public ProblemPackageService(IProblemService problemService, IFileSystemLocalManagerManager fileManager)
+    private readonly IRemoteFileReader _remoteFiles;
+
+    public ProblemPackageService(IProblemService problemService, IFileSystemLocalManagerManager fileManager, IRemoteFileReader remoteFiles)
     {
+        _remoteFiles = remoteFiles ?? throw new ArgumentNullException(nameof(remoteFiles));
         _problemService = problemService ?? throw new ArgumentNullException(nameof(problemService));
         _fileManager = fileManager ?? throw new ArgumentNullException(nameof(fileManager));
     }
@@ -215,12 +218,11 @@ public class ProblemPackageService : IProblemPackageService
     // URLs; anything else (e.g. a relative path we can't resolve) is left untouched in place.
     private static readonly Regex ImgSrcPattern = new("<img[^>]+src\\s*=\\s*\"(?<src>[^\"]+)\"", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    private static async Task<(string Html, List<(string Name, byte[] Bytes)> Images)> ExtractImagesAsync(string html)
+    private async Task<(string Html, List<(string Name, byte[] Bytes)> Images)> ExtractImagesAsync(string html)
     {
         var images = new List<(string, byte[])>();
         var seen = new HashSet<string>(); // avoid re-fetching/duplicating an identical src repeated in the same statement
         var index = 0;
-        using var httpClient = new HttpClient();
 
         var matches = ImgSrcPattern.Matches(html);
         foreach (Match match in matches)
@@ -255,14 +257,12 @@ public class ProblemPackageService : IProblemPackageService
             {
                 try
                 {
-                    using var response = await httpClient.GetAsync(src);
-                    response.EnsureSuccessStatusCode();
-                    bytes = await response.Content.ReadAsByteArrayAsync();
+                    (bytes, var mediaType) = await _remoteFiles.ReadAsync(src);
 
                     // Prefer the real Content-Type over guessing from the URL path - lots of
                     // image-serving endpoints (uploads, S3, a custom /files/{id}) have no
                     // extension in the path at all, which used to fall through to ".bin".
-                    extension = MimeTypeToExtension(response.Content.Headers.ContentType?.MediaType);
+                    extension = MimeTypeToExtension(mediaType);
                     if (extension == "bin")
                     {
                         var pathExtension = Path.GetExtension(new Uri(src).AbsolutePath).TrimStart('.');

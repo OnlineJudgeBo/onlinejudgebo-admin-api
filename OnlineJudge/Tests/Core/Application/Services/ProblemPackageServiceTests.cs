@@ -547,7 +547,8 @@ public class ProblemPackageServiceTests
     {
         return new ProblemPackageService(
             problemService ?? Mock.Of<IProblemService>(),
-            fileManager ?? DefaultFileManager());
+            fileManager ?? DefaultFileManager(),
+            Mock.Of<IRemoteFileReader>());
     }
 
     private static IFileSystemLocalManagerManager DefaultFileManager()

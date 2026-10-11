@@ -1,3 +1,4 @@
+using OnlineJudgeAdmin.Infrastructure.Http.DependencyInjection;
 using System.IO.Compression;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -32,6 +33,7 @@ builder.Services.AddDatabaseRepositories(builder.Configuration);
 builder.Services.AddApplicationValidators();
 builder.Services.AddApplicationServices(builder.Configuration);
 builder.Services.AddFileSystemLocalManagerInfrastructureManager(builder.Configuration);
+builder.Services.AddHttpInfrastructure();
 
 using var host = builder.Build();
 var problemService = host.Services.GetRequiredService<IProblemService>();

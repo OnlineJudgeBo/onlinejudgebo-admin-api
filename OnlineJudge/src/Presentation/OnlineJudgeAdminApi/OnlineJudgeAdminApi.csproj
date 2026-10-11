@@ -34,6 +34,7 @@
     <ProjectReference Include="..\..\Infrastructure\OnlineJudgeAdmin.Infrastructure.FileSystemLocalManager\OnlineJudgeAdmin.Infrastructure.FileSystemLocalManager.csproj" />
     <ProjectReference Include="..\..\Infrastructure\OnlineJudgeAdmin.Infrastructure.IdeIntegration\OnlineJudgeAdmin.Infrastructure.IdeIntegration.csproj" />
     <ProjectReference Include="..\..\Infrastructure\OnlineJudgeAdmin.Infrastructure.Email\OnlineJudgeAdmin.Infrastructure.Email.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\OnlineJudgeAdmin.Infrastructure.Http\OnlineJudgeAdmin.Infrastructure.Http.csproj" />
     <ProjectReference Include="..\OnlineJudgeAdmin.BocaImporter\OnlineJudgeAdmin.BocaImporter.csproj" />
 
   </ItemGroup>
