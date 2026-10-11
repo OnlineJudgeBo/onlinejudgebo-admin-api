@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
+using OnlineJudgeAdmin.Core.Application.Services.Implementations;
 using OnlineJudgeAdminApi.Controllers;
 using static ControllerTestSupport;
 
@@ -24,22 +25,22 @@ public sealed class FileManagerControllerStorageTests : IDisposable
     private FileManagerController Controller(Dictionary<string, string?>? settings = null)
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(settings ?? new Dictionary<string, string?> { ["FileSettings:ProblemsFilePath"] = _root }).Build();
-        return new FileManagerController(_files.Object, _problems.Object, ApiMapper, Claims(AuthenticatedContext("teacher", 1, "Docente")), configuration);
+        return new FileManagerController(_files.Object, new ProblemFilesService(_problems.Object, new FileSystemLocalManagerManager(configuration)), ApiMapper, Claims(AuthenticatedContext("teacher", 1, "Docente")));
     }
 
     private static IFormFile Upload(string content, string name = "1.in") =>
         new FormFile(new MemoryStream(Encoding.UTF8.GetBytes(content)), 0, Encoding.UTF8.GetByteCount(content), "file", name);
 
     [Fact]
-    public void Constructor_RequiresProblemsPathAndDependencies()
+    public async Task RequiresProblemsPathAndDependencies()
     {
-        Assert.Throws<InvalidOperationException>(() => Controller(new Dictionary<string, string?>()));
-        var configuration = new ConfigurationBuilder().Build();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Controller(new Dictionary<string, string?>()).GetFileContent(1000, "1.in"));
+        var problemFiles = Mock.Of<IProblemFilesService>();
         var claims = Claims(AuthenticatedContext());
-        Assert.Throws<ArgumentNullException>(() => new FileManagerController(null!, _problems.Object, ApiMapper, claims, configuration));
-        Assert.Throws<ArgumentNullException>(() => new FileManagerController(_files.Object, null!, ApiMapper, claims, configuration));
-        Assert.Throws<ArgumentNullException>(() => new FileManagerController(_files.Object, _problems.Object, null!, claims, configuration));
-        Assert.Throws<ArgumentNullException>(() => new FileManagerController(_files.Object, _problems.Object, ApiMapper, null!, configuration));
+        Assert.Throws<ArgumentNullException>(() => new FileManagerController(null!, problemFiles, ApiMapper, claims));
+        Assert.Throws<ArgumentNullException>(() => new FileManagerController(_files.Object, null!, ApiMapper, claims));
+        Assert.Throws<ArgumentNullException>(() => new FileManagerController(_files.Object, problemFiles, null!, claims));
+        Assert.Throws<ArgumentNullException>(() => new FileManagerController(_files.Object, problemFiles, ApiMapper, null!));
     }
 
     [Fact]

@@ -13,4 +13,10 @@ public interface IFileSystemLocalManagerManager
 
     // No-op if the file doesn't exist, matching File.Delete's own semantics.
     void DeleteFile(string folderName, string fileName);
+
+    // The two below reject a fileName that would leave the folder (ArgumentException).
+    bool FileExists(string folderName, string fileName);
+
+    // fileName may include subfolders; they are created.
+    Task SaveFileAsync(string folderName, string fileName, Stream content);
 }

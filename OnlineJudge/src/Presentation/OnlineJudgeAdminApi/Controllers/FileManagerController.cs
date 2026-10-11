@@ -1,7 +1,6 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
 using OnlineJudgeAdminApi.Helpers;
@@ -14,27 +13,20 @@ namespace OnlineJudgeAdminApi.Controllers;
 public class FileManagerController : ControllerBase
 {
     private readonly IFileManagerService _fileManagerService;
-    private readonly IProblemService _problemService;
+    private readonly IProblemFilesService _problemFiles;
     private readonly IMapper _mapper;
     private readonly CurrentUser _currentUser;
-    private readonly string baseDirectory;
 
     public FileManagerController(
         IFileManagerService fileManagerService,
-        IProblemService problemService,
+        IProblemFilesService problemFiles,
         IMapper mapper,
-        UserClaimsHelper userClaimsHelper,
-        IConfiguration configuration)
+        UserClaimsHelper userClaimsHelper)
     {
         _fileManagerService = fileManagerService ?? throw new ArgumentNullException(nameof(fileManagerService));
-        _problemService = problemService ?? throw new ArgumentNullException(nameof(problemService));
+        _problemFiles = problemFiles ?? throw new ArgumentNullException(nameof(problemFiles));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         _currentUser = (userClaimsHelper ?? throw new ArgumentNullException(nameof(userClaimsHelper))).GetUserContextRole();
-        // Same location IFileSystemLocalManagerManager (and this file's own writes) use -
-        // this used to be hardcoded to /tmp/zas, disconnected from where problem files
-        // (including test data) actually live, so this page always showed empty.
-        baseDirectory = configuration["FileSettings:ProblemsFilePath"]
-            ?? throw new InvalidOperationException("FileSettings:ProblemsFilePath must be configured.");
     }
 
     [HttpPost("cloud-storage")]
@@ -97,93 +89,24 @@ public class FileManagerController : ControllerBase
     [HttpGet("local-storage")]
     public async Task<IActionResult> GetFiles(int problemId)
     {
-        await EnsureProblemBelongsToSiteAsync(problemId);
-        var result = GetDirectoryContents(GetProblemDirectory(problemId));
-        return Ok(result);
+        return Ok(Listing(await _problemFiles.ListAsync(problemId, _currentUser.SiteId)));
     }
 
     [HttpGet("local-storage/ac")]
     public async Task<IActionResult> GetFilesAc(int problemId)
     {
-        await EnsureProblemBelongsToSiteAsync(problemId);
-        var result = GetDirectoryContents(Path.Combine(GetProblemDirectory(problemId), "ac"));
-        return Ok(result);
+        return Ok(Listing(await _problemFiles.ListAsync(problemId, _currentUser.SiteId, accepted: true)));
     }
 
-    private async Task EnsureProblemBelongsToSiteAsync(int problemId)
-    {
-        var problem = await _problemService.GetProblemByIdAsync(problemId, _currentUser.SiteId);
-        if (problem == null)
-        {
-            throw new KeyNotFoundException("No se encontró el problema con ID: " + problemId);
-        }
-    }
-
-    private string GetProblemDirectory(int problemId)
-    {
-        return Path.Combine(baseDirectory, problemId.ToString());
-    }
-
-    // Rejects any fileName that would resolve outside problemDirectory (e.g. "../../etc/passwd") -
-    // Path.Combine alone does not stop ".." segments from escaping the intended directory.
-    private static string ResolveFilePath(string problemDirectory, string fileName)
-    {
-        if (string.IsNullOrWhiteSpace(fileName))
-        {
-            throw new ArgumentException("El nombre del archivo es requerido.");
-        }
-
-        var fullDirectory = Path.GetFullPath(problemDirectory + Path.DirectorySeparatorChar);
-        var fullPath = Path.GetFullPath(Path.Combine(problemDirectory, fileName));
-
-        if (!fullPath.StartsWith(fullDirectory, StringComparison.Ordinal))
-        {
-            throw new ArgumentException("Ruta de archivo inválida.");
-        }
-
-        return fullPath;
-    }
-
-    private static object GetDirectoryContents(string path, string? rootPath = null)
-    {
-        Console.WriteLine($"Getting directory contents for path: {path}.");
-        if (!Directory.Exists(path))
-        {
-            Console.WriteLine($"Directory does not exist for path: {path}.");
-            return Array.Empty<object>();
-        }
-
-        DirectoryInfo directoryInfo = new DirectoryInfo(path);
-        rootPath ??= path;
-
-        var directoryContents = directoryInfo.GetFiles()
-            .Select(file => new
-            {
-                Name = file.Name,
-                Type = "file",
-                Path = file.FullName.Substring(rootPath.Length).Replace("\\", "/"),
-                Children = Array.Empty<object>()
-            })
-            .OrderBy(x => x.Name)
-            .Cast<object>()
-            .ToList();
-
-        Console.WriteLine($"Directory contents retrieved for path: {path}.");
-        return directoryContents;
-    }
+    private static List<object> Listing(IReadOnlyList<string> names) => names
+        .Select(name => (object)new { Name = name, Type = "file", Path = "/" + name, Children = Array.Empty<object>() })
+        .ToList();
 
     [HttpGet("local-storage/content")]
     public async Task<IActionResult> GetFileContent(int problemId, string fileName)
     {
-        await EnsureProblemBelongsToSiteAsync(problemId);
-        var filePath = ResolveFilePath(GetProblemDirectory(problemId), fileName);
-        if (!System.IO.File.Exists(filePath))
-        {
-            return NotFound();
-        }
-
-        var content = System.IO.File.ReadAllText(filePath);
-        return Ok(content);
+        var content = await _problemFiles.ReadAsync(problemId, _currentUser.SiteId, fileName);
+        return content == null ? NotFound() : Ok(content);
     }
 
     [HttpPost("local-storage")]
@@ -194,37 +117,14 @@ public class FileManagerController : ControllerBase
             return BadRequest("Upload a file.");
         }
 
-        await EnsureProblemBelongsToSiteAsync(problemId);
-
-        var directoryPath = GetProblemDirectory(problemId);
-        var filePath = ResolveFilePath(directoryPath, fileName);
-        Directory.CreateDirectory(directoryPath);
-
-        var targetDirectory = Path.GetDirectoryName(filePath);
-
-        if (!string.IsNullOrWhiteSpace(targetDirectory))
-        {
-            Directory.CreateDirectory(targetDirectory);
-        }
-
-        using (var stream = new FileStream(filePath, FileMode.Create))
-        {
-            await file.CopyToAsync(stream);
-        }
+        await using var content = file.OpenReadStream();
+        await _problemFiles.SaveAsync(problemId, _currentUser.SiteId, fileName, content);
         return Ok(new { file.FileName, file.Length });
     }
 
     [HttpDelete("local-storage")]
     public async Task<IActionResult> DeleteFile(int problemId, string fileName)
     {
-        await EnsureProblemBelongsToSiteAsync(problemId);
-        var filePath = ResolveFilePath(GetProblemDirectory(problemId), fileName);
-        if (!System.IO.File.Exists(filePath))
-        {
-            return NotFound();
-        }
-
-        System.IO.File.Delete(filePath);
-        return Ok();
+        return await _problemFiles.DeleteAsync(problemId, _currentUser.SiteId, fileName) ? Ok() : NotFound();
     }
 }
