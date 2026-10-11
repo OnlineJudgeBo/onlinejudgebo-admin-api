@@ -127,6 +127,19 @@ Controller -> Service -> Repository -> DbContext -> MariaDB
 
 Los controllers deben quedar cortos. No pongas consultas de EF Core ni reglas de negocio dentro de ellos.
 
+### Reglas que se revisan solas
+
+`ArchitectureTests` falla en `dotnet test` cuando alguna de estas reglas se rompe:
+
+- `Domain/Models` no depende de ningún otro proyecto, y `Domain/Abstractions` solo de `Models`.
+- `Application` solo depende de `Domain`.
+- Cada proyecto de `Infrastructure` solo depende de `Domain`.
+- `Core` no usa librerías de red, correo, web, base de datos ni nube (`HttpClient`, `SmtpClient`, ASP.NET, EF Core, AWS).
+- Los controllers no reciben repositorios, clases de infraestructura ni `IHttpClientFactory`.
+
+Si un servicio necesita algo de afuera (una API, correo, disco), se declara una interfaz en
+`Domain/Abstractions/Infrastructure`, se implementa en un proyecto de `Infrastructure` y se registra en `Program.cs`.
+
 ## Estructura del proyecto
 
 ```text
@@ -144,7 +157,9 @@ Los controllers deben quedar cortos. No pongas consultas de EF Core ni reglas de
 │   │   │   ├── ...Database/       EF Core y repositorios
 │   │   │   ├── ...AwsS3/          almacenamiento S3
 │   │   │   ├── ...FileSystem.../  archivos locales
-│   │   │   └── ...IdeIntegration/ conexión con el IDE
+│   │   │   ├── ...IdeIntegration/ conexión con el IDE
+│   │   │   ├── ...Email/          envío de correo por SMTP
+│   │   │   └── ...Http/           OpenRouter, descargas y control-server
 │   │   └── Presentation/
 │   │       └── OnlineJudgeAdminApi/
 │   │           ├── Controllers/    endpoints HTTP
