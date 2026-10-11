@@ -14,9 +14,11 @@ namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
 //   round-trip source when re-importing into this same system - statement/<lang>/problem.md
 //   and problem.html are a best-effort, portable *rendition* for viewing elsewhere, not
 //   used for reimport, since HTML-with-embedded-images has no lossless ICPC-native slot.
-// - Spj=='Y' problems can't be exported: onlinejudge-kernel's "spj" binary uses HUSTOJ's own
-//   ABI (spj input output user_output), not the ICPC output_validator interface, and shipping
-//   the raw binary with a `validation: default` lie would be worse than refusing.
+// - A special judge travels only as source: data/{problem_id}/checker.cpp (testlib) or
+//   checker_cms.cpp (CMS convention, with its own testlib.h when it has one) is shipped under
+//   output_validators/checker/ and the kernel compiles it where it lands. A Spj=='Y'
+//   problem that only has the legacy "spj" binary (own ABI: spj input output user_output)
+//   can't be exported: shipping a raw binary under a `validation` lie would be worse than refusing.
 // - data/sample and data/secret keep the judge's own "<n>.in"/"<n>.out" names instead of
 //   ICPC's "<n>.ans" for the answer file: these files are meant to be reusable directly
 //   against onlinejudge-kernel's data/{problem_id}/ layout, by explicit request - not just
@@ -25,6 +27,21 @@ namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
 public class ProblemPackageService : IProblemPackageService
 {
     private const string StatementLanguage = "es";
+    private const string CheckerFolder = "output_validators/checker";
+    private const string ScoringFile = "scoring.json";
+    private const string GraderFolder = "grader/cpp";
+    private const string GraderFile = "grader.cpp";
+
+    // What makes a problem special-judged, and what is compiled next to it.
+    private static readonly string[] CheckerSources = ["checker.cpp", "checker_cms.cpp"];
+    private static readonly string[] CheckerSupportFiles = ["testlib.h"];
+
+    // Checker files, their build products, the legacy binary and the scoring groups: never test data.
+    private static readonly string[] NonTestFiles = [.. CheckerSources, .. CheckerSupportFiles, "checker", "checker.log", "spj", ScoringFile, GraderFile];
+
+    // The grader compiled with every submission and the headers submissions include.
+    private static bool IsGraderFile(string name) =>
+        name == GraderFile || (name.EndsWith(".h", StringComparison.Ordinal) && !CheckerSupportFiles.Contains(name));
 
     private readonly IProblemService _problemService;
     private readonly IFileSystemLocalManagerManager _fileManager;
@@ -40,17 +57,40 @@ public class ProblemPackageService : IProblemPackageService
         var problem = await _problemService.GetProblemByIdAsync(problemId, siteId)
             ?? throw new KeyNotFoundException($"Problema {problemId} no encontrado.");
 
-        if (string.Equals(problem.Spj, "Y", StringComparison.OrdinalIgnoreCase))
+        var folderFiles = _fileManager.ListFiles(problemId.ToString()) ?? Array.Empty<string>();
+        var hasSpecialJudge = string.Equals(problem.Spj, "Y", StringComparison.OrdinalIgnoreCase);
+        if (hasSpecialJudge && !folderFiles.Any(name => CheckerSources.Contains(name)))
         {
             throw new InvalidOperationException(
-                "No se puede exportar un problema con juez especial (Spj=Y): el checker de este juez " +
-                "usa una interfaz propia (HUSTOJ), incompatible con el output_validator de ICPC.");
+                "No se puede exportar un problema con juez especial sin checker.cpp: el binario spj " +
+                "usa una interfaz propia del juez, incompatible con el output_validator de ICPC.");
         }
 
         using var stream = new MemoryStream();
         using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
         {
-            WriteEntry(archive, "problem.yaml", BuildProblemYaml(problem));
+            WriteEntry(archive, "problem.yaml", BuildProblemYaml(problem, hasSpecialJudge));
+            if (hasSpecialJudge)
+            {
+                foreach (var name in folderFiles.Where(name => CheckerSources.Contains(name) || CheckerSupportFiles.Contains(name)))
+                {
+                    WriteEntry(archive, $"{CheckerFolder}/{name}", _fileManager.ReadFile(problemId.ToString(), name));
+                }
+            }
+
+            if (folderFiles.Contains(ScoringFile))
+            {
+                WriteEntry(archive, ScoringFile, _fileManager.ReadFile(problemId.ToString(), ScoringFile));
+            }
+
+            if (folderFiles.Contains(GraderFile))
+            {
+                foreach (var name in folderFiles.Where(IsGraderFile))
+                {
+                    WriteEntry(archive, $"{GraderFolder}/{name}", _fileManager.ReadFile(problemId.ToString(), name));
+                }
+            }
+
             WriteEntry(archive, "metadata.json", BuildMetadataJson(problem));
 
             foreach (var sample in GetSampleCasesWithLegacyFallback(problem))
@@ -106,9 +146,9 @@ public class ProblemPackageService : IProblemPackageService
         var files = _fileManager.ListFiles(problemId.ToString()) ?? Array.Empty<string>();
         foreach (var fileName in files)
         {
-            if (SampleFileNamePattern.IsMatch(fileName))
+            if (SampleFileNamePattern.IsMatch(fileName) || NonTestFiles.Contains(fileName) || IsGraderFile(fileName))
             {
-                continue; // already covered by data/sample from ProblemSample rows.
+                continue; // samples come from ProblemSample rows; checker, scoring and grader have their own entries.
             }
 
             var bytes = _fileManager.ReadFile(problemId.ToString(), fileName);
@@ -120,7 +160,7 @@ public class ProblemPackageService : IProblemPackageService
         }
     }
 
-    private static string BuildProblemYaml(Problem problem)
+    private static string BuildProblemYaml(Problem problem, bool hasSpecialJudge)
     {
         var name = YamlEscape(problem.Title ?? string.Empty);
         var source = YamlEscape(!string.IsNullOrWhiteSpace(problem.Source) ? problem.Source : problem.OriginSource ?? string.Empty);
@@ -129,7 +169,7 @@ public class ProblemPackageService : IProblemPackageService
             $"name: \"{name}\"\n" +
             $"uuid: {Guid.NewGuid()}\n" +
             $"source: \"{source}\"\n" +
-            "validation: default\n" +
+            $"validation: {(hasSpecialJudge ? "custom" : "default")}\n" +
             "limits:\n" +
             $"  time_limit: {problem.TimeLimit ?? 1}\n" +
             $"  memory: {problem.MemoryLimit ?? 128}\n";
@@ -309,9 +349,41 @@ public class ProblemPackageService : IProblemPackageService
             ZipFile.ExtractToDirectory(zipPath, extractDir);
 
             var problem = BuildProblemFromPackage(extractDir);
+            // The checker source is what makes a problem special-judged; the kernel compiles it on first use.
+            var checkerDir = Path.Combine(extractDir, "output_validators", "checker");
+            var checkerFiles = CheckerSources.Concat(CheckerSupportFiles).Where(name => File.Exists(Path.Combine(checkerDir, name))).ToList();
+            var hasChecker = checkerFiles.Any(name => CheckerSources.Contains(name));
+            problem.Spj = hasChecker ? "Y" : "N";
             var created = await _problemService.CreateProblemAsync(userId, problem, siteId);
+            var folder = created.ProblemId!.Value.ToString();
 
-            WriteSecretTestData(extractDir, created.ProblemId!.Value);
+            WriteSecretTestData(extractDir, created.ProblemId.Value);
+            if (hasChecker)
+            {
+                _fileManager.CreateFolder(folder);
+                foreach (var name in checkerFiles)
+                {
+                    _fileManager.WriteToFile(folder, name, File.ReadAllText(Path.Combine(checkerDir, name)));
+                }
+            }
+
+            var graderDir = Path.Combine(extractDir, "grader", "cpp");
+            if (File.Exists(Path.Combine(graderDir, GraderFile)))
+            {
+                _fileManager.CreateFolder(folder);
+                foreach (var file in Directory.GetFiles(graderDir).Where(file => IsGraderFile(Path.GetFileName(file))))
+                {
+                    _fileManager.WriteToFile(folder, Path.GetFileName(file), File.ReadAllText(file));
+                }
+            }
+
+            // Scoring groups (subtasks) the kernel reads next to the test data.
+            var scoringPath = Path.Combine(extractDir, ScoringFile);
+            if (File.Exists(scoringPath))
+            {
+                _fileManager.CreateFolder(folder);
+                _fileManager.WriteToFile(folder, ScoringFile, File.ReadAllText(scoringPath));
+            }
 
             return created;
         }

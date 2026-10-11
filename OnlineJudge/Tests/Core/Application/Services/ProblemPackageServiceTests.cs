@@ -19,16 +19,39 @@ public class ProblemPackageServiceTests
     }
 
     [Fact]
-    public async Task ExportProblemPackageAsync_ThrowsWhenSpjIsY_WithoutTouchingTheFilesystem()
+    public async Task ExportProblemPackageAsync_ThrowsWhenSpjIsYAndThereIsNoCheckerSource()
     {
         var problemService = new Mock<IProblemService>();
         problemService.Setup(item => item.GetProblemByIdAsync(1, 1)).ReturnsAsync(new Problem { ProblemId = 1, Spj = "Y" });
         var fileManager = new Mock<IFileSystemLocalManagerManager>();
+        fileManager.Setup(item => item.ListFiles("1")).Returns(new[] { "1.in", "1.out", "spj" });
         var service = CreateService(problemService.Object, fileManager.Object);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.ExportProblemPackageAsync(1, 1));
+    }
 
-        fileManager.Verify(item => item.ListFiles(It.IsAny<string>()), Times.Never);
+    [Fact]
+    public async Task ExportProblemPackageAsync_ShipsTheCheckerSourceOutsideTheTestData()
+    {
+        var problemService = new Mock<IProblemService>();
+        problemService.Setup(item => item.GetProblemByIdAsync(1, 1)).ReturnsAsync(new Problem { ProblemId = 1, Title = "Pares", Spj = "Y" });
+        var fileManager = new Mock<IFileSystemLocalManagerManager>();
+        fileManager.Setup(item => item.ListFiles("1")).Returns(new[] { "1.in", "1.out", "checker.cpp", "checker", "checker.log", "testlib.h", "scoring.json", "grader.cpp", "suma.h" });
+        fileManager.Setup(item => item.ReadFile("1", It.IsAny<string>())).Returns((string _, string name) => System.Text.Encoding.UTF8.GetBytes(name));
+        var service = CreateService(problemService.Object, fileManager.Object);
+
+        using var archive = new System.IO.Compression.ZipArchive(new MemoryStream(await service.ExportProblemPackageAsync(1, 1)));
+        var entries = archive.Entries.Select(entry => entry.FullName).ToList();
+
+        Assert.Contains("output_validators/checker/checker.cpp", entries);
+        Assert.Contains("output_validators/checker/testlib.h", entries);
+        Assert.Contains("scoring.json", entries);
+        Assert.Contains("grader/cpp/grader.cpp", entries);
+        Assert.Contains("grader/cpp/suma.h", entries);
+        Assert.DoesNotContain("grader/cpp/testlib.h", entries);
+        Assert.Equal(new[] { "data/secret/1.in", "data/secret/1.out" }, entries.Where(name => name.StartsWith("data/secret/")).OrderBy(name => name));
+        using var yaml = new StreamReader(archive.GetEntry("problem.yaml")!.Open());
+        Assert.Contains("validation: custom", yaml.ReadToEnd());
     }
 
     [Fact]
@@ -441,6 +464,36 @@ public class ProblemPackageServiceTests
 
         fileManager.Verify(item => item.CreateFolder(It.IsAny<string>()), Times.Never);
         fileManager.Verify(item => item.WriteToFile(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ImportProblemPackageAsync_InstallsTheCheckerAndMarksTheProblemAsSpecialJudge()
+    {
+        Problem? created = null;
+        var problemService = new Mock<IProblemService>();
+        problemService
+            .Setup(item => item.CreateProblemAsync(It.IsAny<string>(), It.IsAny<Problem>(), It.IsAny<int>()))
+            .ReturnsAsync((string _, Problem problem, int _) => { problem.ProblemId = 11; created = problem; return problem; });
+        var fileManager = new Mock<IFileSystemLocalManagerManager>();
+        var service = CreateService(problemService.Object, fileManager.Object);
+
+        var zipBytes = BuildZip(entries =>
+        {
+            entries["metadata.json"] = JsonSerializer.Serialize(new { Title = "Pares" });
+            entries["output_validators/checker/checker.cpp"] = "#include \"testlib.h\"";
+            entries["scoring.json"] = "{\"groups\":[]}";
+            entries["grader/cpp/grader.cpp"] = "// grader";
+            entries["grader/cpp/suma.h"] = "// header";
+        });
+
+        using var stream = new MemoryStream(zipBytes);
+        await service.ImportProblemPackageAsync("teacher", stream, 1);
+
+        Assert.Equal("Y", created!.Spj);
+        fileManager.Verify(item => item.WriteToFile("11", "checker.cpp", "#include \"testlib.h\""), Times.Once);
+        fileManager.Verify(item => item.WriteToFile("11", "scoring.json", "{\"groups\":[]}"), Times.Once);
+        fileManager.Verify(item => item.WriteToFile("11", "grader.cpp", "// grader"), Times.Once);
+        fileManager.Verify(item => item.WriteToFile("11", "suma.h", "// header"), Times.Once);
     }
 
     [Fact]
