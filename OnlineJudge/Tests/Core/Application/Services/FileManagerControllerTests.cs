@@ -77,7 +77,7 @@ public class FileManagerControllerTests : IDisposable
     public async Task UploadOfficialContestPdfAsync_OnlyAcceptsPdfContent()
     {
         var fileManagerService = new Mock<IFileManagerService>();
-        fileManagerService.Setup(item => item.UploadOfficialContestPdfAsync("Final 2026", It.IsAny<string>())).ReturnsAsync("https://files/final.pdf");
+        fileManagerService.Setup(item => item.UploadOfficialContestPdfAsync("Final 2026", It.IsAny<Stream>())).ReturnsAsync("https://files/final.pdf");
         var controller = CreateController(fileManagerService: fileManagerService.Object);
 
         var rejected = await controller.UploadOfficialContestPdfAsync(BuildFormFile("statements.pdf", "<html>not a pdf</html>"), "Final 2026");
@@ -85,31 +85,20 @@ public class FileManagerControllerTests : IDisposable
 
         Assert.IsType<BadRequestObjectResult>(rejected);
         Assert.IsType<OkObjectResult>(accepted);
-        fileManagerService.Verify(item => item.UploadOfficialContestPdfAsync("Final 2026", It.IsAny<string>()), Times.Once);
+        fileManagerService.Verify(item => item.UploadOfficialContestPdfAsync("Final 2026", It.IsAny<Stream>()), Times.Once);
     }
 
     [Fact]
     public async Task S3UploadFileContentAsync_StripsPathFromMaliciousFileName()
     {
         var fileManagerService = new Mock<IFileManagerService>();
-        fileManagerService.Setup(item => item.S3UploadFileAsync(It.IsAny<string>())).ReturnsAsync("uploaded");
+        fileManagerService.Setup(item => item.S3UploadFileAsync(It.IsAny<Stream>(), It.IsAny<string>())).ReturnsAsync("uploaded");
         var controller = CreateController(fileManagerService: fileManagerService.Object);
-        var file = BuildFormFile("../../../evil.txt", "malicious content");
-        var expectedPath = Path.Combine(Path.GetTempPath(), "evil.txt");
 
-        try
-        {
-            await controller.S3UploadFileContentAsync(file);
+        await controller.S3UploadFileContentAsync(BuildFormFile("../../../evil.txt", "malicious content"));
 
-            fileManagerService.Verify(item => item.S3UploadFileAsync(expectedPath), Times.Once);
-        }
-        finally
-        {
-            if (File.Exists(expectedPath))
-            {
-                File.Delete(expectedPath);
-            }
-        }
+        fileManagerService.Verify(item => item.S3UploadFileAsync(It.IsAny<Stream>(), "evil.txt"), Times.Once);
+        Assert.False(File.Exists(Path.Combine(Path.GetTempPath(), "evil.txt")));
     }
 
     [Fact]

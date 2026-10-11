@@ -22,7 +22,7 @@ public class AwsS3Manager : IAwsS3FileManager
         _s3Client = new AmazonS3Client(region);
     }
 
-    public async Task<string> S3UploadFileAsync(string bucketName, string keyName, string filePath)
+    public async Task<string> S3UploadFileAsync(string bucketName, string keyName, Stream content, string fileName)
     {
         try
         {
@@ -32,7 +32,9 @@ public class AwsS3Manager : IAwsS3FileManager
             {
                 BucketName = bucketName,
                 Key = keyName,
-                FilePath = filePath,
+                InputStream = content,
+                // Same type the SDK would pick from a file path.
+                ContentType = Amazon.S3.Util.AmazonS3Util.MimeTypeFromExtension(Path.GetExtension(fileName)),
                 CannedACL = S3CannedACL.PublicRead
             };
 
