@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Text.RegularExpressions;
 
-namespace OnlineJudgeAdmin.BocaImporter;
+namespace OnlineJudgeAdmin.Infrastructure.Boca;
 
 public sealed record BocaProblemInfo(string BaseName, string FullName, string? DescFile);
 

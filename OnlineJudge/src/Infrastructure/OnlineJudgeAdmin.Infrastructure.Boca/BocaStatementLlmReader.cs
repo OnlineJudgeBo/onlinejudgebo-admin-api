@@ -2,7 +2,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 
-namespace OnlineJudgeAdmin.BocaImporter;
+namespace OnlineJudgeAdmin.Infrastructure.Boca;
 
 // Splits a BOCA PDF statement into Description/Input/Output/Hint HTML instead of the
 // single flat-paragraph blob BocaPackageReader.ReadDescription produces from pdftotext.

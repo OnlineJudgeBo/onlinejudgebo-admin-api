@@ -159,7 +159,8 @@ Si un servicio necesita algo de afuera (una API, correo, disco), se declara una 
 │   │   │   ├── ...FileSystem.../  archivos locales
 │   │   │   ├── ...IdeIntegration/ conexión con el IDE
 │   │   │   ├── ...Email/          envío de correo por SMTP
-│   │   │   └── ...Http/           OpenRouter, descargas y control-server
+│   │   │   ├── ...Http/           OpenRouter, descargas y control-server
+│   │   │   └── ...Boca/           lectura de paquetes BOCA
 │   │   └── Presentation/
 │   │       └── OnlineJudgeAdminApi/
 │   │           ├── Controllers/    endpoints HTTP

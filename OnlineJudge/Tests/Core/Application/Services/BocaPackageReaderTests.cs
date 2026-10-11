@@ -3,7 +3,7 @@ using System.IO.Compression;
 using System.Text;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using OnlineJudgeAdmin.BocaImporter;
+using OnlineJudgeAdmin.Infrastructure.Boca;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdminApi.Controllers;
@@ -219,7 +219,7 @@ public class BocaImportControllerPreviewTests
         var context = AuthenticatedContext("teacher", 1, "Docente");
         var classifier = new Mock<IProblemClassifierService>();
         classifier.Setup(item => item.SuggestClassificationsAsync(It.IsAny<Problem>())).ReturnsAsync(suggestion ?? new ProblemClassificationSuggestion());
-        return new BocaImportController((problems ?? new Mock<IProblemService>()).Object, classifier.Object, Mock.Of<IFileSystemLocalManagerManager>(), Claims(context)).WithContext(context);
+        return new BocaImportController(new OnlineJudgeAdmin.Core.Application.Services.Implementations.BocaImportService((problems ?? new Mock<IProblemService>()).Object, classifier.Object, Mock.Of<IFileSystemLocalManagerManager>(), new BocaPackageStaging()), Claims(context)).WithContext(context);
     }
 
     private static IFormFile Upload(byte[] bytes, string name = "suma.zip") => new FormFile(new MemoryStream(bytes), 0, bytes.Length, "files", name);
