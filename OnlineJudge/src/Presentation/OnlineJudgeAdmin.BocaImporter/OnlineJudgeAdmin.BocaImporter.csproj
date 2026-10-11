@@ -20,6 +20,7 @@
     <ProjectReference Include="..\..\Core\Application\Validators\OnlineJudgeAdmin.Core.Application.Validators.csproj" />
     <ProjectReference Include="..\..\Infrastructure\OnlineJudgeAdmin.Infrastructure.Database\OnlineJudgeAdmin.Infrastructure.Database.csproj" />
     <ProjectReference Include="..\..\Infrastructure\OnlineJudgeAdmin.Infrastructure.FileSystemLocalManager\OnlineJudgeAdmin.Infrastructure.FileSystemLocalManager.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\OnlineJudgeAdmin.Infrastructure.Http\OnlineJudgeAdmin.Infrastructure.Http.csproj" />
   </ItemGroup>
 
 </Project>
