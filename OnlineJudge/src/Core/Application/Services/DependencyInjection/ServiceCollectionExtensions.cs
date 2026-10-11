@@ -27,6 +27,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProgrammingLanguageService, ProgrammingLanguageService>();
         services.AddScoped<IFileManagerService, FileManagerService>();
         services.AddScoped<IProblemFilesService, ProblemFilesService>();
+        services.AddScoped<IBocaImportService, BocaImportService>();
         services.AddScoped<IStatiscService, StaticsServices>();
         services.AddScoped<IJudgeService, JudgeService>();
         services.AddScoped<ISolutionService, SolutionService>();

@@ -3,6 +3,7 @@ using System.IO.Compression;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using OnlineJudgeAdmin.BocaImporter;
+using OnlineJudgeAdmin.Infrastructure.Boca;
 using OnlineJudgeAdmin.Core.Application.Services.DependencyInjection;
 using OnlineJudgeAdmin.Core.Application.Validators.DependencyInjection;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;

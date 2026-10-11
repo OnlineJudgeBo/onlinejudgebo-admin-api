@@ -1,9 +1,11 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using OnlineJudgeAdmin.Core.Application.Services.Implementations;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
+using OnlineJudgeAdmin.Infrastructure.Boca;
 using OnlineJudgeAdminApi.Controllers;
 using OnlineJudgeAdminApi.DataTransferObjects;
 using OnlineJudgeAdminApi.Helpers;
@@ -48,7 +50,7 @@ public class BocaImportControllerTests
         var accessor = new Mock<IHttpContextAccessor>();
         accessor.Setup(item => item.HttpContext).Returns(httpContext);
 
-        var controller = new BocaImportController(problemService, classifierService, fileManager, new UserClaimsHelper(accessor.Object));
+        var controller = new BocaImportController(new BocaImportService(problemService, classifierService, fileManager, new BocaPackageStaging()), new UserClaimsHelper(accessor.Object));
         controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
         return controller;
     }

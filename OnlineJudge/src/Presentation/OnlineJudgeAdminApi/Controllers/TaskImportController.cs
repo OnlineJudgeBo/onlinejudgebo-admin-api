@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using OnlineJudgeAdmin.BocaImporter;
+using OnlineJudgeAdmin.Infrastructure.Boca;
 using OnlineJudgeAdmin.Core.Application.Services.Implementations;
 using OnlineJudgeAdmin.Core.Domain.Models;
 using OnlineJudgeAdminApi.DataTransferObjects;

@@ -1,3 +1,4 @@
+using OnlineJudgeAdmin.Infrastructure.Boca.DependencyInjection;
 using OnlineJudgeAdmin.Infrastructure.Http.DependencyInjection;
 using OnlineJudgeAdmin.Infrastructure.Database.DependencyInjection;
 using OnlineJudgeAdmin.Infrastructure.AwsS3.DependencyInjection;
@@ -118,6 +119,7 @@ builder.Services.AddFileSystemLocalManagerInfrastructureManager(builder.Configur
 builder.Services.AddAwsS3FileManager(builder.Configuration);
 builder.Services.AddIdeIntegrationInfrastructure(builder.Configuration);
 builder.Services.AddHttpInfrastructure();
+builder.Services.AddBocaInfrastructure();
 builder.Services.AddScoped<IEmailSender, OnlineJudgeAdmin.Infrastructure.Email.SmtpEmailSender>();
 builder.Services.AddScoped<UserClaimsHelper>();
 builder.Services.AddControlServer(builder.Configuration);

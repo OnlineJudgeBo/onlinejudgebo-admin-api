@@ -41,6 +41,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OnlineJudgeAdmin.Infrastruc
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OnlineJudgeAdmin.Infrastructure.Email", "OnlineJudge\src\Infrastructure\OnlineJudgeAdmin.Infrastructure.Email\OnlineJudgeAdmin.Infrastructure.Email.csproj", "{E9F03A56-53CB-4539-A34F-501BB9F0D6E2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OnlineJudgeAdmin.Infrastructure.Boca", "OnlineJudge\src\Infrastructure\OnlineJudgeAdmin.Infrastructure.Boca\OnlineJudgeAdmin.Infrastructure.Boca.csproj", "{EEBE0D04-1095-4980-A6A7-93C9930D8DB7}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OnlineJudgeAdmin.Infrastructure.Http", "OnlineJudge\src\Infrastructure\OnlineJudgeAdmin.Infrastructure.Http\OnlineJudgeAdmin.Infrastructure.Http.csproj", "{512BE148-FD79-4504-A6DE-9552B736DE84}"
 EndProject
 Global
@@ -197,6 +199,18 @@ Global
 		{E9F03A56-53CB-4539-A34F-501BB9F0D6E2}.Release|x64.Build.0 = Release|Any CPU
 		{E9F03A56-53CB-4539-A34F-501BB9F0D6E2}.Release|x86.ActiveCfg = Release|Any CPU
 		{E9F03A56-53CB-4539-A34F-501BB9F0D6E2}.Release|x86.Build.0 = Release|Any CPU
+		{EEBE0D04-1095-4980-A6A7-93C9930D8DB7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EEBE0D04-1095-4980-A6A7-93C9930D8DB7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EEBE0D04-1095-4980-A6A7-93C9930D8DB7}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{EEBE0D04-1095-4980-A6A7-93C9930D8DB7}.Debug|x64.Build.0 = Debug|Any CPU
+		{EEBE0D04-1095-4980-A6A7-93C9930D8DB7}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{EEBE0D04-1095-4980-A6A7-93C9930D8DB7}.Debug|x86.Build.0 = Debug|Any CPU
+		{EEBE0D04-1095-4980-A6A7-93C9930D8DB7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EEBE0D04-1095-4980-A6A7-93C9930D8DB7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EEBE0D04-1095-4980-A6A7-93C9930D8DB7}.Release|x64.ActiveCfg = Release|Any CPU
+		{EEBE0D04-1095-4980-A6A7-93C9930D8DB7}.Release|x64.Build.0 = Release|Any CPU
+		{EEBE0D04-1095-4980-A6A7-93C9930D8DB7}.Release|x86.ActiveCfg = Release|Any CPU
+		{EEBE0D04-1095-4980-A6A7-93C9930D8DB7}.Release|x86.Build.0 = Release|Any CPU
 		{512BE148-FD79-4504-A6DE-9552B736DE84}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{512BE148-FD79-4504-A6DE-9552B736DE84}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{512BE148-FD79-4504-A6DE-9552B736DE84}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -232,6 +246,7 @@ Global
 		{0B5DA83E-768F-4C12-A77B-6F6B6FD355BC} = {75F51052-BF82-4576-85F2-AFEE868B80DB}
 		{D38A8D7D-672F-4214-898A-2101B8FE7739} = {5DE54F53-90E6-4C9A-92BA-F168CCFC8F2E}
 		{E9F03A56-53CB-4539-A34F-501BB9F0D6E2} = {5DE54F53-90E6-4C9A-92BA-F168CCFC8F2E}
+		{EEBE0D04-1095-4980-A6A7-93C9930D8DB7} = {5DE54F53-90E6-4C9A-92BA-F168CCFC8F2E}
 		{512BE148-FD79-4504-A6DE-9552B736DE84} = {5DE54F53-90E6-4C9A-92BA-F168CCFC8F2E}
 	EndGlobalSection
 EndGlobal
