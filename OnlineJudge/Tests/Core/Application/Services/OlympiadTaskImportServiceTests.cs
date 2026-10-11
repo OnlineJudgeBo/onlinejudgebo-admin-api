@@ -124,6 +124,55 @@ public class OlympiadTaskImportServiceTests
         Assert.All(scoring.Groups, group => Assert.Equal("min", group.Type));
     }
 
+    [Fact]
+    public async Task Import_ReadsATpsTaskExportedForCms()
+    {
+        var entries = new Dictionary<string, string>
+        {
+            ["factores/problem.json"] = "{\"protocol_version\": 1, \"code\": \"factores\", \"name\": \"Gran Producto\", \"time_limit\": 1.5, \"memory_limit\": 268435456, "
+                + "\"task_type\": \"Batch\", \"task_type_params\": \"{\\\"task_type_parameters_Batch_compilation\\\": \\\"alone\\\"}\"}",
+            ["factores/subtasks/00-samples.json"] = "{\"score\": 0, \"testcases\": [\"0-01\"]}",
+            ["factores/subtasks/01-small.json"] = "{\"score\": 30, \"testcases\": [\"1-01\"]}",
+            ["factores/subtasks/02-full.json"] = "{\"score\": 70, \"testcases\": [\"1-01\", \"2-01\"]}",
+            ["factores/checker/checker.cpp"] = "// exported checker",
+            ["factores/checker/testlib.h"] = "// exported testlib",
+        };
+        foreach (var name in new[] { "0-01", "1-01", "2-01" })
+        {
+            entries[$"factores/tests/{name}.in"] = "in " + name;
+            entries[$"factores/tests/{name}.out"] = "out " + name;
+        }
+
+        await Import(entries);
+
+        Assert.Equal("Gran Producto", _created!.Title);
+        Assert.Equal(2, _created.TimeLimit);
+        Assert.Equal(256, _created.MemoryLimit);
+        Assert.Equal("Y", _created.Spj);
+        Assert.Equal("in 0-01", Assert.Single(_created.SampleCases).Input);
+        Assert.Equal("// exported checker", _written["checker_cms.cpp"]);
+        Assert.Equal("// exported testlib", _written["testlib.h"]);
+        Assert.DoesNotContain("grader.cpp", _written.Keys);
+        var scoring = ProblemScoringService.Parse(Encoding.UTF8.GetBytes(_written["scoring.json"]));
+        Assert.Equal(new[] { "small", "full" }, scoring.Groups.Select(group => group.Name));
+        Assert.Equal(new[] { 30m, 70m }, scoring.Groups.Select(group => group.Points));
+        Assert.Equal(new[] { "1-01", "2-01" }, scoring.Groups[1].Tests);
+
+        // Without a checker the answers are compared; with a grader the task brings its files.
+        _written.Clear();
+        entries.Remove("factores/checker/checker.cpp");
+        entries["factores/problem.json"] = entries["factores/problem.json"].Replace("alone", "grader");
+        entries["factores/graders/grader.cpp"] = "// exported grader";
+        entries["factores/graders/factores.h"] = "// exported header";
+        entries["factores/graders/grader.py"] = "# exported python grader";
+        await Import(entries);
+        Assert.Equal("N", _created.Spj);
+        Assert.DoesNotContain("checker_cms.cpp", _written.Keys);
+        Assert.Equal("// exported grader", _written["grader.cpp"]);
+        Assert.Equal("// exported header", _written["factores.h"]);
+        Assert.Equal("# exported python grader", _written["grader.py"]);
+    }
+
     [Theory]
     [InlineData("\"has_grader\": true", true)]
     [InlineData("\"has_grader\": false, \"type\": \"Communication\"", true)]
@@ -147,11 +196,12 @@ public class OlympiadTaskImportServiceTests
         var tps = Tps("\"description\": \"has_grader por defecto\", \"grader_name\": \"stub\"");
         tps["grader/cpp/stub.cpp"] = "// tps grader";
         tps["grader/cpp/suma.h"] = "// tps header";
-        tps["grader/java/grader.java"] = "// ignored";
+        tps["grader/java/grader.java"] = "// tps java grader";
         await Import(tps);
         Assert.Equal("// tps grader", _written["grader.cpp"]);
         Assert.Equal("// tps header", _written["suma.h"]);
-        Assert.DoesNotContain("grader.java", _written.Keys);
+        Assert.Equal("// tps java grader", _written["grader.java"]);
+        Assert.DoesNotContain("grader.py", _written.Keys);
 
         _written.Clear();
         var cms = Task(1);

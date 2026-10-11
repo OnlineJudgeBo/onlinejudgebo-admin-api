@@ -29,8 +29,16 @@ public sealed record TaskStatement(string Description, string Input, string Outp
 //   grader/cpp/grader.cpp, *.h     grader and its public headers, unless has_grader is false
 //   statement/                     index.md or a PDF
 //
-// Only batch tasks are supported. A task with a grader is solved by writing a function and only
-// accepts C++: the judge compiles the submission together with grader.cpp.
+// TPS exported for CMS with "tps export" (problem.json next to a subtasks/ folder)
+//   problem.json                   name (the title), time_limit (s), memory_limit (bytes), task_type
+//   subtasks/<nn>-<name>.json      score and testcases of each subtask; score 0 marks the samples
+//   tests/<name>.in, <name>.out    the tests
+//   checker/checker.cpp, testlib.h optional checker
+//   graders/grader.cpp, *.h        grader and headers, when the task is compiled with a grader
+//   statement/statement.pdf        statement
+//
+// Only batch tasks are supported. A task with a grader is solved by writing a function: the judge
+// builds the submission with the grader of its language (grader.cpp, grader.java or grader.py).
 public sealed class OlympiadTaskImportService(IProblemService problems, IFileSystemLocalManagerManager files)
 {
     private const int MaxSamples = 5;
@@ -55,8 +63,8 @@ public sealed class OlympiadTaskImportService(IProblemService problems, IFileSys
         public string? Checker;
         // Compiled next to the checker: TPS ships a testlib.h of its own.
         public string? CheckerHeader;
-        // grader.cpp first, then the headers submissions include.
-        public List<string> Grader = [];
+        // The graders and the headers C++ submissions include, by the name the judge expects.
+        public List<(string Name, string Path)> Grader = [];
         public string? StatementPdf;
         public string? StatementText;
     }
@@ -115,9 +123,9 @@ public sealed class OlympiadTaskImportService(IProblemService problems, IFileSys
                 groups = task.Groups.Select(group => new ProblemScoreGroup { Name = group.Name, Points = group.Points, Type = group.Type, Tests = group.Tests }),
             }, JsonOptions));
 
-            foreach (var (path, index) in task.Grader.Select((path, index) => (path, index)))
+            foreach (var (name, path) in task.Grader)
             {
-                files.WriteToFile(folder, index == 0 ? "grader.cpp" : Path.GetFileName(path), File.ReadAllText(path));
+                files.WriteToFile(folder, name, File.ReadAllText(path));
             }
 
             if (task.Checker != null)
@@ -164,7 +172,7 @@ public sealed class OlympiadTaskImportService(IProblemService problems, IFileSys
             Checker = FirstExisting(Path.Combine(root, "check", "checker.cpp"), Path.Combine(root, "cor", "correttore.cpp")),
             StatementPdf = FirstExisting(Path.Combine(root, "statement", "statement.pdf"), Path.Combine(root, "testo", "testo.pdf")),
         };
-        task.Grader = GraderFiles(Path.Combine(root, "sol"), "grader.cpp", required: false);
+        task.Grader = GraderFiles(Path.Combine(root, "sol"), Path.Combine(root, "sol"), "grader", required: false);
         if (task.Checker == null && FirstExisting(Path.Combine(root, "check", "checker"), Path.Combine(root, "cor", "correttore")) != null)
         {
             throw new InvalidDataException("El checker solo está como binario; incluye su código fuente como check/checker.cpp.");
@@ -231,69 +239,70 @@ public sealed class OlympiadTaskImportService(IProblemService problems, IFileSys
     {
         var root = Path.GetDirectoryName(problemFile)!;
         using var problem = JsonDocument.Parse(File.ReadAllText(problemFile));
-        var type = Text(problem.RootElement, "type") ?? "Batch";
+        // "tps export" writes the layout CMS loads; without it this is the task repository itself.
+        var exported = Directory.Exists(Path.Combine(root, "subtasks"));
+        var type = Text(problem.RootElement, "type") ?? Text(problem.RootElement, "task_type") ?? "Batch";
         if (type != "Batch")
         {
             throw new InvalidDataException($"Solo se admiten tareas de tipo Batch; esta es {type}.");
         }
 
-        // TPS defaults has_grader to true: the contestant writes a function and the grader owns main().
-        var hasGrader = !problem.RootElement.TryGetProperty("has_grader", out var grader) || grader.ValueKind != JsonValueKind.False;
+        // With a grader the contestant writes a function and the grader owns main(). The repository
+        // defaults has_grader to true; the export says how submissions are compiled.
+        var hasGrader = exported
+            ? (Text(problem.RootElement, "task_type_params") ?? string.Empty).Contains("\"grader\"", StringComparison.Ordinal)
+            : !problem.RootElement.TryGetProperty("has_grader", out var grader) || grader.ValueKind != JsonValueKind.False;
 
         var testsDir = Path.Combine(root, "tests");
         var mappingFile = Path.Combine(testsDir, "mapping");
-        if (!File.Exists(mappingFile))
+        if (!exported && !File.Exists(mappingFile))
         {
             throw new InvalidDataException("Falta tests/mapping: ejecuta \"tps gen\" antes de comprimir la tarea.");
         }
 
+        var memory = problem.RootElement.TryGetProperty("memory_limit", out var limit) && limit.TryGetDouble(out var amount) && amount > 0 ? amount : 256;
         var task = new ImportedTask
         {
             Title = Text(problem.RootElement, "title") is { Length: > 0 } title ? title : Text(problem.RootElement, "name") ?? "Imported task",
             Source = "TPS import",
             TimeLimit = problem.RootElement.TryGetProperty("time_limit", out var time) && time.TryGetDouble(out var seconds) && seconds > 0 ? seconds : 1,
-            MemoryLimit = problem.RootElement.TryGetProperty("memory_limit", out var memory) && memory.TryGetDouble(out var megabytes) && megabytes > 0 ? megabytes : 256,
+            // The export gives the limit in bytes, the repository in megabytes.
+            MemoryLimit = exported ? memory / (1024 * 1024) : memory,
             StatementPdf = Directory.Exists(Path.Combine(root, "statement"))
                 ? Directory.GetFiles(Path.Combine(root, "statement"), "*.pdf").OrderBy(path => path, StringComparer.Ordinal).FirstOrDefault()
                 : null,
         };
         if (hasGrader)
         {
-            task.Grader = GraderFiles(Path.Combine(root, "grader", "cpp"), (Text(problem.RootElement, "grader_name") ?? "grader") + ".cpp", required: true);
+            task.Grader = exported
+                ? GraderFiles(Path.Combine(root, "graders"), Path.Combine(root, "graders"), "grader", required: true)
+                : GraderFiles(Path.Combine(root, "grader", "cpp"), Path.Combine(root, "grader"), Text(problem.RootElement, "grader_name") ?? "grader", required: true);
         }
 
         var markdown = Path.Combine(root, "statement", "index.md");
         task.StatementText = File.Exists(markdown) ? File.ReadAllText(markdown) : null;
 
-        var hasChecker = !problem.RootElement.TryGetProperty("has_checker", out var checker) || checker.ValueKind != JsonValueKind.False;
-        if (hasChecker)
+        // The repository says whether there is a checker; in the export it is there or it is not.
+        task.Checker = FirstExisting(Path.Combine(root, "checker", "checker.cpp"));
+        var hasChecker = exported
+            ? task.Checker != null
+            : !problem.RootElement.TryGetProperty("has_checker", out var checker) || checker.ValueKind != JsonValueKind.False;
+        if (hasChecker && task.Checker == null)
         {
-            task.Checker = FirstExisting(Path.Combine(root, "checker", "checker.cpp"))
-                ?? throw new InvalidDataException("La tarea declara checker pero falta checker/checker.cpp.");
-            task.CheckerHeader = FirstExisting(Path.Combine(root, "checker", "testlib.h"));
+            throw new InvalidDataException("La tarea declara checker pero falta checker/checker.cpp.");
         }
 
-        // tests/mapping: "<subtask> <test>" per line; a test may be listed under several subtasks.
-        var testsBySubtask = new Dictionary<string, List<string>>(StringComparer.Ordinal);
-        foreach (var line in File.ReadAllLines(mappingFile))
+        task.Checker = hasChecker ? task.Checker : null;
+        task.CheckerHeader = hasChecker ? FirstExisting(Path.Combine(root, "checker", "testlib.h")) : null;
+
+        // Subtasks in order, with their score, and the tests of each; a test may be in several.
+        var (declared, testsBySubtask) = exported ? ReadExportedSubtasks(Path.Combine(root, "subtasks")) : ReadSubtasks(root, mappingFile);
+        foreach (var name in testsBySubtask.Values.SelectMany(list => list).Distinct())
         {
-            var parts = line.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length != 2)
+            if (!Regex.IsMatch(name, @"^[A-Za-z0-9_.-]+$"))
             {
-                continue;
+                throw new InvalidDataException($"Nombre de caso no admitido: {name}");
             }
-
-            if (!Regex.IsMatch(parts[1], @"^[A-Za-z0-9_.-]+$"))
-            {
-                throw new InvalidDataException($"Nombre de caso no admitido en tests/mapping: {parts[1]}");
-            }
-
-            if (!testsBySubtask.TryGetValue(parts[0], out var list))
-            {
-                testsBySubtask[parts[0]] = list = [];
-            }
-
-            list.Add(parts[1]);
         }
 
         foreach (var name in testsBySubtask.Values.SelectMany(list => list).Distinct().OrderBy(name => name, StringComparer.Ordinal))
@@ -302,10 +311,57 @@ public sealed class OlympiadTaskImportService(IProblemService problems, IFileSys
             var output = Path.Combine(testsDir, name + ".out");
             if (!File.Exists(input) || !File.Exists(output))
             {
-                throw new InvalidDataException($"Falta tests/{name}.in o tests/{name}.out: ejecuta \"tps gen\" antes de comprimir la tarea.");
+                throw new InvalidDataException($"Falta tests/{name}.in o tests/{name}.out.");
             }
 
             task.Tests.Add(new TaskTest(name, input, output));
+        }
+
+        foreach (var subtask in declared)
+        {
+            var names = testsBySubtask.GetValueOrDefault(subtask.Name) ?? [];
+            if (subtask.Score <= 0)
+            {
+                // The zero-score subtask holds the examples of the statement.
+                task.Samples.AddRange(names.Select(name => task.Tests.First(test => test.Name == name)).Where(IsSmall).Take(MaxSamples - task.Samples.Count));
+                continue;
+            }
+
+            if (names.Count == 0)
+            {
+                throw new InvalidDataException($"La subtarea {subtask.Name} no tiene casos.");
+            }
+
+            // IOI subtasks are all or nothing.
+            task.Groups.Add(new TaskGroup(subtask.Name, subtask.Score, "min", names.Distinct().ToList()));
+        }
+
+        if (task.Groups.Count == 0)
+        {
+            throw new InvalidDataException("La tarea no define ninguna subtarea con puntaje.");
+        }
+
+        return task;
+    }
+
+    // Task repository: subtasks.json has the scores and tests/mapping lists "<subtask> <test>" per line.
+    private static (List<(string Name, decimal Score)>, Dictionary<string, List<string>>) ReadSubtasks(string root, string mappingFile)
+    {
+        var tests = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        foreach (var line in File.ReadAllLines(mappingFile))
+        {
+            var parts = line.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length != 2)
+            {
+                continue;
+            }
+
+            if (!tests.TryGetValue(parts[0], out var list))
+            {
+                tests[parts[0]] = list = [];
+            }
+
+            list.Add(parts[1]);
         }
 
         var subtasksFile = Path.Combine(root, "subtasks.json");
@@ -322,47 +378,53 @@ public sealed class OlympiadTaskImportService(IProblemService problems, IFileSys
                     Index: item.Value.TryGetProperty("index", out var index) && index.TryGetInt32(out var position) ? position : 0,
                     Score: item.Value.TryGetProperty("score", out var score) && score.TryGetDecimal(out var points) ? points : 0m))
                 .OrderBy(item => item.Index)
+                .Select(item => (item.Name, item.Score))
                 .ToList()
             : [];
-        foreach (var subtask in declared)
-        {
-            var names = testsBySubtask.GetValueOrDefault(subtask.Name) ?? [];
-            if (subtask.Score <= 0)
-            {
-                // The zero-score subtask holds the examples of the statement.
-                task.Samples.AddRange(names.Select(name => task.Tests.First(test => test.Name == name)).Where(IsSmall).Take(MaxSamples - task.Samples.Count));
-                continue;
-            }
-
-            if (names.Count == 0)
-            {
-                throw new InvalidDataException($"La subtarea {subtask.Name} no tiene casos en tests/mapping.");
-            }
-
-            // IOI subtasks are all or nothing.
-            task.Groups.Add(new TaskGroup(subtask.Name, subtask.Score, "min", names.Distinct().ToList()));
-        }
-
-        if (task.Groups.Count == 0)
-        {
-            throw new InvalidDataException("subtasks.json no define ninguna subtarea con puntaje.");
-        }
-
-        return task;
+        return (declared, tests);
     }
 
-    // The C++ grader of a task and the headers next to it. Other languages have no grader here.
-    private static List<string> GraderFiles(string directory, string graderFile, bool required)
+    // Export: one file per subtask, subtasks/<nn>-<name>.json, with its score and its tests.
+    private static (List<(string Name, decimal Score)>, Dictionary<string, List<string>>) ReadExportedSubtasks(string directory)
     {
-        var grader = Path.Combine(directory, graderFile);
-        if (!File.Exists(grader))
+        var declared = new List<(string Name, decimal Score)>();
+        var tests = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        foreach (var file in Directory.GetFiles(directory, "*.json").OrderBy(path => path, StringComparer.Ordinal))
         {
-            return required
-                ? throw new InvalidDataException($"La tarea usa grader pero falta {Path.GetFileName(directory)}/{graderFile}. Solo se admiten graders de C++.")
+            using var subtask = JsonDocument.Parse(File.ReadAllText(file));
+            var name = Regex.Replace(Path.GetFileNameWithoutExtension(file), @"^\d+-", string.Empty);
+            declared.Add((name, subtask.RootElement.TryGetProperty("score", out var score) && score.TryGetDecimal(out var points) ? points : 0m));
+            tests[name] = subtask.RootElement.TryGetProperty("testcases", out var names) && names.ValueKind == JsonValueKind.Array
+                ? names.EnumerateArray().Select(item => item.GetString() ?? string.Empty).ToList()
                 : [];
         }
 
-        return [grader, .. Directory.GetFiles(directory, "*.h").OrderBy(path => path, StringComparer.Ordinal)];
+        return (declared, tests);
+    }
+
+    // The C++ grader of a task with the headers next to it, and the Java and Python graders when
+    // the task brings them. `others` is where those live: the same folder, or one folder per language.
+    private static List<(string Name, string Path)> GraderFiles(string directory, string others, string graderName, bool required)
+    {
+        var grader = Path.Combine(directory, graderName + ".cpp");
+        if (!File.Exists(grader))
+        {
+            return required
+                ? throw new InvalidDataException($"La tarea usa grader pero falta {Path.GetFileName(directory)}/{graderName}.cpp.")
+                : [];
+        }
+
+        var found = new List<(string Name, string Path)> { ("grader.cpp", grader) };
+        found.AddRange(Directory.GetFiles(directory, "*.h").OrderBy(path => path, StringComparer.Ordinal).Select(path => (Path.GetFileName(path), path)));
+        foreach (var (extension, folder) in new[] { ("java", "java"), ("py", "py") })
+        {
+            if (FirstExisting(Path.Combine(others, "grader." + extension), Path.Combine(others, folder, "grader." + extension)) is { } path)
+            {
+                found.Add(("grader." + extension, path));
+            }
+        }
+
+        return found;
     }
 
     private static List<(decimal Points, int Tests)> ReadCmsSubtasks(string genPath)
