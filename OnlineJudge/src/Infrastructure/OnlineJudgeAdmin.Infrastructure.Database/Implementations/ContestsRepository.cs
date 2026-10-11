@@ -108,6 +108,7 @@ public class ContestsRepository : IContestsRepository
             Level = c.Level,
             IsExam = c.IsExam,
             ExamLabIps = c.ExamLabIps,
+            Obi = c.Obi,
             ProgrammingLanguages = c.ProgrammingLanguages.Select(c => new DbProgrammingLanguage
             {
                 LanguageId = c.LanguageId,

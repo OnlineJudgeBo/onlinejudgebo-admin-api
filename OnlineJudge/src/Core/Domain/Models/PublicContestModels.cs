@@ -62,6 +62,9 @@ public class ContestReportItem
 
     public int Solved { get; set; }
 
+    // Points contests only: sum of the best submission of each problem, 0 to 100 per problem.
+    public decimal Points { get; set; }
+
     public int Submissions { get; set; }
 
     public int Accepted { get; set; }
@@ -102,6 +105,9 @@ public class ContestReportResponse
     public bool IsPrivate { get; set; }
 
     public bool IsPromoted { get; set; }
+
+    // Scored by points (IOI style) instead of solved problems.
+    public bool IsPointsContest { get; set; }
 
     public int ProblemCount { get; set; }
 

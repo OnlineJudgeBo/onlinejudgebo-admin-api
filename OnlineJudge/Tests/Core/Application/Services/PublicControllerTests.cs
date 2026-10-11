@@ -187,8 +187,8 @@ public class PublicControllerTests
         var lines = Encoding.UTF8.GetString(file.FileContents).Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
 
         Assert.Equal("contest-5-report.csv", file.FileDownloadName);
-        Assert.Equal("rank,userId,nick,school,solved,submissions,accepted,accuracy,firstSubmitUtc,lastSubmitUtc", lines[0]);
-        Assert.Equal("1,ana,\"Ana, la \"\"pro\"\"\",UMSA,3,4,3,0.75,2026-01-01T10:00:00.0000000Z,", lines[1]);
+        Assert.Equal("rank,userId,nick,school,solved,submissions,accepted,accuracy,firstSubmitUtc,lastSubmitUtc,points", lines[0]);
+        Assert.Equal("1,ana,\"Ana, la \"\"pro\"\"\",UMSA,3,4,3,0.75,2026-01-01T10:00:00.0000000Z,,0", lines[1]);
     }
 
     [Fact]
