@@ -555,9 +555,10 @@ public sealed class OlympiadTaskImportService(IProblemService problems, IFileSys
 
         return new TaskStatement(Paragraphs(parts[0]), input, output, hint);
 
+        // The site shows paragraphs without a margin: an empty line keeps them apart.
         string Paragraphs(string text) => Regex.Replace(
             string.Concat(Regex.Split(text, @"\n\s*\n").Select(block => block.Trim()).Where(block => block.Length > 0)
-                .Select(block => block.StartsWith('<') && !Regex.IsMatch(block, "^<(b|i|u|code)>") ? block + "\n" : $"<p>{block}</p>\n")),
+                .Select(block => block.StartsWith('<') && !Regex.IsMatch(block, "^<(b|i|u|code)>") ? block + "\n" : $"<p>{block}</p>\n")).Replace("</p>\n<", "</p>\n<br>\n<"),
             "\u0001(\\d+)\u0001", match => formulas[int.Parse(match.Groups[1].Value)]);
     }
 
