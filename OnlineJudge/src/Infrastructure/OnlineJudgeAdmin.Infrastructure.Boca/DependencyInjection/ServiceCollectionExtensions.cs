@@ -8,6 +8,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddBocaInfrastructure(this IServiceCollection services)
     {
         services.AddSingleton<IBocaPackageStaging, BocaPackageStaging>();
+        services.AddSingleton<IStatementPdfReader, StatementPdfReader>();
         return services;
     }
 }

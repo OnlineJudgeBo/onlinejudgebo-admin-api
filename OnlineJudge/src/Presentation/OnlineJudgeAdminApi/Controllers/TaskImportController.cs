@@ -1,8 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using OnlineJudgeAdmin.Infrastructure.Boca;
-using OnlineJudgeAdmin.Core.Application.Services.Implementations;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
 using OnlineJudgeAdminApi.DataTransferObjects;
 using OnlineJudgeAdminApi.Helpers;
@@ -14,10 +13,10 @@ namespace OnlineJudgeAdminApi.Controllers;
 [Authorize(Roles = AuthorizationRoles.Administrador)]
 public sealed class TaskImportController : ControllerBase
 {
-    private readonly OlympiadTaskImportService _import;
+    private readonly IOlympiadTaskImportService _import;
     private readonly CurrentUser _currentUser;
 
-    public TaskImportController(OlympiadTaskImportService import, UserClaimsHelper claims)
+    public TaskImportController(IOlympiadTaskImportService import, UserClaimsHelper claims)
     {
         _import = import ?? throw new ArgumentNullException(nameof(import));
         _currentUser = (claims ?? throw new ArgumentNullException(nameof(claims))).GetUserContextRole();
@@ -38,34 +37,11 @@ public sealed class TaskImportController : ControllerBase
         {
             await using var stream = file.OpenReadStream();
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? _currentUser.UserId;
-            return Ok(await _import.ImportAsync(userId, stream, _currentUser.SiteId, ReadStatementAsync));
+            return Ok(await _import.ImportAsync(userId, stream, _currentUser.SiteId));
         }
         catch (Exception error) when (error is InvalidDataException or System.Text.Json.JsonException)
         {
             return BadRequest(new ErrorDetails { StatusCode = 400, Message = error.Message });
-        }
-    }
-
-    // Same PDF transcription the BOCA importer uses; a statement that cannot be read is left for the editor.
-    private static async Task<TaskStatement?> ReadStatementAsync(string pdfPath)
-    {
-        var folder = Path.Combine(Path.GetTempPath(), "task-statement", Guid.NewGuid().ToString("N"));
-        try
-        {
-            Directory.CreateDirectory(Path.Combine(folder, "description"));
-            System.IO.File.Copy(pdfPath, Path.Combine(folder, "description", "statement.pdf"));
-            var description = await BocaPackageReader.ReadDescriptionAsync(folder, "statement.pdf");
-            return string.IsNullOrWhiteSpace(description.Html)
-                ? null
-                : new TaskStatement(description.Html, description.InputHtml, description.OutputHtml, description.HintHtml);
-        }
-        catch (Exception error) when (error is System.ComponentModel.Win32Exception or InvalidOperationException)
-        {
-            return null;
-        }
-        finally
-        {
-            Directory.Delete(folder, recursive: true);
         }
     }
 }
