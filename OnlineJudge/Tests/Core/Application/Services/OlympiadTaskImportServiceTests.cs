@@ -158,6 +158,31 @@ public class OlympiadTaskImportServiceTests
         Assert.Equal(new[] { 30m, 70m }, scoring.Groups.Select(group => group.Points));
         Assert.Equal(new[] { "1-01", "2-01" }, scoring.Groups[1].Tests);
 
+        // The statement comes from its LaTeX source, with the formulas untouched.
+        entries["factores/statement/statement_factores_en.tex"] = "English";
+        entries["factores/statement/statement_factores.tex"] = string.Join("\n",
+            "% \\section*{Comentado}",
+            "\\problem{E}{Gran Producto (factores)}",
+            "Representa $n$ como \\textbf{producto}, con a < b.",
+            "",
+            "Segundo párrafo.",
+            "\\subsection*{Entrada}",
+            "Un entero $n$ ($2 \\leq n \\leq 10^5$).",
+            "\\subsection*{Salida}",
+            "Los factores separados por \\texttt{x}.",
+            "\\subsection*{Subtareas}",
+            "\\begin{enumerate}",
+            "    \\item (10 puntos) $n \\leq 5$,",
+            "    \\item (90 puntos) sin restricciones.",
+            "\\end{enumerate}",
+            "\\subsection*{Ejemplos}",
+            "\\begin{center}\\begin{tabular}{|p{7.5cm}|} \\hline \\verbatiminput{\\inputpath/samples/1.in}\\\\ \\end{tabular}\\end{center}");
+        await Import(entries);
+        Assert.Equal("<p>Representa $n$ como <b>producto</b>, con a &lt; b.</p>\n<p>Segundo párrafo.</p>\n", _created!.Description);
+        Assert.Equal("<p>Un entero $n$ ($2 \\leq n \\leq 10^5$).</p>\n", _created.Input);
+        Assert.Equal("<p>Los factores separados por <code>x</code>.</p>\n", _created.Output);
+        Assert.Equal("<h3>Subtareas</h3>\n<ol>\n<li>(10 puntos) $n \\leq 5$,\n<li>(90 puntos) sin restricciones.\n</ol>\n", _created.Hint);
+
         // Without a checker the answers are compared; with a grader the task brings its files.
         _written.Clear();
         entries.Remove("factores/checker/checker.cpp");
