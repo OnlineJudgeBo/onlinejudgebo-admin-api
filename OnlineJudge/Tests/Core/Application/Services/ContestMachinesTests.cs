@@ -11,7 +11,7 @@ using OnlineJudgeAdmin.Core.Domain.Models;
 using OnlineJudgeAdmin.Infrastructure.Database.Implementations;
 using OnlineJudgeAdminApi.Controllers;
 using OnlineJudgeAdminApi.DataTransferObjects;
-using OnlineJudgeAdminApi.Infrastructure;
+using OnlineJudgeAdmin.Infrastructure.Http;
 using static ControllerTestSupport;
 
 public class ContestMachinesServiceTests
@@ -193,7 +193,7 @@ public class ContestMachinesControllerTests
         context.Request.Body = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(body));
         context.Request.ContentType = "application/json";
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["ControlServer:AdminToken"] = superadminToken }).Build();
-        return (new ContestMachinesController(machines.Object, new Factory(handler, baseUrl), configuration, Claims(context)).WithContext(context), handler);
+        return (new ContestMachinesController(machines.Object, new MachinesPanelService(machines.Object, new ControlServerHttpClient(new Factory(handler, baseUrl)), configuration), Claims(context)).WithContext(context), handler);
     }
 
     [Fact]
@@ -337,7 +337,7 @@ public class LabLoginControllerTests
             ["Base:Url"] = "https://juez.example/",
             ["ControlServer:LogoUrl"] = "https://juez.example/control/icpc-bolivia-logo.svg",
         }).Build();
-        return new LabLoginController(machines.Object, factory.Object, configuration, new MemoryCache(new MemoryCacheOptions())).WithContext(new DefaultHttpContext());
+        return new LabLoginController(machines.Object, new MachinesPanelService(machines.Object, new ControlServerHttpClient(factory.Object), configuration), configuration, new MemoryCache(new MemoryCacheOptions())).WithContext(new DefaultHttpContext());
     }
 
     private static object? Prop(object body, string name) => body.GetType().GetProperty(name)?.GetValue(body);

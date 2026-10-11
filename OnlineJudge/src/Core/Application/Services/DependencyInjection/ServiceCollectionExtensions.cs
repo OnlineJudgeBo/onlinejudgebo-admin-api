@@ -22,6 +22,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<OlympiadTaskImportService>();
         services.AddScoped<ContestSimilarityService>();
         services.AddScoped<IContestMachinesService, ContestMachinesService>();
+        services.AddScoped<IMachinesPanelService, MachinesPanelService>();
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<IProgrammingLanguageService, ProgrammingLanguageService>();
         services.AddScoped<IFileManagerService, FileManagerService>();

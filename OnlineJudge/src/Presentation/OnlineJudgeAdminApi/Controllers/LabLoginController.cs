@@ -1,5 +1,3 @@
-using System.Net.Http.Headers;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,14 +20,14 @@ public partial class LabLoginController : ControllerBase
     private static readonly TimeSpan FailedLoginWindow = TimeSpan.FromMinutes(5);
     private static readonly object FailedLoginLock = new();
     private readonly IContestMachinesService _machinesService;
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IMachinesPanelService _panelService;
     private readonly IConfiguration _configuration;
     private readonly IMemoryCache _cache;
 
-    public LabLoginController(IContestMachinesService machinesService, IHttpClientFactory httpClientFactory, IConfiguration configuration, IMemoryCache cache)
+    public LabLoginController(IContestMachinesService machinesService, IMachinesPanelService panelService, IConfiguration configuration, IMemoryCache cache)
     {
         _machinesService = machinesService ?? throw new ArgumentNullException(nameof(machinesService));
-        _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+        _panelService = panelService ?? throw new ArgumentNullException(nameof(panelService));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         _cache = cache ?? throw new ArgumentNullException(nameof(cache));
     }
@@ -87,9 +85,9 @@ public partial class LabLoginController : ControllerBase
         }
 
         var baseUrl = (_configuration["Base:Url"] ?? string.Empty).TrimEnd('/');
-        var homepage = await GroupSettingAsync(result.Group, "homepage", "url", onlyIfSet: true)
+        var homepage = await _panelService.GetGroupSettingAsync(result.Group, "homepage", "url", onlyIfSet: true)
             ?? (baseUrl.Length > 0 ? $"{baseUrl}/oj/contest.php?cid={result.ContestId}" : string.Empty);
-        var logoUrl = await GroupSettingAsync(result.Group, "logo", "effective_url") ?? _configuration["ControlServer:LogoUrl"] ?? string.Empty;
+        var logoUrl = await _panelService.GetGroupSettingAsync(result.Group, "logo", "effective_url") ?? _configuration["ControlServer:LogoUrl"] ?? string.Empty;
         // The ISO prints the team name in big letters under the logo on the desktop background.
         var teamName = $"{result.Group.Label} · {result.DisplayName}";
 
@@ -105,41 +103,6 @@ public partial class LabLoginController : ControllerBase
             team = new { id = TeamId(result.UserId), name = teamName.Length > 128 ? teamName[..128] : teamName },
             region = new { id = result.Group.Id, name = result.Group.Label, enrollToken = result.Group.EnrollToken },
         });
-    }
-
-    // Homepage and logo set for this exam in the machines panel; null when unset or the control-server is down.
-    // onlyIfSet: the control-server answers its own default homepage (updated_at null) when nobody set one.
-    private async Task<string?> GroupSettingAsync(ControlGroup group, string setting, string field, bool onlyIfSet = false)
-    {
-        var client = _httpClientFactory.CreateClient(ContestMachinesController.ControlServerClient);
-        if (client.BaseAddress == null)
-        {
-            return null;
-        }
-
-        try
-        {
-            using var message = new HttpRequestMessage(HttpMethod.Get, $"admin/{setting}?group={Uri.EscapeDataString(group.Id)}");
-            message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", group.AdminToken);
-            using var response = await client.SendAsync(message);
-            if (!response.IsSuccessStatusCode)
-            {
-                return null;
-            }
-
-            using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-            if (onlyIfSet && (!json.RootElement.TryGetProperty("updated_at", out var updatedAt) || updatedAt.ValueKind == JsonValueKind.Null))
-            {
-                return null;
-            }
-
-            var value = json.RootElement.TryGetProperty(field, out var property) ? property.GetString() : null;
-            return string.IsNullOrWhiteSpace(value) ? null : value;
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
-        {
-            return null;
-        }
     }
 
     // The ISO only accepts team ids made of [A-Za-z0-9._-] without "..".
