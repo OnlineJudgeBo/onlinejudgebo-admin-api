@@ -118,6 +118,7 @@ builder.Services.AddFileSystemLocalManagerInfrastructureManager(builder.Configur
 builder.Services.AddSingleton<IControlGroupStore, ControlGroupHttpStore>();
 builder.Services.AddAwsS3FileManager(builder.Configuration);
 builder.Services.AddIdeIntegrationInfrastructure(builder.Configuration);
+builder.Services.AddScoped<IEmailSender, OnlineJudgeAdmin.Infrastructure.Email.SmtpEmailSender>();
 builder.Services.AddScoped<UserClaimsHelper>();
 builder.Services.AddHttpClient(OnlineJudgeAdminApi.Controllers.ContestMachinesController.ControlServerClient, client =>
 {
