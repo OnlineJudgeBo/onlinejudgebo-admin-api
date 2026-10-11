@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using OnlineJudgeAdmin.Core.Application.Services.Implementations;
+using OnlineJudgeAdmin.Infrastructure.Email;
 
 public class EmailServiceTests
 {
@@ -142,8 +143,8 @@ public class EmailServiceTests
     [Fact]
     public void Welcome_RejectsNullDependencies()
     {
-        Assert.Throws<ArgumentNullException>(() => new WelcomeEmailService(null!, NullLogger<WelcomeEmailService>.Instance));
-        Assert.Throws<ArgumentNullException>(() => new WelcomeEmailService(new ConfigurationBuilder().Build(), null!));
+        Assert.Throws<ArgumentNullException>(() => new WelcomeEmailService(null!, NullLogger<WelcomeEmailService>.Instance, new SmtpEmailSender()));
+        Assert.Throws<ArgumentNullException>(() => new WelcomeEmailService(new ConfigurationBuilder().Build(), null!, new SmtpEmailSender()));
     }
 
     [Fact]
@@ -155,7 +156,7 @@ public class EmailServiceTests
             ["Email:Sites:2:Smtp:From:Email"] = "no-reply@site2.bo",
             ["Email:Sites:2:AppName"] = "Sitio Dos",
             ["Email:Sites:2:PasswordRecovery:Subject"] = "Recupera tu cuenta",
-        }));
+        }), new SmtpEmailSender());
 
         await service.SendRecoveryCodeAsync("ana@example.com", "ana", "ABC123DEF456", siteId: 2, displayName: "Ana");
 
@@ -175,7 +176,7 @@ public class EmailServiceTests
         var settings = BaseSettings(smtp.Port);
         settings.Remove("Email:AppName");
         settings.Remove("Email:Smtp:From:Email");
-        var service = new PasswordRecoveryEmailService(new ConfigurationBuilder().AddInMemoryCollection(settings).Build());
+        var service = new PasswordRecoveryEmailService(new ConfigurationBuilder().AddInMemoryCollection(settings).Build(), new SmtpEmailSender());
 
         await service.SendRecoveryCodeAsync("ana@example.com", "ana_user", "CODE01", 1);
 
@@ -189,7 +190,7 @@ public class EmailServiceTests
     [Fact]
     public async Task Recovery_RejectsIncompleteConfiguration()
     {
-        var service = new PasswordRecoveryEmailService(new ConfigurationBuilder().Build());
+        var service = new PasswordRecoveryEmailService(new ConfigurationBuilder().Build(), new SmtpEmailSender());
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SendRecoveryCodeAsync("ana@example.com", "ana", "CODE01", 1));
 
@@ -199,7 +200,7 @@ public class EmailServiceTests
     [Fact]
     public async Task Recovery_WrapsDeliveryFailure()
     {
-        var service = new PasswordRecoveryEmailService(Config(ClosedPort()));
+        var service = new PasswordRecoveryEmailService(Config(ClosedPort()), new SmtpEmailSender());
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SendRecoveryCodeAsync("ana@example.com", "ana", "CODE01", 1));
 
@@ -209,11 +210,11 @@ public class EmailServiceTests
     [Fact]
     public void Recovery_RejectsNullConfiguration()
     {
-        Assert.Throws<ArgumentNullException>(() => new PasswordRecoveryEmailService(null!));
+        Assert.Throws<ArgumentNullException>(() => new PasswordRecoveryEmailService(null!, new SmtpEmailSender()));
     }
 
     private static WelcomeEmailService Welcome(IConfiguration configuration) =>
-        new(configuration, NullLogger<WelcomeEmailService>.Instance);
+        new(configuration, NullLogger<WelcomeEmailService>.Instance, new SmtpEmailSender());
 
     private static Dictionary<string, string?> BaseSettings(int port) => new()
     {

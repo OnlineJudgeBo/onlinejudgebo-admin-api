@@ -1,10 +1,10 @@
 using System.Net;
-using System.Net.Mail;
-using System.Net.Mime;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using OnlineJudgeAdmin.Core.Application.Services.Helpers;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
+using OnlineJudgeAdmin.Core.Domain.Models;
 
 namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
 
@@ -12,9 +12,11 @@ public class WelcomeEmailService : IWelcomeEmailService
 {
     private readonly IConfiguration _configuration;
     private readonly ILogger<WelcomeEmailService> _logger;
+    private readonly IEmailSender _sender;
 
-    public WelcomeEmailService(IConfiguration configuration, ILogger<WelcomeEmailService> logger)
+    public WelcomeEmailService(IConfiguration configuration, ILogger<WelcomeEmailService> logger, IEmailSender sender)
     {
+        _sender = sender ?? throw new ArgumentNullException(nameof(sender));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -80,31 +82,14 @@ public class WelcomeEmailService : IWelcomeEmailService
         var plainTextBody = BuildPlainTextBody(recipientName, appName, userId, portalUrl);
         var htmlBody = BuildHtmlBody(recipientName, appName, userId, portalUrl);
 
-        using var message = new MailMessage
-        {
-            From = new MailAddress(fromEmail, fromName),
-            Subject = subject,
-            Body = plainTextBody,
-            IsBodyHtml = false
-        };
-
-        message.To.Add(new MailAddress(email, recipientName));
-        message.AlternateViews.Add(AlternateView.CreateAlternateViewFromString(plainTextBody, null, MediaTypeNames.Text.Plain));
-        message.AlternateViews.Add(AlternateView.CreateAlternateViewFromString(htmlBody, null, MediaTypeNames.Text.Html));
-
-        using var client = new SmtpClient(host, port)
-        {
-            EnableSsl = useSsl,
-            DeliveryMethod = SmtpDeliveryMethod.Network,
-            Credentials = new NetworkCredential(username, password)
-        };
+        var message = new EmailMessage(host, port, useSsl, username, password, fromEmail, fromName, email, recipientName, subject, plainTextBody, htmlBody);
 
         try
         {
-            await client.SendMailAsync(message);
+            await _sender.SendAsync(message);
             _logger.LogInformation("Welcome email sent successfully");
         }
-        catch (Exception ex) when (ex is SmtpException or InvalidOperationException)
+        catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Welcome email delivery failed");
 
