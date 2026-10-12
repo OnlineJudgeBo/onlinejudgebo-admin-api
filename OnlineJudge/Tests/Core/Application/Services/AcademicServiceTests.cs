@@ -177,12 +177,12 @@ public class AcademicServiceTests
     public async Task SaveLearningPathProgressAsync_UsesEmptyRequestWhenNull()
     {
         LearningPathProgressUpdateRequest? capturedRequest = null;
-        var repository = new Mock<IAcademicRepository>();
+        var repository = new Mock<ILearningPathRepository>();
         repository
             .Setup(item => item.SaveLearningPathProgressAsync(1, "obi", "student", It.IsAny<LearningPathProgressUpdateRequest>()))
             .Callback<int, string, string, LearningPathProgressUpdateRequest>((_, _, _, request) => capturedRequest = request)
             .ReturnsAsync(new LearningPathProgressResponse { LearningPathKey = "obi" });
-        var service = new AcademicService(repository.Object);
+        var service = new LearningPathService(repository.Object);
 
         var result = await service.SaveLearningPathProgressAsync(1, "obi", CurrentUser(UserRolesEnum.Invitado, "student"), null!);
 
@@ -216,7 +216,7 @@ public class AcademicServiceTests
     [Fact]
     public async Task CreateLearningPathAsync_RejectsNonAdministrator()
     {
-        var service = new AcademicService(Mock.Of<IAcademicRepository>());
+        var service = new LearningPathService(Mock.Of<ILearningPathRepository>());
 
         var error = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.CreateLearningPathAsync(1, CurrentUser(UserRolesEnum.Docente), new LearningPathAdminUpsertRequest { Key = "cpp", Title = "C++" }));
 
@@ -227,9 +227,9 @@ public class AcademicServiceTests
     public async Task CreateLearningPathAsync_ValidatesAndDelegates()
     {
         var request = new LearningPathAdminUpsertRequest { Key = "cpp", Title = "C++", Version = 1 };
-        var repository = new Mock<IAcademicRepository>();
+        var repository = new Mock<ILearningPathRepository>();
         repository.Setup(item => item.CreateLearningPathAsync(1, request)).ReturnsAsync(new LearningPathResponse { Track = new LearningPathTrack { Id = "cpp" } });
-        var service = new AcademicService(repository.Object);
+        var service = new LearningPathService(repository.Object);
 
         var response = await service.CreateLearningPathAsync(1, CurrentUser(UserRolesEnum.Administrador, "admin"), request);
 
@@ -240,7 +240,7 @@ public class AcademicServiceTests
     [Fact]
     public async Task CreateLearningPathTopicAsync_RejectsInvalidProblemIds()
     {
-        var service = new AcademicService(Mock.Of<IAcademicRepository>());
+        var service = new LearningPathService(Mock.Of<ILearningPathRepository>());
         var request = new LearningPathTopicAdminRequest { Key = "variables", Title = "Variables", ProblemIds = new List<int> { 0 } };
 
         var error = await Assert.ThrowsAsync<ArgumentException>(() => service.CreateLearningPathTopicAsync(1, "cpp", 1, CurrentUser(UserRolesEnum.Administrador, "admin"), request));

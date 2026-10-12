@@ -14,11 +14,13 @@ namespace OnlineJudgeAdminApi.Controllers;
 public class AcademicController : ControllerBase
 {
     private readonly IAcademicService _academicService;
+    private readonly ILearningPathService _learningPathService;
     private readonly UserClaimsHelper _userClaimsHelper;
 
-    public AcademicController(IAcademicService academicService, UserClaimsHelper userClaimsHelper)
+    public AcademicController(IAcademicService academicService, ILearningPathService learningPathService, UserClaimsHelper userClaimsHelper)
     {
         _academicService = academicService ?? throw new ArgumentNullException(nameof(academicService));
+        _learningPathService = learningPathService ?? throw new ArgumentNullException(nameof(learningPathService));
         _userClaimsHelper = userClaimsHelper ?? throw new ArgumentNullException(nameof(userClaimsHelper));
     }
 
@@ -265,7 +267,7 @@ public class AcademicController : ControllerBase
                 Role = UserRolesEnum.Invitado
             };
 
-        return Ok(await _academicService.GetLearningPathsAsync(siteId, currentUser));
+        return Ok(await _learningPathService.GetLearningPathsAsync(siteId, currentUser));
     }
 
     [AllowAnonymous]
@@ -281,7 +283,7 @@ public class AcademicController : ControllerBase
                 Role = UserRolesEnum.Invitado
             };
 
-        return Ok(await _academicService.GetLearningPathAsync(siteId, learningPathKey, currentUser));
+        return Ok(await _learningPathService.GetLearningPathAsync(siteId, learningPathKey, currentUser));
     }
 
     // The learning-path catalog is scoped to the authenticated administrator's site.
@@ -290,7 +292,7 @@ public class AcademicController : ControllerBase
     public async Task<IActionResult> CreateLearningPathAsync(LearningPathAdminUpsertRequest request)
     {
         var currentUser = _userClaimsHelper.GetUserContextRole();
-        return Ok(await _academicService.CreateLearningPathAsync(currentUser.SiteId, currentUser, request));
+        return Ok(await _learningPathService.CreateLearningPathAsync(currentUser.SiteId, currentUser, request));
     }
 
     [HttpPut("learning-paths/{learningPathKey}")]
@@ -298,7 +300,7 @@ public class AcademicController : ControllerBase
     public async Task<IActionResult> UpdateLearningPathAsync(string learningPathKey, LearningPathAdminUpsertRequest request)
     {
         var currentUser = _userClaimsHelper.GetUserContextRole();
-        return Ok(await _academicService.UpdateLearningPathAsync(currentUser.SiteId, learningPathKey, currentUser, request));
+        return Ok(await _learningPathService.UpdateLearningPathAsync(currentUser.SiteId, learningPathKey, currentUser, request));
     }
 
     [HttpDelete("learning-paths/{learningPathKey}")]
@@ -306,7 +308,7 @@ public class AcademicController : ControllerBase
     public async Task<IActionResult> DeleteLearningPathAsync(string learningPathKey)
     {
         var currentUser = _userClaimsHelper.GetUserContextRole();
-        await _academicService.DeleteLearningPathAsync(currentUser.SiteId, learningPathKey, currentUser);
+        await _learningPathService.DeleteLearningPathAsync(currentUser.SiteId, learningPathKey, currentUser);
         return NoContent();
     }
 
@@ -315,7 +317,7 @@ public class AcademicController : ControllerBase
     public async Task<IActionResult> CreateLearningPathStageAsync(string learningPathKey, LearningPathStageAdminRequest request)
     {
         var currentUser = _userClaimsHelper.GetUserContextRole();
-        return Ok(await _academicService.CreateLearningPathStageAsync(currentUser.SiteId, learningPathKey, currentUser, request));
+        return Ok(await _learningPathService.CreateLearningPathStageAsync(currentUser.SiteId, learningPathKey, currentUser, request));
     }
 
     [HttpPost("learning-paths/{learningPathKey}/stages/{stageId:long}/link")]
@@ -323,7 +325,7 @@ public class AcademicController : ControllerBase
     public async Task<IActionResult> LinkLearningPathStageAsync(string learningPathKey, long stageId)
     {
         var currentUser = _userClaimsHelper.GetUserContextRole();
-        return Ok(await _academicService.LinkLearningPathStageAsync(currentUser.SiteId, learningPathKey, stageId, currentUser));
+        return Ok(await _learningPathService.LinkLearningPathStageAsync(currentUser.SiteId, learningPathKey, stageId, currentUser));
     }
 
     [HttpDelete("learning-paths/{learningPathKey}/stages/{stageId:long}/link")]
@@ -331,7 +333,7 @@ public class AcademicController : ControllerBase
     public async Task<IActionResult> UnlinkLearningPathStageAsync(string learningPathKey, long stageId)
     {
         var currentUser = _userClaimsHelper.GetUserContextRole();
-        await _academicService.UnlinkLearningPathStageAsync(currentUser.SiteId, learningPathKey, stageId, currentUser);
+        await _learningPathService.UnlinkLearningPathStageAsync(currentUser.SiteId, learningPathKey, stageId, currentUser);
         return NoContent();
     }
 
@@ -340,7 +342,7 @@ public class AcademicController : ControllerBase
     public async Task<IActionResult> UpdateLearningPathStageAsync(string learningPathKey, long stageId, LearningPathStageAdminRequest request)
     {
         var currentUser = _userClaimsHelper.GetUserContextRole();
-        return Ok(await _academicService.UpdateLearningPathStageAsync(currentUser.SiteId, learningPathKey, stageId, currentUser, request));
+        return Ok(await _learningPathService.UpdateLearningPathStageAsync(currentUser.SiteId, learningPathKey, stageId, currentUser, request));
     }
 
     [HttpDelete("learning-paths/{learningPathKey}/stages/{stageId:long}")]
@@ -348,7 +350,7 @@ public class AcademicController : ControllerBase
     public async Task<IActionResult> DeleteLearningPathStageAsync(string learningPathKey, long stageId)
     {
         var currentUser = _userClaimsHelper.GetUserContextRole();
-        await _academicService.DeleteLearningPathStageAsync(currentUser.SiteId, learningPathKey, stageId, currentUser);
+        await _learningPathService.DeleteLearningPathStageAsync(currentUser.SiteId, learningPathKey, stageId, currentUser);
         return NoContent();
     }
 
@@ -357,7 +359,7 @@ public class AcademicController : ControllerBase
     public async Task<IActionResult> CreateLearningPathTopicAsync(string learningPathKey, long stageId, LearningPathTopicAdminRequest request)
     {
         var currentUser = _userClaimsHelper.GetUserContextRole();
-        return Ok(await _academicService.CreateLearningPathTopicAsync(currentUser.SiteId, learningPathKey, stageId, currentUser, request));
+        return Ok(await _learningPathService.CreateLearningPathTopicAsync(currentUser.SiteId, learningPathKey, stageId, currentUser, request));
     }
 
     [HttpPut("learning-paths/{learningPathKey}/stages/{stageId:long}/topics/{topicId:long}")]
@@ -365,7 +367,7 @@ public class AcademicController : ControllerBase
     public async Task<IActionResult> UpdateLearningPathTopicAsync(string learningPathKey, long stageId, long topicId, LearningPathTopicAdminRequest request)
     {
         var currentUser = _userClaimsHelper.GetUserContextRole();
-        return Ok(await _academicService.UpdateLearningPathTopicAsync(currentUser.SiteId, learningPathKey, stageId, topicId, currentUser, request));
+        return Ok(await _learningPathService.UpdateLearningPathTopicAsync(currentUser.SiteId, learningPathKey, stageId, topicId, currentUser, request));
     }
 
     [HttpDelete("learning-paths/{learningPathKey}/stages/{stageId:long}/topics/{topicId:long}")]
@@ -373,7 +375,7 @@ public class AcademicController : ControllerBase
     public async Task<IActionResult> DeleteLearningPathTopicAsync(string learningPathKey, long stageId, long topicId)
     {
         var currentUser = _userClaimsHelper.GetUserContextRole();
-        await _academicService.DeleteLearningPathTopicAsync(currentUser.SiteId, learningPathKey, stageId, topicId, currentUser);
+        await _learningPathService.DeleteLearningPathTopicAsync(currentUser.SiteId, learningPathKey, stageId, topicId, currentUser);
         return NoContent();
     }
 
@@ -381,7 +383,7 @@ public class AcademicController : ControllerBase
     public async Task<IActionResult> GetLearningPathProgressAsync(int siteId, string learningPathKey)
     {
         var currentUser = _userClaimsHelper.GetUserContextRole();
-        return Ok(await _academicService.GetLearningPathProgressAsync(siteId, learningPathKey, currentUser));
+        return Ok(await _learningPathService.GetLearningPathProgressAsync(siteId, learningPathKey, currentUser));
     }
 
     [HttpPut("sites/{siteId:int}/learning-paths/{learningPathKey}/progress")]
@@ -398,7 +400,7 @@ public class AcademicController : ControllerBase
             CompletedTopicIds = progressForUpdate.CompletedTopicIds
         };
 
-        return Ok(await _academicService.SaveLearningPathProgressAsync(siteId, learningPathKey, currentUser, request));
+        return Ok(await _learningPathService.SaveLearningPathProgressAsync(siteId, learningPathKey, currentUser, request));
     }
 
     private static string BuildCourseReportCsv(AcademicCourseReportResponse report)

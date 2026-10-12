@@ -32,6 +32,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IJudgeService, JudgeService>();
         services.AddScoped<ISolutionService, SolutionService>();
         services.AddScoped<IAcademicService, AcademicService>();
+        services.AddScoped<ILearningPathService, LearningPathService>();
         services.AddScoped<IPasswordRecoveryEmailService, PasswordRecoveryEmailService>();
         services.AddScoped<IWelcomeEmailService, WelcomeEmailService>();
         services.AddScoped<IPublicService, PublicService>();

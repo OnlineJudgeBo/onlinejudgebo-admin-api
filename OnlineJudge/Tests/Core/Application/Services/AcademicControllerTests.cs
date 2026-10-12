@@ -10,11 +10,12 @@ using static ControllerTestSupport;
 public class AcademicControllerTests
 {
     private readonly Mock<IAcademicService> _service = new();
+    private readonly Mock<ILearningPathService> _paths = new();
 
     private AcademicController Controller(HttpContext? context = null)
     {
         context ??= AuthenticatedContext("teacher", 1, "Docente");
-        return new AcademicController(_service.Object, Claims(context)).WithContext(context);
+        return new AcademicController(_service.Object, _paths.Object, Claims(context)).WithContext(context);
     }
 
     private static bool IsTeacher(CurrentUser user) => user.UserId == "teacher" && user.SiteId == 1 && user.Role == UserRolesEnum.Docente;
@@ -22,8 +23,8 @@ public class AcademicControllerTests
     [Fact]
     public void Constructor_RejectsNullDependencies()
     {
-        Assert.Throws<ArgumentNullException>(() => new AcademicController(null!, Claims(AuthenticatedContext())));
-        Assert.Throws<ArgumentNullException>(() => new AcademicController(_service.Object, null!));
+        Assert.Throws<ArgumentNullException>(() => new AcademicController(null!, _paths.Object, Claims(AuthenticatedContext())));
+        Assert.Throws<ArgumentNullException>(() => new AcademicController(_service.Object, _paths.Object, null!));
     }
 
     [Fact]
@@ -55,7 +56,7 @@ public class AcademicControllerTests
         _service.Verify(item => item.GetCourseRankingAsync(1, 10, It.Is<CurrentUser>(u => IsTeacher(u))), Times.Once);
         _service.Verify(item => item.GetCourseReportAsync(1, 10, It.Is<CurrentUser>(u => IsTeacher(u))), Times.Once);
         _service.Verify(item => item.GetStudentProgressAsync(1, 10, "ana", It.Is<CurrentUser>(u => IsTeacher(u))), Times.Once);
-        _service.Verify(item => item.GetLearningPathProgressAsync(1, "cpp", It.Is<CurrentUser>(u => IsTeacher(u))), Times.Once);
+        _paths.Verify(item => item.GetLearningPathProgressAsync(1, "cpp", It.Is<CurrentUser>(u => IsTeacher(u))), Times.Once);
     }
 
     [Fact]
@@ -192,8 +193,8 @@ public class AcademicControllerTests
         await controller.GetLearningPathsAsync(3);
         await controller.GetLearningPathAsync(3, "cpp");
 
-        _service.Verify(item => item.GetLearningPathsAsync(3, It.Is<CurrentUser>(u => u.UserId == "public" && u.SiteId == 3 && u.Role == UserRolesEnum.Invitado)), Times.Once);
-        _service.Verify(item => item.GetLearningPathAsync(3, "cpp", It.Is<CurrentUser>(u => u.UserId == "public" && u.SiteId == 3)), Times.Once);
+        _paths.Verify(item => item.GetLearningPathsAsync(3, It.Is<CurrentUser>(u => u.UserId == "public" && u.SiteId == 3 && u.Role == UserRolesEnum.Invitado)), Times.Once);
+        _paths.Verify(item => item.GetLearningPathAsync(3, "cpp", It.Is<CurrentUser>(u => u.UserId == "public" && u.SiteId == 3)), Times.Once);
     }
 
     [Fact]
@@ -204,8 +205,8 @@ public class AcademicControllerTests
         await controller.GetLearningPathsAsync(1);
         await controller.GetLearningPathAsync(1, "cpp");
 
-        _service.Verify(item => item.GetLearningPathsAsync(1, It.Is<CurrentUser>(u => IsTeacher(u))), Times.Once);
-        _service.Verify(item => item.GetLearningPathAsync(1, "cpp", It.Is<CurrentUser>(u => IsTeacher(u))), Times.Once);
+        _paths.Verify(item => item.GetLearningPathsAsync(1, It.Is<CurrentUser>(u => IsTeacher(u))), Times.Once);
+        _paths.Verify(item => item.GetLearningPathAsync(1, "cpp", It.Is<CurrentUser>(u => IsTeacher(u))), Times.Once);
     }
 
     [Fact]
@@ -228,17 +229,17 @@ public class AcademicControllerTests
         Assert.IsType<OkObjectResult>(await controller.UpdateLearningPathTopicAsync("cpp", 4, 9, topic));
         Assert.IsType<NoContentResult>(await controller.DeleteLearningPathTopicAsync("cpp", 4, 9));
 
-        _service.Verify(item => item.CreateLearningPathAsync(7, It.IsAny<CurrentUser>(), path), Times.Once);
-        _service.Verify(item => item.UpdateLearningPathAsync(7, "cpp", It.IsAny<CurrentUser>(), path), Times.Once);
-        _service.Verify(item => item.DeleteLearningPathAsync(7, "cpp", It.IsAny<CurrentUser>()), Times.Once);
-        _service.Verify(item => item.CreateLearningPathStageAsync(7, "cpp", It.IsAny<CurrentUser>(), stage), Times.Once);
-        _service.Verify(item => item.LinkLearningPathStageAsync(7, "cpp", 4, It.IsAny<CurrentUser>()), Times.Once);
-        _service.Verify(item => item.UnlinkLearningPathStageAsync(7, "cpp", 4, It.IsAny<CurrentUser>()), Times.Once);
-        _service.Verify(item => item.UpdateLearningPathStageAsync(7, "cpp", 4, It.IsAny<CurrentUser>(), stage), Times.Once);
-        _service.Verify(item => item.DeleteLearningPathStageAsync(7, "cpp", 4, It.IsAny<CurrentUser>()), Times.Once);
-        _service.Verify(item => item.CreateLearningPathTopicAsync(7, "cpp", 4, It.IsAny<CurrentUser>(), topic), Times.Once);
-        _service.Verify(item => item.UpdateLearningPathTopicAsync(7, "cpp", 4, 9, It.IsAny<CurrentUser>(), topic), Times.Once);
-        _service.Verify(item => item.DeleteLearningPathTopicAsync(7, "cpp", 4, 9, It.IsAny<CurrentUser>()), Times.Once);
+        _paths.Verify(item => item.CreateLearningPathAsync(7, It.IsAny<CurrentUser>(), path), Times.Once);
+        _paths.Verify(item => item.UpdateLearningPathAsync(7, "cpp", It.IsAny<CurrentUser>(), path), Times.Once);
+        _paths.Verify(item => item.DeleteLearningPathAsync(7, "cpp", It.IsAny<CurrentUser>()), Times.Once);
+        _paths.Verify(item => item.CreateLearningPathStageAsync(7, "cpp", It.IsAny<CurrentUser>(), stage), Times.Once);
+        _paths.Verify(item => item.LinkLearningPathStageAsync(7, "cpp", 4, It.IsAny<CurrentUser>()), Times.Once);
+        _paths.Verify(item => item.UnlinkLearningPathStageAsync(7, "cpp", 4, It.IsAny<CurrentUser>()), Times.Once);
+        _paths.Verify(item => item.UpdateLearningPathStageAsync(7, "cpp", 4, It.IsAny<CurrentUser>(), stage), Times.Once);
+        _paths.Verify(item => item.DeleteLearningPathStageAsync(7, "cpp", 4, It.IsAny<CurrentUser>()), Times.Once);
+        _paths.Verify(item => item.CreateLearningPathTopicAsync(7, "cpp", 4, It.IsAny<CurrentUser>(), topic), Times.Once);
+        _paths.Verify(item => item.UpdateLearningPathTopicAsync(7, "cpp", 4, 9, It.IsAny<CurrentUser>(), topic), Times.Once);
+        _paths.Verify(item => item.DeleteLearningPathTopicAsync(7, "cpp", 4, 9, It.IsAny<CurrentUser>()), Times.Once);
     }
 
     [Fact]
@@ -249,8 +250,8 @@ public class AcademicControllerTests
         await controller.SaveLearningPathProgressAsync(1, "cpp", new AcademicLearningPathProgressForUpdate { LastTopicId = "vars", CompletedTopicIds = new List<string> { "intro" } });
         await controller.SaveLearningPathProgressAsync(1, "cpp", null!);
 
-        _service.Verify(item => item.SaveLearningPathProgressAsync(1, "cpp", It.IsAny<CurrentUser>(), It.Is<LearningPathProgressUpdateRequest>(r => r.LastTopicId == "vars" && r.CompletedTopicIds.Single() == "intro")), Times.Once);
-        _service.Verify(item => item.SaveLearningPathProgressAsync(1, "cpp", It.IsAny<CurrentUser>(), It.Is<LearningPathProgressUpdateRequest>(r => r.LastTopicId == null && r.CompletedTopicIds.Count == 0)), Times.Once);
+        _paths.Verify(item => item.SaveLearningPathProgressAsync(1, "cpp", It.IsAny<CurrentUser>(), It.Is<LearningPathProgressUpdateRequest>(r => r.LastTopicId == "vars" && r.CompletedTopicIds.Single() == "intro")), Times.Once);
+        _paths.Verify(item => item.SaveLearningPathProgressAsync(1, "cpp", It.IsAny<CurrentUser>(), It.Is<LearningPathProgressUpdateRequest>(r => r.LastTopicId == null && r.CompletedTopicIds.Count == 0)), Times.Once);
     }
 
     [Fact]
