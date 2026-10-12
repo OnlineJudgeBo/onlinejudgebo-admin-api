@@ -8,7 +8,7 @@ using OnlineJudgeAdmin.Infrastructure.Database.Models;
 
 namespace OnlineJudgeAdmin.Infrastructure.Database.Implementations;
 
-public partial class AcademicRepository : IAcademicRepository
+public partial class AcademicRepository : IAcademicRepository, ILearningPathRepository
 {
     private const short AcceptedResultCode = 4;
 

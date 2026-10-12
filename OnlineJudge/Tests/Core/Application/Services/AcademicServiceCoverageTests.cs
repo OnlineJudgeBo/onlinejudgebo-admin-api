@@ -5,11 +5,14 @@ using OnlineJudgeAdmin.Core.Domain.Models;
 public class AcademicServiceCoverageTests
 {
     private readonly Mock<IAcademicRepository> _repository = new();
+    private readonly Mock<ILearningPathRepository> _pathRepository = new();
     private readonly AcademicService _service;
+    private readonly LearningPathService _paths;
 
     public AcademicServiceCoverageTests()
     {
         _service = new AcademicService(_repository.Object);
+        _paths = new LearningPathService(_pathRepository.Object);
     }
 
     [Fact]
@@ -476,19 +479,19 @@ public class AcademicServiceCoverageTests
     [Fact]
     public async Task GetLearningPathsAsync_ValidatesSite()
     {
-        await _service.GetLearningPathsAsync(1, User(UserRolesEnum.Invitado));
-        _repository.Verify(item => item.GetLearningPathsAsync(1), Times.Once);
+        await _paths.GetLearningPathsAsync(1, User(UserRolesEnum.Invitado));
+        _pathRepository.Verify(item => item.GetLearningPathsAsync(1), Times.Once);
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _service.GetLearningPathsAsync(3, User(UserRolesEnum.Invitado)));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _paths.GetLearningPathsAsync(3, User(UserRolesEnum.Invitado)));
     }
 
     [Fact]
     public async Task GetLearningPathAsync_RequiresKey()
     {
-        await Assert.ThrowsAsync<ArgumentException>(() => _service.GetLearningPathAsync(1, " ", User(UserRolesEnum.Invitado)));
+        await Assert.ThrowsAsync<ArgumentException>(() => _paths.GetLearningPathAsync(1, " ", User(UserRolesEnum.Invitado)));
 
-        await _service.GetLearningPathAsync(1, "cpp", User(UserRolesEnum.Invitado));
-        _repository.Verify(item => item.GetLearningPathAsync(1, "cpp"), Times.Once);
+        await _paths.GetLearningPathAsync(1, "cpp", User(UserRolesEnum.Invitado));
+        _pathRepository.Verify(item => item.GetLearningPathAsync(1, "cpp"), Times.Once);
     }
 
     public static IEnumerable<object[]> InvalidLearningPaths => new[]
@@ -502,7 +505,7 @@ public class AcademicServiceCoverageTests
     [MemberData(nameof(InvalidLearningPaths))]
     public async Task CreateLearningPathAsync_ValidatesRequest(LearningPathAdminUpsertRequest request, string expectedMessage)
     {
-        var error = await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateLearningPathAsync(1, Admin(), request));
+        var error = await Assert.ThrowsAsync<ArgumentException>(() => _paths.CreateLearningPathAsync(1, Admin(), request));
 
         Assert.Equal(expectedMessage, error.Message);
     }
@@ -510,26 +513,26 @@ public class AcademicServiceCoverageTests
     [Fact]
     public async Task CreateLearningPathAsync_RejectsNullRequest()
     {
-        await Assert.ThrowsAsync<ArgumentNullException>(() => _service.CreateLearningPathAsync(1, Admin(), null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => _paths.CreateLearningPathAsync(1, Admin(), null!));
     }
 
     [Fact]
     public async Task UpdateLearningPathAsync_TrimsKeyAndValidates()
     {
         var request = new LearningPathAdminUpsertRequest { Key = "cpp", Title = "C++", Version = 2 };
-        await Assert.ThrowsAsync<ArgumentException>(() => _service.UpdateLearningPathAsync(1, " ", Admin(), request));
+        await Assert.ThrowsAsync<ArgumentException>(() => _paths.UpdateLearningPathAsync(1, " ", Admin(), request));
 
-        await _service.UpdateLearningPathAsync(1, " cpp ", Admin(), request);
-        _repository.Verify(item => item.UpdateLearningPathAsync(1, "cpp", request), Times.Once);
+        await _paths.UpdateLearningPathAsync(1, " cpp ", Admin(), request);
+        _pathRepository.Verify(item => item.UpdateLearningPathAsync(1, "cpp", request), Times.Once);
     }
 
     [Fact]
     public async Task DeleteLearningPathAsync_TrimsKeyAndValidates()
     {
-        await Assert.ThrowsAsync<ArgumentException>(() => _service.DeleteLearningPathAsync(1, "", Admin()));
+        await Assert.ThrowsAsync<ArgumentException>(() => _paths.DeleteLearningPathAsync(1, "", Admin()));
 
-        await _service.DeleteLearningPathAsync(1, " cpp ", Admin());
-        _repository.Verify(item => item.DeleteLearningPathAsync(1, "cpp"), Times.Once);
+        await _paths.DeleteLearningPathAsync(1, " cpp ", Admin());
+        _pathRepository.Verify(item => item.DeleteLearningPathAsync(1, "cpp"), Times.Once);
     }
 
     public static IEnumerable<object[]> InvalidStages => new[]
@@ -543,8 +546,8 @@ public class AcademicServiceCoverageTests
     [MemberData(nameof(InvalidStages))]
     public async Task CreateAndUpdateLearningPathStage_ValidateRequest(LearningPathStageAdminRequest request, string expectedMessage)
     {
-        var create = await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateLearningPathStageAsync(1, "cpp", Admin(), request));
-        var update = await Assert.ThrowsAsync<ArgumentException>(() => _service.UpdateLearningPathStageAsync(1, "cpp", 4, Admin(), request));
+        var create = await Assert.ThrowsAsync<ArgumentException>(() => _paths.CreateLearningPathStageAsync(1, "cpp", Admin(), request));
+        var update = await Assert.ThrowsAsync<ArgumentException>(() => _paths.UpdateLearningPathStageAsync(1, "cpp", 4, Admin(), request));
 
         Assert.Equal(expectedMessage, create.Message);
         Assert.Equal(expectedMessage, update.Message);
@@ -555,17 +558,17 @@ public class AcademicServiceCoverageTests
     {
         var request = new LearningPathStageAdminRequest { Key = "basics", Name = "Básico", Order = 1 };
 
-        await _service.CreateLearningPathStageAsync(1, " cpp ", Admin(), request);
-        await _service.LinkLearningPathStageAsync(1, " cpp ", 4, Admin());
-        await _service.UnlinkLearningPathStageAsync(1, " cpp ", 4, Admin());
-        await _service.UpdateLearningPathStageAsync(1, " cpp ", 4, Admin(), request);
-        await _service.DeleteLearningPathStageAsync(1, " cpp ", 4, Admin());
+        await _paths.CreateLearningPathStageAsync(1, " cpp ", Admin(), request);
+        await _paths.LinkLearningPathStageAsync(1, " cpp ", 4, Admin());
+        await _paths.UnlinkLearningPathStageAsync(1, " cpp ", 4, Admin());
+        await _paths.UpdateLearningPathStageAsync(1, " cpp ", 4, Admin(), request);
+        await _paths.DeleteLearningPathStageAsync(1, " cpp ", 4, Admin());
 
-        _repository.Verify(item => item.CreateLearningPathStageAsync(1, "cpp", request), Times.Once);
-        _repository.Verify(item => item.LinkLearningPathStageAsync(1, "cpp", 4), Times.Once);
-        _repository.Verify(item => item.UnlinkLearningPathStageAsync(1, "cpp", 4), Times.Once);
-        _repository.Verify(item => item.UpdateLearningPathStageAsync(1, "cpp", 4, request), Times.Once);
-        _repository.Verify(item => item.DeleteLearningPathStageAsync(1, "cpp", 4), Times.Once);
+        _pathRepository.Verify(item => item.CreateLearningPathStageAsync(1, "cpp", request), Times.Once);
+        _pathRepository.Verify(item => item.LinkLearningPathStageAsync(1, "cpp", 4), Times.Once);
+        _pathRepository.Verify(item => item.UnlinkLearningPathStageAsync(1, "cpp", 4), Times.Once);
+        _pathRepository.Verify(item => item.UpdateLearningPathStageAsync(1, "cpp", 4, request), Times.Once);
+        _pathRepository.Verify(item => item.DeleteLearningPathStageAsync(1, "cpp", 4), Times.Once);
     }
 
     [Fact]
@@ -573,13 +576,13 @@ public class AcademicServiceCoverageTests
     {
         var request = new LearningPathStageAdminRequest { Key = "basics", Name = "Básico", Order = 1 };
 
-        await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateLearningPathStageAsync(1, " ", Admin(), request));
-        await Assert.ThrowsAsync<ArgumentException>(() => _service.LinkLearningPathStageAsync(1, " ", 4, Admin()));
-        await Assert.ThrowsAsync<ArgumentException>(() => _service.LinkLearningPathStageAsync(1, "cpp", 0, Admin()));
-        await Assert.ThrowsAsync<ArgumentException>(() => _service.UnlinkLearningPathStageAsync(1, "", 4, Admin()));
-        await Assert.ThrowsAsync<ArgumentException>(() => _service.UnlinkLearningPathStageAsync(1, "cpp", -1, Admin()));
-        await Assert.ThrowsAsync<ArgumentException>(() => _service.UpdateLearningPathStageAsync(1, "cpp", 0, Admin(), request));
-        await Assert.ThrowsAsync<ArgumentException>(() => _service.DeleteLearningPathStageAsync(1, "cpp", 0, Admin()));
+        await Assert.ThrowsAsync<ArgumentException>(() => _paths.CreateLearningPathStageAsync(1, " ", Admin(), request));
+        await Assert.ThrowsAsync<ArgumentException>(() => _paths.LinkLearningPathStageAsync(1, " ", 4, Admin()));
+        await Assert.ThrowsAsync<ArgumentException>(() => _paths.LinkLearningPathStageAsync(1, "cpp", 0, Admin()));
+        await Assert.ThrowsAsync<ArgumentException>(() => _paths.UnlinkLearningPathStageAsync(1, "", 4, Admin()));
+        await Assert.ThrowsAsync<ArgumentException>(() => _paths.UnlinkLearningPathStageAsync(1, "cpp", -1, Admin()));
+        await Assert.ThrowsAsync<ArgumentException>(() => _paths.UpdateLearningPathStageAsync(1, "cpp", 0, Admin(), request));
+        await Assert.ThrowsAsync<ArgumentException>(() => _paths.DeleteLearningPathStageAsync(1, "cpp", 0, Admin()));
     }
 
     [Fact]
@@ -587,13 +590,13 @@ public class AcademicServiceCoverageTests
     {
         var request = new LearningPathTopicAdminRequest { Key = "vars", Title = "Variables", ProblemIds = new List<int> { 1000 } };
 
-        await _service.CreateLearningPathTopicAsync(1, " cpp ", 4, Admin(), request);
-        await _service.UpdateLearningPathTopicAsync(1, " cpp ", 4, 9, Admin(), request);
-        await _service.DeleteLearningPathTopicAsync(1, " cpp ", 4, 9, Admin());
+        await _paths.CreateLearningPathTopicAsync(1, " cpp ", 4, Admin(), request);
+        await _paths.UpdateLearningPathTopicAsync(1, " cpp ", 4, 9, Admin(), request);
+        await _paths.DeleteLearningPathTopicAsync(1, " cpp ", 4, 9, Admin());
 
-        _repository.Verify(item => item.CreateLearningPathTopicAsync(1, "cpp", 4, request), Times.Once);
-        _repository.Verify(item => item.UpdateLearningPathTopicAsync(1, "cpp", 4, 9, request), Times.Once);
-        _repository.Verify(item => item.DeleteLearningPathTopicAsync(1, "cpp", 4, 9), Times.Once);
+        _pathRepository.Verify(item => item.CreateLearningPathTopicAsync(1, "cpp", 4, request), Times.Once);
+        _pathRepository.Verify(item => item.UpdateLearningPathTopicAsync(1, "cpp", 4, 9, request), Times.Once);
+        _pathRepository.Verify(item => item.DeleteLearningPathTopicAsync(1, "cpp", 4, 9), Times.Once);
     }
 
     [Fact]
@@ -601,14 +604,14 @@ public class AcademicServiceCoverageTests
     {
         var valid = new LearningPathTopicAdminRequest { Key = "vars", Title = "Variables" };
 
-        await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateLearningPathTopicAsync(1, "cpp", 0, Admin(), valid));
-        await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateLearningPathTopicAsync(1, "cpp", 4, Admin(), new LearningPathTopicAdminRequest { Key = "", Title = "T" }));
-        await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateLearningPathTopicAsync(1, "cpp", 4, Admin(), new LearningPathTopicAdminRequest { Key = "k", Title = " " }));
-        await Assert.ThrowsAsync<ArgumentNullException>(() => _service.CreateLearningPathTopicAsync(1, "cpp", 4, Admin(), null!));
-        await Assert.ThrowsAsync<ArgumentException>(() => _service.UpdateLearningPathTopicAsync(1, "cpp", 0, 9, Admin(), valid));
-        await Assert.ThrowsAsync<ArgumentException>(() => _service.UpdateLearningPathTopicAsync(1, "cpp", 4, 0, Admin(), valid));
-        await Assert.ThrowsAsync<ArgumentException>(() => _service.DeleteLearningPathTopicAsync(1, "cpp", 0, 9, Admin()));
-        await Assert.ThrowsAsync<ArgumentException>(() => _service.DeleteLearningPathTopicAsync(1, "cpp", 4, 0, Admin()));
+        await Assert.ThrowsAsync<ArgumentException>(() => _paths.CreateLearningPathTopicAsync(1, "cpp", 0, Admin(), valid));
+        await Assert.ThrowsAsync<ArgumentException>(() => _paths.CreateLearningPathTopicAsync(1, "cpp", 4, Admin(), new LearningPathTopicAdminRequest { Key = "", Title = "T" }));
+        await Assert.ThrowsAsync<ArgumentException>(() => _paths.CreateLearningPathTopicAsync(1, "cpp", 4, Admin(), new LearningPathTopicAdminRequest { Key = "k", Title = " " }));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => _paths.CreateLearningPathTopicAsync(1, "cpp", 4, Admin(), null!));
+        await Assert.ThrowsAsync<ArgumentException>(() => _paths.UpdateLearningPathTopicAsync(1, "cpp", 0, 9, Admin(), valid));
+        await Assert.ThrowsAsync<ArgumentException>(() => _paths.UpdateLearningPathTopicAsync(1, "cpp", 4, 0, Admin(), valid));
+        await Assert.ThrowsAsync<ArgumentException>(() => _paths.DeleteLearningPathTopicAsync(1, "cpp", 0, 9, Admin()));
+        await Assert.ThrowsAsync<ArgumentException>(() => _paths.DeleteLearningPathTopicAsync(1, "cpp", 4, 0, Admin()));
     }
 
     [Theory]
@@ -622,42 +625,42 @@ public class AcademicServiceCoverageTests
         var stage = new LearningPathStageAdminRequest { Key = "b", Name = "B", Order = 1 };
         var topic = new LearningPathTopicAdminRequest { Key = "t", Title = "T" };
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _service.UpdateLearningPathAsync(1, "cpp", user, path));
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _service.DeleteLearningPathAsync(1, "cpp", user));
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _service.CreateLearningPathStageAsync(1, "cpp", user, stage));
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _service.LinkLearningPathStageAsync(1, "cpp", 1, user));
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _service.UnlinkLearningPathStageAsync(1, "cpp", 1, user));
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _service.UpdateLearningPathStageAsync(1, "cpp", 1, user, stage));
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _service.DeleteLearningPathStageAsync(1, "cpp", 1, user));
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _service.CreateLearningPathTopicAsync(1, "cpp", 1, user, topic));
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _service.UpdateLearningPathTopicAsync(1, "cpp", 1, 1, user, topic));
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _service.DeleteLearningPathTopicAsync(1, "cpp", 1, 1, user));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _paths.UpdateLearningPathAsync(1, "cpp", user, path));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _paths.DeleteLearningPathAsync(1, "cpp", user));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _paths.CreateLearningPathStageAsync(1, "cpp", user, stage));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _paths.LinkLearningPathStageAsync(1, "cpp", 1, user));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _paths.UnlinkLearningPathStageAsync(1, "cpp", 1, user));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _paths.UpdateLearningPathStageAsync(1, "cpp", 1, user, stage));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _paths.DeleteLearningPathStageAsync(1, "cpp", 1, user));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _paths.CreateLearningPathTopicAsync(1, "cpp", 1, user, topic));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _paths.UpdateLearningPathTopicAsync(1, "cpp", 1, 1, user, topic));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _paths.DeleteLearningPathTopicAsync(1, "cpp", 1, 1, user));
         _repository.VerifyNoOtherCalls();
     }
 
     [Fact]
     public async Task LearningPathAdministration_RejectsCrossSiteAdministrator()
     {
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _service.DeleteLearningPathAsync(2, "cpp", Admin()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _paths.DeleteLearningPathAsync(2, "cpp", Admin()));
     }
 
     [Fact]
     public async Task GetLearningPathProgressAsync_RequiresKeyAndUsesCurrentUser()
     {
-        await Assert.ThrowsAsync<ArgumentException>(() => _service.GetLearningPathProgressAsync(1, " ", User(UserRolesEnum.Invitado)));
+        await Assert.ThrowsAsync<ArgumentException>(() => _paths.GetLearningPathProgressAsync(1, " ", User(UserRolesEnum.Invitado)));
 
-        await _service.GetLearningPathProgressAsync(1, "cpp", User(UserRolesEnum.Invitado, "ana"));
-        _repository.Verify(item => item.GetLearningPathProgressAsync(1, "cpp", "ana"), Times.Once);
+        await _paths.GetLearningPathProgressAsync(1, "cpp", User(UserRolesEnum.Invitado, "ana"));
+        _pathRepository.Verify(item => item.GetLearningPathProgressAsync(1, "cpp", "ana"), Times.Once);
     }
 
     [Fact]
     public async Task SaveLearningPathProgressAsync_RequiresKeyAndPassesRequest()
     {
-        await Assert.ThrowsAsync<ArgumentException>(() => _service.SaveLearningPathProgressAsync(1, "", User(UserRolesEnum.Invitado), new LearningPathProgressUpdateRequest()));
+        await Assert.ThrowsAsync<ArgumentException>(() => _paths.SaveLearningPathProgressAsync(1, "", User(UserRolesEnum.Invitado), new LearningPathProgressUpdateRequest()));
 
         var request = new LearningPathProgressUpdateRequest();
-        await _service.SaveLearningPathProgressAsync(1, "cpp", User(UserRolesEnum.Invitado, "ana"), request);
-        _repository.Verify(item => item.SaveLearningPathProgressAsync(1, "cpp", "ana", request), Times.Once);
+        await _paths.SaveLearningPathProgressAsync(1, "cpp", User(UserRolesEnum.Invitado, "ana"), request);
+        _pathRepository.Verify(item => item.SaveLearningPathProgressAsync(1, "cpp", "ana", request), Times.Once);
     }
 
     [Theory]
