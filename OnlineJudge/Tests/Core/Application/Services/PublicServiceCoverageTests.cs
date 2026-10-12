@@ -20,22 +20,22 @@ public class PublicServiceCoverageTests
         _repository.Object,
         _academicRepository.Object,
         _academicService.Object,
-        _solutionService.Object,
-        _recoveryEmail.Object,
-        _welcomeEmail.Object,
-        _configuration);
+        _solutionService.Object);
+
+    private PublicAuthService Auth => new(_repository.Object, _recoveryEmail.Object, _welcomeEmail.Object, _configuration);
 
     [Fact]
     public void Constructor_RejectsNullDependencies()
     {
         var config = new ConfigurationBuilder().Build();
-        Assert.Throws<ArgumentNullException>(() => new PublicService(null!, _academicRepository.Object, _academicService.Object, _solutionService.Object, _recoveryEmail.Object, _welcomeEmail.Object, config));
-        Assert.Throws<ArgumentNullException>(() => new PublicService(_repository.Object, null!, _academicService.Object, _solutionService.Object, _recoveryEmail.Object, _welcomeEmail.Object, config));
-        Assert.Throws<ArgumentNullException>(() => new PublicService(_repository.Object, _academicRepository.Object, null!, _solutionService.Object, _recoveryEmail.Object, _welcomeEmail.Object, config));
-        Assert.Throws<ArgumentNullException>(() => new PublicService(_repository.Object, _academicRepository.Object, _academicService.Object, null!, _recoveryEmail.Object, _welcomeEmail.Object, config));
-        Assert.Throws<ArgumentNullException>(() => new PublicService(_repository.Object, _academicRepository.Object, _academicService.Object, _solutionService.Object, null!, _welcomeEmail.Object, config));
-        Assert.Throws<ArgumentNullException>(() => new PublicService(_repository.Object, _academicRepository.Object, _academicService.Object, _solutionService.Object, _recoveryEmail.Object, null!, config));
-        Assert.Throws<ArgumentNullException>(() => new PublicService(_repository.Object, _academicRepository.Object, _academicService.Object, _solutionService.Object, _recoveryEmail.Object, _welcomeEmail.Object, null!));
+        Assert.Throws<ArgumentNullException>(() => new PublicService(null!, _academicRepository.Object, _academicService.Object, _solutionService.Object));
+        Assert.Throws<ArgumentNullException>(() => new PublicService(_repository.Object, null!, _academicService.Object, _solutionService.Object));
+        Assert.Throws<ArgumentNullException>(() => new PublicService(_repository.Object, _academicRepository.Object, null!, _solutionService.Object));
+        Assert.Throws<ArgumentNullException>(() => new PublicService(_repository.Object, _academicRepository.Object, _academicService.Object, null!));
+        Assert.Throws<ArgumentNullException>(() => new PublicAuthService(null!, _recoveryEmail.Object, _welcomeEmail.Object, config));
+        Assert.Throws<ArgumentNullException>(() => new PublicAuthService(_repository.Object, null!, _welcomeEmail.Object, config));
+        Assert.Throws<ArgumentNullException>(() => new PublicAuthService(_repository.Object, _recoveryEmail.Object, null!, config));
+        Assert.Throws<ArgumentNullException>(() => new PublicAuthService(_repository.Object, _recoveryEmail.Object, _welcomeEmail.Object, null!));
     }
 
     [Theory]
@@ -58,10 +58,10 @@ public class PublicServiceCoverageTests
         await Assert.ThrowsAsync<ArgumentException>(() => service.GetSubmissionsAsync(siteId, 1, 10, null, null, null, null, null));
         await Assert.ThrowsAsync<ArgumentException>(() => service.GetRecentSubmissionsAsync(siteId, 1, 10, null, null));
         await Assert.ThrowsAsync<ArgumentException>(() => service.GetOnlineUsersAsync(siteId, 10));
-        await Assert.ThrowsAsync<ArgumentException>(() => service.LoginAsync("u", "p", siteId));
-        await Assert.ThrowsAsync<ArgumentException>(() => service.RegisterAsync("user1", "secret1", "a@b.c", null, null, null, siteId, "ip"));
-        await Assert.ThrowsAsync<ArgumentException>(() => service.RequestPasswordRecoveryAsync("a@b.c", siteId));
-        await Assert.ThrowsAsync<ArgumentException>(() => service.ResetPasswordWithRecoveryCodeAsync("a@b.c", "ABCDEF", siteId));
+        await Assert.ThrowsAsync<ArgumentException>(() => Auth.LoginAsync("u", "p", siteId));
+        await Assert.ThrowsAsync<ArgumentException>(() => Auth.RegisterAsync("user1", "secret1", "a@b.c", null, null, null, siteId, "ip"));
+        await Assert.ThrowsAsync<ArgumentException>(() => Auth.RequestPasswordRecoveryAsync("a@b.c", siteId));
+        await Assert.ThrowsAsync<ArgumentException>(() => Auth.ResetPasswordWithRecoveryCodeAsync("a@b.c", "ABCDEF", siteId));
         _repository.VerifyNoOtherCalls();
     }
 
@@ -183,7 +183,7 @@ public class PublicServiceCoverageTests
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.GetOwnSubmissionSourceCodesAsync(user!));
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.SubmitAsync(user!, new PublicSubmissionRequest()));
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.GetSubmissionStatusAsync(user!, 1));
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.GetAuthenticatedUserAsync(user!));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => Auth.GetAuthenticatedUserAsync(user!));
         _repository.VerifyNoOtherCalls();
     }
 
@@ -412,7 +412,7 @@ public class PublicServiceCoverageTests
     [InlineData("user", " ")]
     public async Task LoginAsync_RejectsMissingCredentials(string user, string password)
     {
-        var error = await Assert.ThrowsAsync<ArgumentException>(() => Service.LoginAsync(user, password, 1));
+        var error = await Assert.ThrowsAsync<ArgumentException>(() => Auth.LoginAsync(user, password, 1));
 
         Assert.Equal("Credenciales inválidas.", error.Message);
     }
@@ -424,7 +424,7 @@ public class PublicServiceCoverageTests
             .Setup(item => item.RegisterAsync("new_user", It.IsAny<string>(), "a@b.c", null, "Pérez", null, 2, "1.1.1.1"))
             .ReturnsAsync(new PublicAuthenticatedUser { UserId = "new_user", Email = "a@b.c", Nick = "", SiteId = 2 });
 
-        var user = await Service.RegisterAsync("new_user", "secret1", " a@b.c ", "  ", " Pérez ", "", 2, "1.1.1.1");
+        var user = await Auth.RegisterAsync("new_user", "secret1", " a@b.c ", "  ", " Pérez ", "", 2, "1.1.1.1");
 
         Assert.Equal("new_user", user.UserId);
         _welcomeEmail.Verify(item => item.SendWelcomeAsync("a@b.c", "new_user", 2, ""), Times.Once);
@@ -440,7 +440,7 @@ public class PublicServiceCoverageTests
             .Setup(item => item.RegisterAsync(userId, It.IsAny<string>(), "a@b.c", null, null, null, 1, "ip"))
             .ReturnsAsync(new PublicAuthenticatedUser { UserId = userId, Email = "a@b.c" });
 
-        var user = await Service.RegisterAsync(userId, "secret1", "a@b.c", null, null, null, 1, "ip");
+        var user = await Auth.RegisterAsync(userId, "secret1", "a@b.c", null, null, null, 1, "ip");
 
         Assert.Equal(userId, user.UserId);
     }
@@ -454,7 +454,7 @@ public class PublicServiceCoverageTests
             .Callback<string, string, string, string?, string?, string?, int, string>((_, hash, _, _, _, _, _, _) => storedHash = hash)
             .ReturnsAsync(new PublicAuthenticatedUser { UserId = "new_user", Email = "a@b.c" });
 
-        await Service.RegisterAsync("new_user", "secret1", "a@b.c", null, null, null, 1, "ip");
+        await Auth.RegisterAsync("new_user", "secret1", "a@b.c", null, null, null, 1, "ip");
 
         Assert.True(VerifyLegacyHash("secret1", storedHash!));
         Assert.False(VerifyLegacyHash("secret2", storedHash!));
@@ -465,7 +465,7 @@ public class PublicServiceCoverageTests
     [InlineData("   ")]
     public async Task RequestPasswordRecoveryAsync_RequiresEmail(string email)
     {
-        var error = await Assert.ThrowsAsync<ArgumentException>(() => Service.RequestPasswordRecoveryAsync(email, 1));
+        var error = await Assert.ThrowsAsync<ArgumentException>(() => Auth.RequestPasswordRecoveryAsync(email, 1));
 
         Assert.Equal("Correo electrónico requerido.", error.Message);
     }
@@ -473,7 +473,7 @@ public class PublicServiceCoverageTests
     [Fact]
     public async Task RequestPasswordRecoveryAsync_RejectsMalformedEmail()
     {
-        var error = await Assert.ThrowsAsync<ArgumentException>(() => Service.RequestPasswordRecoveryAsync("no-at-sign", 1));
+        var error = await Assert.ThrowsAsync<ArgumentException>(() => Auth.RequestPasswordRecoveryAsync("no-at-sign", 1));
 
         Assert.Equal("Correo electrónico inválido.", error.Message);
         _repository.VerifyNoOtherCalls();
@@ -497,7 +497,7 @@ public class PublicServiceCoverageTests
             .Returns(Task.CompletedTask);
 
         var before = DateTime.UtcNow;
-        await Service.RequestPasswordRecoveryAsync(" a@b.c ", 1);
+        await Auth.RequestPasswordRecoveryAsync(" a@b.c ", 1);
 
         Assert.InRange(expiresAt, before.AddMinutes(expectedMinutes).AddSeconds(-1), DateTime.UtcNow.AddMinutes(expectedMinutes).AddSeconds(1));
     }
@@ -517,7 +517,7 @@ public class PublicServiceCoverageTests
             .Callback<string, string, string, int, string?>((_, _, code, _, _) => emailedCode = code)
             .Returns(Task.CompletedTask);
 
-        await Service.RequestPasswordRecoveryAsync("a@b.c", 3);
+        await Auth.RequestPasswordRecoveryAsync("a@b.c", 3);
 
         Assert.Matches("^[0-9A-F]{16}$", emailedCode!);
         Assert.Equal(Sha256Hex(emailedCode!), storedHash);
@@ -530,7 +530,7 @@ public class PublicServiceCoverageTests
     [InlineData("a@b.c", " ABC12 ", "Código de recuperación inválido.")]
     public async Task ResetPasswordWithRecoveryCodeAsync_ValidatesInput(string email, string code, string expectedMessage)
     {
-        var error = await Assert.ThrowsAsync<ArgumentException>(() => Service.ResetPasswordWithRecoveryCodeAsync(email, code, 1));
+        var error = await Assert.ThrowsAsync<ArgumentException>(() => Auth.ResetPasswordWithRecoveryCodeAsync(email, code, 1));
 
         Assert.Equal(expectedMessage, error.Message);
         _repository.VerifyNoOtherCalls();
@@ -546,7 +546,7 @@ public class PublicServiceCoverageTests
             .Callback<string, int, string, DateTime, string>((_, _, hash, _, newPassword) => { tokenHash = hash; passwordHash = newPassword; })
             .ReturnsAsync(true);
 
-        await Service.ResetPasswordWithRecoveryCodeAsync(" a@b.c ", " abcdef12 ", 1);
+        await Auth.ResetPasswordWithRecoveryCodeAsync(" a@b.c ", " abcdef12 ", 1);
 
         Assert.Equal(Sha256Hex("ABCDEF12"), tokenHash);
         Assert.True(VerifyLegacyHash("ABCDEF12", passwordHash!));
@@ -555,7 +555,7 @@ public class PublicServiceCoverageTests
     [Fact]
     public async Task GetAuthenticatedUserAsync_UsesUserAndSite()
     {
-        await Service.GetAuthenticatedUserAsync(new CurrentUser { UserId = "ana", SiteId = 4 });
+        await Auth.GetAuthenticatedUserAsync(new CurrentUser { UserId = "ana", SiteId = 4 });
 
         _repository.Verify(item => item.GetAuthenticatedUserAsync("ana", 4), Times.Once);
     }

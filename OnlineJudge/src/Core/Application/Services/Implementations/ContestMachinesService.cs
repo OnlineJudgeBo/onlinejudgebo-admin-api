@@ -13,13 +13,13 @@ namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
 public class ContestMachinesService : IContestMachinesService
 {
     private readonly IContestsRepository _contestRepository;
-    private readonly IPublicService _publicService;
+    private readonly IPublicAuthService _publicService;
     private readonly IControlGroupStore _groupStore;
     private readonly IConfiguration _configuration;
 
     public ContestMachinesService(
         IContestsRepository contestRepository,
-        IPublicService publicService,
+        IPublicAuthService publicService,
         IControlGroupStore groupStore,
         IConfiguration configuration)
     {

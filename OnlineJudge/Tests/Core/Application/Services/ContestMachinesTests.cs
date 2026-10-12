@@ -18,7 +18,7 @@ public class ContestMachinesServiceTests
 {
     private const string Secret = "a-test-secret-that-is-long-enough-32";
     private readonly Mock<IContestsRepository> _contests = new();
-    private readonly Mock<IPublicService> _public = new();
+    private readonly Mock<IPublicAuthService> _public = new();
     private readonly Mock<IControlGroupStore> _store = new();
 
     private ContestMachinesService Service(string? secret = Secret) => new(_contests.Object, _public.Object, _store.Object,

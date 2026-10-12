@@ -208,7 +208,7 @@ public class ExamMonitorEndpointTests
     [Fact]
     public async Task PublicLogin_PassesClientIpToService()
     {
-        var service = new Mock<IPublicService>();
+        var service = new Mock<IPublicAuthService>();
         service.Setup(item => item.LoginAsync("ana", "pw", 1, "181.1.1.1")).ReturnsAsync(new PublicAuthenticatedUser { UserId = "ana", Role = "Invitado", SiteId = 1 });
         var context = new Microsoft.AspNetCore.Http.DefaultHttpContext();
         context.Connection.RemoteIpAddress = System.Net.IPAddress.Parse("172.18.0.2");

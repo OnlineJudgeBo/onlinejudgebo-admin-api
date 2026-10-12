@@ -15,11 +15,11 @@ namespace OnlineJudgeAdminApi.Controllers;
 [Route("/api/public/auth")]
 public class PublicAuthController : ControllerBase
 {
-    private readonly IPublicService _publicService;
+    private readonly IPublicAuthService _publicService;
     private readonly UserClaimsHelper _userClaimsHelper;
     private readonly IConfiguration _configuration;
 
-    public PublicAuthController(IPublicService publicService, UserClaimsHelper userClaimsHelper, IConfiguration configuration)
+    public PublicAuthController(IPublicAuthService publicService, UserClaimsHelper userClaimsHelper, IConfiguration configuration)
     {
         _publicService = publicService ?? throw new ArgumentNullException(nameof(publicService));
         _userClaimsHelper = userClaimsHelper ?? throw new ArgumentNullException(nameof(userClaimsHelper));
