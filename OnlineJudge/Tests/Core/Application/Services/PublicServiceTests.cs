@@ -233,7 +233,7 @@ public class PublicServiceTests
     {
         var repository = new Mock<IPublicRepository>();
         repository.Setup(item => item.LoginAsync("student", "secret", 1, It.IsAny<string>())).ReturnsAsync(new PublicAuthenticatedUser { UserId = "student" });
-        var service = CreateService(repository.Object);
+        var service = CreateAuthService(repository.Object);
 
         var user = await service.LoginAsync(" student ", "secret", 1);
 
@@ -252,7 +252,7 @@ public class PublicServiceTests
             .ReturnsAsync(new PublicAuthenticatedUser { UserId = "student_1", Email = "s@example.com", Nick = "Nick", SiteId = 1 });
         var welcomeEmailService = new Mock<IWelcomeEmailService>();
         welcomeEmailService.Setup(item => item.SendWelcomeAsync("s@example.com", "student_1", 1, "Nick")).ThrowsAsync(new InvalidOperationException("smtp down"));
-        var service = CreateService(repository.Object, welcomeEmailService: welcomeEmailService.Object);
+        var service = CreateAuthService(repository.Object, welcomeEmailService: welcomeEmailService.Object);
 
         var user = await service.RegisterAsync("student_1", "secret1", " s@example.com ", " Nick ", " ", " School ", 1, "127.0.0.1");
 
@@ -267,7 +267,7 @@ public class PublicServiceTests
     [InlineData("student", "secret1", "bad-email", "Correo electrónico inválido.")]
     public async Task RegisterAsync_RejectsInvalidInput(string userId, string password, string email, string expectedMessage)
     {
-        var service = CreateService();
+        var service = CreateAuthService();
 
         var error = await Assert.ThrowsAsync<ArgumentException>(() => service.RegisterAsync(userId, password, email, null, null, null, 1, "127.0.0.1"));
 
@@ -302,7 +302,7 @@ public class PublicServiceTests
             .Returns(Task.CompletedTask);
         var configuration = new Mock<IConfiguration>();
         configuration.SetupGet(item => item["PasswordRecovery:TokenTtlMinutes"]).Returns("2");
-        var service = CreateService(repository.Object, passwordRecoveryEmailService: emailService.Object, configuration: configuration.Object);
+        var service = CreateAuthService(repository.Object, passwordRecoveryEmailService: emailService.Object, configuration: configuration.Object);
 
         await service.RequestPasswordRecoveryAsync(" s@example.com ", 1);
 
@@ -319,7 +319,7 @@ public class PublicServiceTests
         var repository = new Mock<IPublicRepository>();
         repository.Setup(item => item.GetPasswordRecoveryTargetAsync("nobody@example.com", 1)).ReturnsAsync((PublicPasswordRecoveryTarget?)null);
         var emailService = new Mock<IPasswordRecoveryEmailService>();
-        var service = CreateService(repository.Object, passwordRecoveryEmailService: emailService.Object);
+        var service = CreateAuthService(repository.Object, passwordRecoveryEmailService: emailService.Object);
 
         await service.RequestPasswordRecoveryAsync("nobody@example.com", 1);
 
@@ -333,7 +333,7 @@ public class PublicServiceTests
         var repository = new Mock<IPublicRepository>();
         repository.Setup(item => item.ResetPasswordWithTokenAsync("s@example.com", 1, It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<string>()))
             .ReturnsAsync(false);
-        var service = CreateService(repository.Object);
+        var service = CreateAuthService(repository.Object);
 
         var error = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.ResetPasswordWithRecoveryCodeAsync("s@example.com", "ABCDEF", 1));
 
@@ -344,16 +344,23 @@ public class PublicServiceTests
         IPublicRepository? publicRepository = null,
         IAcademicRepository? academicRepository = null,
         IAcademicService? academicService = null,
-        ISolutionService? solutionService = null,
-        IPasswordRecoveryEmailService? passwordRecoveryEmailService = null,
-        IWelcomeEmailService? welcomeEmailService = null,
-        IConfiguration? configuration = null)
+        ISolutionService? solutionService = null)
     {
         return new PublicService(
             publicRepository ?? Mock.Of<IPublicRepository>(),
             academicRepository ?? Mock.Of<IAcademicRepository>(),
             academicService ?? Mock.Of<IAcademicService>(),
-            solutionService ?? Mock.Of<ISolutionService>(),
+            solutionService ?? Mock.Of<ISolutionService>());
+    }
+
+    private static PublicAuthService CreateAuthService(
+        IPublicRepository? publicRepository = null,
+        IPasswordRecoveryEmailService? passwordRecoveryEmailService = null,
+        IWelcomeEmailService? welcomeEmailService = null,
+        IConfiguration? configuration = null)
+    {
+        return new PublicAuthService(
+            publicRepository ?? Mock.Of<IPublicRepository>(),
             passwordRecoveryEmailService ?? Mock.Of<IPasswordRecoveryEmailService>(),
             welcomeEmailService ?? Mock.Of<IWelcomeEmailService>(),
             configuration ?? Mock.Of<IConfiguration>());

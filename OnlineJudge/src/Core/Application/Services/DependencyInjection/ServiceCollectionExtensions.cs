@@ -36,6 +36,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPasswordRecoveryEmailService, PasswordRecoveryEmailService>();
         services.AddScoped<IWelcomeEmailService, WelcomeEmailService>();
         services.AddScoped<IPublicService, PublicService>();
+        services.AddScoped<IPublicAuthService, PublicAuthService>();
         services.AddScoped<IIdeLanguageDefinitionService, IdeLanguageDefinitionService>();
         services.AddScoped<IIdeContextService, IdeContextService>();
         services.AddScoped<IIdeSubmissionService, IdeSubmissionService>();

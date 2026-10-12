@@ -18,7 +18,7 @@ using static ControllerTestSupport;
 public class PublicAuthControllerTests
 {
     private const string JwtKey = "unit-test-signing-key-that-is-long-enough-32b";
-    private readonly Mock<IPublicService> _service = new();
+    private readonly Mock<IPublicAuthService> _service = new();
 
     private PublicAuthController Controller(HttpContext? context = null, Dictionary<string, string?>? settings = null)
     {
