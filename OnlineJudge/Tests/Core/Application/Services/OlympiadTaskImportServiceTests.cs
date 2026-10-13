@@ -184,7 +184,7 @@ public class OlympiadTaskImportServiceTests
             "\\subsection*{Ejemplos}",
             "\\begin{center}\\begin{tabular}{|p{7.5cm}|} \\hline \\verbatiminput{\\inputpath/samples/1.in}\\\\ \\end{tabular}\\end{center}");
         await Import(entries);
-        Assert.Equal("<p>Representa $n$ como <b>producto</b>, con a &lt; b.</p>\n<br>\n<p>Segundo párrafo.</p>\n", _created!.Description);
+        Assert.Equal("<p>Representa $n$ como <b>producto</b>, con a &lt; b.</p>\n<p>Segundo párrafo.</p>\n", _created!.Description);
         Assert.Equal("<p>Un entero $n$ ($2 \\leq n \\leq 10^5$).</p>\n", _created.Input);
         Assert.Equal("<p>Los factores separados por <code>x</code>.</p>\n", _created.Output);
         Assert.Equal("<h3>Subtareas</h3>\n<ol>\n<li>(10 puntos) $n \\leq 5$,\n<li>(90 puntos) sin restricciones.\n</ol>\n", _created.Hint);
