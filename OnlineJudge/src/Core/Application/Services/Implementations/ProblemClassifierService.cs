@@ -71,6 +71,8 @@ public class ProblemClassifierService : IProblemClassifierService
                     classifications = new
                     {
                         type = "array",
+                        // Without the cap the model may list every classification and run out of tokens mid-JSON.
+                        maxItems = MaxSuggestions,
                         items = new
                         {
                             type = "object",
