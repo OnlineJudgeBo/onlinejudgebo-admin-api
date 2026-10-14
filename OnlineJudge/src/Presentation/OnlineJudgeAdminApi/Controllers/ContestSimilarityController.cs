@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
+using OnlineJudgeAdminApi.DataTransferObjects;
 using OnlineJudgeAdminApi.Helpers;
 
 namespace OnlineJudgeAdminApi.Controllers;
@@ -31,5 +32,19 @@ public sealed class ContestSimilarityController : ControllerBase
     {
         await _similarity.RequestRunAsync(contestId, _currentUser.SiteId);
         return Accepted();
+    }
+
+    [HttpGet("{contestId:int}/submissions/export")]
+    public async Task<IActionResult> ExportSubmissionsAsync(int contestId)
+    {
+        try
+        {
+            var bytes = await _similarity.ExportSubmissionsAsync(contestId, _currentUser.SiteId);
+            return new FileContentResult(bytes, "application/zip") { FileDownloadName = $"contest-{contestId}-solutions.zip" };
+        }
+        catch (KeyNotFoundException error)
+        {
+            return new NotFoundObjectResult(new ErrorDetails { StatusCode = 404, Message = error.Message });
+        }
     }
 }

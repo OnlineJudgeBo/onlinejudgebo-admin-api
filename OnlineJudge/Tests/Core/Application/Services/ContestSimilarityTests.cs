@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using OnlineJudgeAdmin.Core.Application.Services.Implementations;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
@@ -12,6 +13,29 @@ public class ContestSimilarityTests
     private readonly Mock<IFileSystemLocalManagerManager> _files = new();
 
     private ContestSimilarityService Service() => new(_contests.Object, _files.Object);
+
+    [Fact]
+    public async Task Submissions_GoByUserAndAcceptedOnesAlsoByProblem()
+    {
+        _contests.Setup(item => item.GetContestByIdAsync(7, 3)).ReturnsAsync(new Contest { ContestId = 7 });
+        _contests.Setup(item => item.GetSubmissionsForExportAsync(7, 3)).ReturnsAsync(
+        [
+            new(1, "ana", "Ana, B", 0, 10, "C++", JudgeResultCodes.WrongAnswer, 0, 5, 100, "10.0.0.1", new DateTime(2026, 10, 1, 9, 0, 0), "wa"),
+            new(2, "ana", "Ana, B", 0, 10, "C++", JudgeResultCodes.Accepted, 100, 5, 100, "10.0.0.1", new DateTime(2026, 10, 1, 9, 5, 0), "ac"),
+            new(3, "luis/x", "Luis", 1, 20, "Python 3", JudgeResultCodes.Accepted, 100, 5, 100, "10.0.0.2", new DateTime(2026, 10, 1, 9, 6, 0), "py"),
+        ]);
+
+        using var archive = new ZipArchive(new MemoryStream(await Service().ExportSubmissionsAsync(7, 3)));
+        string Read(string path) => new StreamReader(archive.GetEntry(path)!.Open()).ReadToEnd();
+
+        Assert.Equal("wa", Read("users/ana/all/A-1-wrong_answer.cpp"));
+        Assert.Equal("ac", Read("users/ana/accepted/A-2.cpp"));
+        Assert.Null(archive.GetEntry("users/ana/accepted/A-1.cpp"));
+        Assert.Equal("ac", Read("problems/A/ana-2.cpp"));
+        Assert.Equal("py", Read("problems/B/luis_x-3.py"));
+        var csv = Read("submissions.csv").Split('\n');
+        Assert.Equal("1,ana,\"Ana, B\",A,10,C++,wrong_answer,0,5,100,10.0.0.1,2026-10-01 09:00:00,users/ana/all/A-1-wrong_answer.cpp", csv[1]);
+    }
 
     [Fact]
     public async Task Repository_ReturnsContestPairsOfDifferentUsersOnly()

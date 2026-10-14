@@ -119,6 +119,7 @@ public class AuthorizationContractTests
         ["ProblemScoringController.SaveAsync [PUT {problemId:int}/scoring]"] = "roles:Administrador,Auxiliar,Docente",
         ["ContestSimilarityController.GetAsync [GET {contestId:int}/similarity]"] = "roles:Administrador,Auxiliar,Docente",
         ["ContestSimilarityController.RunAsync [POST {contestId:int}/similarity/run]"] = "roles:Administrador,Auxiliar,Docente",
+        ["ContestSimilarityController.ExportSubmissionsAsync [GET {contestId:int}/submissions/export]"] = "roles:Administrador,Auxiliar,Docente",
         ["FileManagerController.DeleteFile [DELETE local-storage]"] = "roles:Administrador,Auxiliar,Docente",
         ["FileManagerController.GetFileContent [GET local-storage/content]"] = "roles:Administrador,Auxiliar,Docente",
         ["FileManagerController.GetFiles [GET local-storage]"] = "roles:Administrador,Auxiliar,Docente",

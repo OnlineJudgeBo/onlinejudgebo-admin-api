@@ -335,4 +335,29 @@ public class ContestsRepository : IContestsRepository
                 other.SolutionId, other.UserId, similar.Percentage)
         ).ToListAsync();
     }
+
+    public async Task<IReadOnlyCollection<ContestSubmissionExportItem>> GetSubmissionsForExportAsync(int contestId, int siteId)
+    {
+        return await (
+            from solution in _context.Solutions.AsNoTracking()
+            where solution.ContestId == contestId && solution.SiteId == siteId
+            orderby solution.SolutionId
+            select new ContestSubmissionExportItem(
+                solution.SolutionId,
+                solution.UserId,
+                _context.UserProfiles.Where(profile => profile.UserId == solution.UserId && profile.SiteId == siteId)
+                    .Select(profile => profile.Nick).FirstOrDefault() ?? solution.UserId,
+                solution.Num,
+                solution.ProblemId,
+                _context.ProgrammingLanguages.Where(language => language.LanguageId == (int)solution.Language)
+                    .Select(language => language.Name).FirstOrDefault() ?? string.Empty,
+                solution.Result,
+                solution.PassRate,
+                solution.Time,
+                solution.Memory,
+                solution.Ip,
+                solution.InDate,
+                solution.SourceCode != null ? solution.SourceCode.Source : string.Empty)
+        ).ToListAsync();
+    }
 }
