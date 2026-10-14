@@ -13,4 +13,5 @@ public interface IContestsRepository
     public Task<ExamActivity> GetExamActivityAsync(int contestId, int siteId, DateTime start, DateTime end);
     public Task<Contest?> GetActiveExamForUserAsync(string userId, int siteId, DateTime now);
     public Task<IReadOnlyCollection<ContestSimilarityItem>> GetSimilarityAsync(int contestId, int siteId);
+    public Task<IReadOnlyCollection<ContestSubmissionExportItem>> GetSubmissionsForExportAsync(int contestId, int siteId);
 }
