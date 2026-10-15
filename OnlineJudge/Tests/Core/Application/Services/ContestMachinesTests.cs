@@ -21,8 +21,12 @@ public class ContestMachinesServiceTests
     private readonly Mock<IPublicAuthService> _public = new();
     private readonly Mock<IControlGroupStore> _store = new();
 
-    private ContestMachinesService Service(string? secret = Secret) => new(_contests.Object, _public.Object, _store.Object,
-        new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["ControlServer:TokenSecret"] = secret }).Build());
+    private ContestMachinesService Service(string? secret = Secret, string? lobby = null) => new(_contests.Object, _public.Object, _store.Object,
+        new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["ControlServer:TokenSecret"] = secret,
+            ["ControlServer:LobbyEnrollToken"] = lobby,
+        }).Build());
 
     private static Contest Exam(int id, bool isExam = true) => new() { ContestId = id, Title = $"Parcial {id}", IsExam = isExam };
 
@@ -42,6 +46,24 @@ public class ContestMachinesServiceTests
         Assert.NotEqual(first.EnrollToken, first.AdminToken);
         Assert.NotEqual(first.AdminToken, other.AdminToken);
         _store.Verify(item => item.EnsureAsync(first), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task Lobby_GetsItsOwnAdminTokenAndIsRegisteredWithEachExam()
+    {
+        _contests.Setup(item => item.GetContestByIdAsync(5, 1)).ReturnsAsync(Exam(5));
+
+        Assert.Null(Service().LobbyGroup());
+        var lobby = Service(lobby: "lobby-enroll-token")!.LobbyGroup()!;
+        var exam = await Service(lobby: "lobby-enroll-token").GetGroupAsync(5, 1);
+
+        Assert.Equal("lobby", lobby.Id);
+        Assert.Equal("lobby-enroll-token", lobby.EnrollToken);
+        Assert.NotEqual(exam.AdminToken, lobby.AdminToken);
+        Assert.Equal(lobby, await Service(lobby: "lobby-enroll-token").GetLobbyGroupAsync(1));
+        _store.Verify(item => item.EnsureAsync(lobby), Times.Exactly(2));
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => Service(lobby: "lobby-enroll-token").GetLobbyGroupAsync(2));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Service().GetLobbyGroupAsync(1));
     }
 
     [Fact]
@@ -106,36 +128,26 @@ public class ControlGroupHttpStoreTests
         };
     }
 
-    private static ControlGroupHttpStore Store(Handler handler, string? lobby = null, string? url = "http://control:8090/", string? admin = "super-token") =>
+    private static ControlGroupHttpStore Store(Handler handler, string? url = "http://control:8090/", string? admin = "super-token") =>
         new(new Factory(handler, url), new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
     {
-        ["ControlServer:LobbyEnrollToken"] = lobby,
         ["ControlServer:AdminToken"] = admin,
     }).Build());
 
     [Fact]
-    public async Task Ensure_RegistersTheExamAndOptionalLobbyWithoutExposingTokens()
+    public async Task Ensure_RegistersTheGroupWithTheSuperadminToken()
     {
         var handler = new Handler();
 
-        await Store(handler, lobby: "lobby-token").EnsureAsync(new ControlGroup("contest-5", "Parcial", "enroll-token", "group-admin-token"));
+        await Store(handler).EnsureAsync(new ControlGroup("contest-5", "Parcial", "enroll-token", "group-admin-token"));
 
-        Assert.Collection(handler.Requests,
-            exam =>
-            {
-                Assert.Equal(HttpMethod.Put, exam.Method);
-                Assert.Equal("/admin/groups/contest-5", exam.Path);
-                Assert.Equal("Bearer super-token", exam.Authorization);
-                Assert.Contains("\"enroll_token\":\"enroll-token\"", exam.Body);
-                Assert.Contains("\"admin_token\":\"group-admin-token\"", exam.Body);
-                Assert.Contains("\"label\":\"Parcial\"", exam.Body);
-            },
-            lobby =>
-            {
-                Assert.Equal("/admin/groups/lobby", lobby.Path);
-                Assert.Contains("\"enroll_token\":\"lobby-token\"", lobby.Body);
-                Assert.Contains("\"admin_token\":null", lobby.Body);
-            });
+        var exam = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Put, exam.Method);
+        Assert.Equal("/admin/groups/contest-5", exam.Path);
+        Assert.Equal("Bearer super-token", exam.Authorization);
+        Assert.Contains("\"enroll_token\":\"enroll-token\"", exam.Body);
+        Assert.Contains("\"admin_token\":\"group-admin-token\"", exam.Body);
+        Assert.Contains("\"label\":\"Parcial\"", exam.Body);
     }
 
     [Theory]
@@ -186,6 +198,7 @@ public class ContestMachinesControllerTests
     {
         var machines = new Mock<IContestMachinesService>();
         machines.Setup(item => item.GetGroupAsync(5, 3)).ReturnsAsync(Group);
+        machines.Setup(item => item.GetLobbyGroupAsync(3)).ReturnsAsync(new ControlGroup("lobby", "Lobby", "lobby-enroll", "lobby-admin"));
         var handler = new StubHandler();
         var context = AuthenticatedContext("teacher", 3, "Auxiliar");
         context.Request.Method = method;
@@ -209,6 +222,19 @@ public class ContestMachinesControllerTests
         Assert.Equal("Bearer admin-tok", request.Headers.Authorization!.ToString());
         Assert.Contains("\"action\":\"message\"", body);
         Assert.StartsWith("application/json", result.ContentType);
+    }
+
+    [Fact]
+    public async Task Lobby_UsesTheLobbyTokenAndIsPinnedToTheLobby()
+    {
+        var (controller, handler) = Controller("POST", "{\"action\":\"message\",\"target\":{\"group_id\":\"lobby\"}}", query: "");
+        Assert.IsType<FileStreamResult>(await controller.ForwardLobbyAsync("cmd"));
+        var (request, _) = Assert.Single(handler.Forwarded);
+        Assert.Equal("Bearer lobby-admin", request.Headers.Authorization!.ToString());
+
+        var (other, otherHandler) = Controller("POST", "{\"action\":\"net-open\",\"target\":{\"group_id\":\"contest-5\"}}", query: "");
+        Assert.Equal(403, Assert.IsType<ObjectResult>(await other.ForwardLobbyAsync("cmd")).StatusCode);
+        Assert.Empty(otherHandler.Forwarded);
     }
 
     [Theory]
@@ -324,9 +350,10 @@ public class LabLoginControllerTests
         Group = new ControlGroup("contest-5", "Parcial", "enroll-tok", "admin-tok"),
     };
 
-    private static LabLoginController Controller(LabLoginResult result, HttpMessageHandler? controlServer = null)
+    private static LabLoginController Controller(LabLoginResult result, HttpMessageHandler? controlServer = null, ControlGroup? lobby = null)
     {
         var machines = new Mock<IContestMachinesService>();
+        machines.Setup(item => item.LobbyGroup()).Returns(lobby);
         machines.Setup(item => item.LoginAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(result);
         var factory = new Mock<IHttpClientFactory>();
         factory.Setup(item => item.CreateClient(It.IsAny<string>())).Returns(controlServer == null
@@ -413,6 +440,18 @@ public class LabLoginControllerTests
         Assert.Equal("bob", Prop(Prop(body, "team")!, "id"));
         Assert.Null(Prop(body, "region"));
         Assert.Equal("No tienes un examen activo en este momento.", Prop(body, "message"));
+    }
+
+    [Fact]
+    public async Task Login_WithoutActiveExamOpensTheLobbyHomepage()
+    {
+        var noExam = new LabLoginResult { Ok = true, Authenticated = true, UserId = "bob", DisplayName = "Bob" };
+        var lobby = new ControlGroup("lobby", "Lobby", "lobby-enroll", "lobby-admin");
+        var set = Controller(noExam, new SettingsHandler("{\"url\": \"https://otro.example/\", \"updated_at\": \"2026-10-15T10:00:00Z\"}", "{}"), lobby);
+        var unset = Controller(noExam, new SettingsHandler("{\"url\": \"file:///x\", \"updated_at\": null}", "{}"), lobby);
+
+        Assert.Equal("https://otro.example/", Prop(OkValue(await set.LoginAsync(new LabLoginRequest { Username = "bob", Password = "x" }))!, "homepage"));
+        Assert.Equal("https://juez.example/oj/index.php", Prop(OkValue(await unset.LoginAsync(new LabLoginRequest { Username = "bob", Password = "x" }))!, "homepage"));
     }
 
     [Fact]

@@ -65,6 +65,10 @@ public partial class LabLoginController : ControllerBase
         if (result.Authenticated && result.Group == null)
         {
             var guestBaseUrl = (_configuration["Base:Url"] ?? string.Empty).TrimEnd('/');
+            // The machine stays in the lobby, so it opens the homepage set in the lobby panel.
+            var lobbyHomepage = _machinesService.LobbyGroup() is { } lobby
+                ? await _panelService.GetGroupSettingAsync(lobby, "homepage", "url", onlyIfSet: true)
+                : null;
             return Ok(new
             {
                 ok = true,
@@ -72,7 +76,7 @@ public partial class LabLoginController : ControllerBase
                 hasActiveExam = false,
                 userId = result.UserId,
                 displayName = result.DisplayName,
-                homepage = guestBaseUrl.Length > 0 ? $"{guestBaseUrl}/oj/index.php" : string.Empty,
+                homepage = lobbyHomepage ?? (guestBaseUrl.Length > 0 ? $"{guestBaseUrl}/oj/index.php" : string.Empty),
                 team = new { id = TeamId(result.UserId), name = result.DisplayName },
                 message = result.Message,
             });
