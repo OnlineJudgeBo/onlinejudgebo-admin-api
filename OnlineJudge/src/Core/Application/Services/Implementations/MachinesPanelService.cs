@@ -21,7 +21,13 @@ public class MachinesPanelService(IContestMachinesService machinesService, ICont
     // Mirror of SUPERADMIN_ONLY in control-server/control/settings.py.
     private static readonly HashSet<string> SuperadminActions = new() { "unlock-root", "lock-root", "net-open", "usb-block", "usb-unblock", "collect-home", "set-allowlist" };
 
-    public async Task<MachinesForwardResult> ForwardAsync(int contestId, int siteId, string method, string? path, string query, string? body, CancellationToken cancellationToken = default)
+    public Task<MachinesForwardResult> ForwardAsync(int contestId, int siteId, string method, string? path, string query, string? body, CancellationToken cancellationToken = default) =>
+        ForwardToGroupAsync(() => machinesService.GetGroupAsync(contestId, siteId), method, path, query, body, cancellationToken);
+
+    public Task<MachinesForwardResult> ForwardLobbyAsync(int siteId, string method, string? path, string query, string? body, CancellationToken cancellationToken = default) =>
+        ForwardToGroupAsync(() => machinesService.GetLobbyGroupAsync(siteId), method, path, query, body, cancellationToken);
+
+    private async Task<MachinesForwardResult> ForwardToGroupAsync(Func<Task<ControlGroup>> getGroup, string method, string? path, string query, string? body, CancellationToken cancellationToken)
     {
         var segments = (path ?? string.Empty).Split('/', StringSplitOptions.RemoveEmptyEntries);
         if (segments.Length == 0 || !AllowedSections.Contains(segments[0]) || segments.Any(segment => segment is "." or ".."))
@@ -29,7 +35,7 @@ public class MachinesPanelService(IContestMachinesService machinesService, ICont
             return new MachinesForwardResult(404);
         }
 
-        var group = await machinesService.GetGroupAsync(contestId, siteId);
+        var group = await getGroup();
         if (!controlServer.IsConfigured)
         {
             return new MachinesForwardResult(503, "El control de máquinas no está configurado.");
@@ -56,7 +62,7 @@ public class MachinesPanelService(IContestMachinesService machinesService, ICont
             }
             else if (!await TargetsOnlyGroupAsync(group, body!))
             {
-                return new MachinesForwardResult(403, "Solo se pueden enviar órdenes a las máquinas de este examen.");
+                return new MachinesForwardResult(403, "Solo se pueden enviar órdenes a las máquinas de este grupo.");
             }
         }
 

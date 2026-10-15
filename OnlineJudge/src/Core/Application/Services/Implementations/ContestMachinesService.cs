@@ -43,6 +43,26 @@ public class ContestMachinesService : IContestMachinesService
         return await EnsureGroupAsync(contest);
     }
 
+    public ControlGroup? LobbyGroup()
+    {
+        var enrollToken = _configuration["ControlServer:LobbyEnrollToken"];
+        // The enroll token is baked into the ISO, so it comes from the configuration; the admin token
+        // is derived like an exam's so the control-server limits the panel to the lobby machines.
+        return string.IsNullOrWhiteSpace(enrollToken) ? null : new ControlGroup("lobby", "Lobby", enrollToken, Token("admin", "lobby"));
+    }
+
+    public async Task<ControlGroup> GetLobbyGroupAsync(int siteId)
+    {
+        if (siteId != SiteId)
+        {
+            throw new KeyNotFoundException("El lobby pertenece a otro sitio.");
+        }
+
+        var lobby = LobbyGroup() ?? throw new InvalidOperationException("ControlServer:LobbyEnrollToken no está configurado.");
+        await _groupStore.EnsureAsync(lobby);
+        return lobby;
+    }
+
     public async Task<LabLoginResult> LoginAsync(string username, string password, string clientIp)
     {
         PublicAuthenticatedUser user;
@@ -85,6 +105,10 @@ public class ContestMachinesService : IContestMachinesService
         var label = string.IsNullOrWhiteSpace(contest.Title) ? groupId : contest.Title.Trim();
         var group = new ControlGroup(groupId, label, Token("enroll", groupId), Token("admin", groupId));
         await _groupStore.EnsureAsync(group);
+        if (LobbyGroup() is { } lobby)
+        {
+            await _groupStore.EnsureAsync(lobby);
+        }
         return group;
     }
 

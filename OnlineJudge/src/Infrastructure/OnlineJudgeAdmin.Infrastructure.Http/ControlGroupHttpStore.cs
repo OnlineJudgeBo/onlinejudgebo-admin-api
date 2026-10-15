@@ -6,7 +6,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace OnlineJudgeAdmin.Infrastructure.Http;
 
-// control-server owns groups.json; Patito only asks it to provision an exam group.
+// control-server owns groups.json; Patito only asks it to provision an exam group or the lobby.
 public sealed class ControlGroupHttpStore(IHttpClientFactory httpClientFactory, IConfiguration configuration) : IControlGroupStore
 {
     public async Task EnsureAsync(ControlGroup group)
@@ -23,28 +23,17 @@ public sealed class ControlGroupHttpStore(IHttpClientFactory httpClientFactory, 
             throw new InvalidOperationException("ControlServer:AdminToken is not configured.");
         }
 
-        await PutAsync(client, adminToken, group.Id, group.Label, group.EnrollToken, group.AdminToken);
-
-        var lobbyToken = configuration["ControlServer:LobbyEnrollToken"];
-        if (!string.IsNullOrWhiteSpace(lobbyToken))
-        {
-            await PutAsync(client, adminToken, "lobby", "Sin examen", lobbyToken, null);
-        }
-    }
-
-    private static async Task PutAsync(HttpClient client, string token, string id, string label, string enrollToken, string? groupAdminToken)
-    {
-        using var request = new HttpRequestMessage(HttpMethod.Put, $"admin/groups/{Uri.EscapeDataString(id)}")
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"admin/groups/{Uri.EscapeDataString(group.Id)}")
         {
             Content = new ByteArrayContent(JsonSerializer.SerializeToUtf8Bytes(new
             {
-                enroll_token = enrollToken,
-                admin_token = groupAdminToken,
-                label,
+                enroll_token = group.EnrollToken,
+                admin_token = group.AdminToken,
+                label = group.Label,
             })),
         };
         request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
 
         HttpResponseMessage response;
         try
@@ -67,7 +56,7 @@ public sealed class ControlGroupHttpStore(IHttpClientFactory httpClientFactory, 
                 }
 
                 throw new InvalidOperationException(
-                    $"El control de máquinas rechazó el grupo '{id}' ({(int)response.StatusCode}): {detail}");
+                    $"El control de máquinas rechazó el grupo '{group.Id}' ({(int)response.StatusCode}): {detail}");
             }
         }
     }

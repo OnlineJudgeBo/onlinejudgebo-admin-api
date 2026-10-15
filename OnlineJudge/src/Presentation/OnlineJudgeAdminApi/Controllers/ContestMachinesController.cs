@@ -37,7 +37,29 @@ public class ContestMachinesController : ControllerBase
     public async Task<IActionResult> ForwardAsync(int contestId, string? path)
     {
         var body = HttpMethods.IsGet(Request.Method) ? null : await new StreamReader(Request.Body).ReadToEndAsync();
-        var result = await _panelService.ForwardAsync(contestId, _currentUser.SiteId, Request.Method, path, Request.QueryString.Value ?? string.Empty, body, HttpContext.RequestAborted);
+        return Send(await _panelService.ForwardAsync(contestId, _currentUser.SiteId, Request.Method, path, Request.QueryString.Value ?? string.Empty, body, HttpContext.RequestAborted));
+    }
+
+    // The lobby panel: machines that booted the ISO but are in no exam.
+    [HttpGet("/api/lobby/machines/group")]
+    public async Task<IActionResult> GetLobbyGroupAsync()
+    {
+        var group = await _machinesService.GetLobbyGroupAsync(_currentUser.SiteId);
+        return Ok(new { groupId = group.Id, label = group.Label });
+    }
+
+    [HttpGet("/api/lobby/machines/{**path}")]
+    [HttpPost("/api/lobby/machines/{**path}")]
+    [HttpPut("/api/lobby/machines/{**path}")]
+    [RequestSizeLimit(262_144)]
+    public async Task<IActionResult> ForwardLobbyAsync(string? path)
+    {
+        var body = HttpMethods.IsGet(Request.Method) ? null : await new StreamReader(Request.Body).ReadToEndAsync();
+        return Send(await _panelService.ForwardLobbyAsync(_currentUser.SiteId, Request.Method, path, Request.QueryString.Value ?? string.Empty, body, HttpContext.RequestAborted));
+    }
+
+    private IActionResult Send(MachinesForwardResult result)
+    {
         if (result.Response is not { } response)
         {
             return result.Message == null ? NotFound() : StatusCode(result.StatusCode, new { message = result.Message });

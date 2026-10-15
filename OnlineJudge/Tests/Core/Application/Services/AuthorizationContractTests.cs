@@ -106,6 +106,8 @@ public class AuthorizationContractTests
         ["ContestsController.GetContestById [GET {contestId:int}]"] = "roles:Administrador,Auxiliar,Docente",
         ["ContestMachinesController.GetGroupAsync [GET group]"] = "roles:Administrador,Auxiliar,Docente",
         ["ContestMachinesController.ForwardAsync [GET {**path}|POST {**path}|PUT {**path}]"] = "roles:Administrador,Auxiliar,Docente",
+        ["ContestMachinesController.GetLobbyGroupAsync [GET /api/lobby/machines/group]"] = "roles:Administrador,Auxiliar,Docente",
+        ["ContestMachinesController.ForwardLobbyAsync [GET /api/lobby/machines/{**path}|POST /api/lobby/machines/{**path}|PUT /api/lobby/machines/{**path}]"] = "roles:Administrador,Auxiliar,Docente",
         ["LabLoginController.LoginAsync [POST login]"] = "anonymous",
         ["ContestsController.GetClientIp [GET client-ip]"] = "roles:Administrador,Auxiliar,Docente",
         ["ContestsController.GetExamMonitorAsync [GET {contestId:int}/exam-monitor]"] = "roles:Administrador,Auxiliar,Docente",
