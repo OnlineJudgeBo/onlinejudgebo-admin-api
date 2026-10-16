@@ -670,6 +670,11 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.UserId, "uid");
 
+            // Created by hand in production on 2026-10-16.
+            entity.HasIndex(e => new { e.SiteId, e.InDate }, "site_date");
+
+            entity.HasIndex(e => new { e.SiteId, e.UserId, e.Result, e.ProblemId, e.InDate }, "site_user");
+
             entity.Property(e => e.SolutionId)
                 .HasColumnType("int(11)")
                 .HasColumnName("solution_id");
