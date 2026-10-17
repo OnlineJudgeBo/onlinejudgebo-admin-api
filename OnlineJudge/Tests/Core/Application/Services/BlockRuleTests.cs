@@ -43,6 +43,7 @@ public class BlockRuleTests
         [
             "cut line from the seek",
             """{"ClientHost":"190.1.1.1","RequestMethod":"GET","RequestPath":"/oj/status.php","DownstreamStatus":200,"Duration":7800000000,"request_User-Agent":"Mozilla/5.0","time":"2026-10-16T18:00:00-04:00"}""",
+            """{"ClientHost":"10.0.0.1","RequestMethod":"GET","RequestPath":"/api/blockrules/requests?limit=300","DownstreamStatus":200,"Duration":1000000,"time":"2026-10-16T18:00:02-04:00"}""",
             """{"ClientHost":"200.87.1.5","RequestMethod":"GET","RequestPath":"/oj/index.php","DownstreamStatus":200,"Duration":300000000,"request_User-Agent":"GPTBot/1.2","request_Referer":"https://chatgpt.com/","time":"2026-10-16T18:00:01-04:00"}""",
         ]);
         var reader = new TraefikAccessLogReader(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["BlockRules:AccessLog"] = path }).Build());
