@@ -10,6 +10,7 @@ namespace OnlineJudgeAdmin.Infrastructure.FileSystemLocalManager.DependencyInjec
         {
             services.AddScoped<IFileSystemLocalManagerManager, FileSystemLocalManagerManager>();
             services.AddSingleton<IAccessLogReader, TraefikAccessLogReader>();
+            services.AddSingleton<IIpCountryLookup, DbIpCountryLookup>();
             return services;
         }
     }

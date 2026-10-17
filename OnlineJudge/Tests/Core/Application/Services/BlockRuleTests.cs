@@ -31,7 +31,7 @@ public class BlockRuleTests
     [InlineData("text", " ")]
     public async Task AddAsync_RejectsInvalidRules(string type, string value)
     {
-        var service = new BlockRuleService(new Mock<IBlockRuleRepository>().Object, new Mock<IAccessLogReader>().Object);
+        var service = new BlockRuleService(new Mock<IBlockRuleRepository>().Object, new Mock<IAccessLogReader>().Object, new Mock<IIpCountryLookup>().Object);
         await Assert.ThrowsAsync<ArgumentException>(() => service.AddAsync(type, value, null));
     }
 
@@ -49,7 +49,9 @@ public class BlockRuleTests
         var reader = new TraefikAccessLogReader(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["BlockRules:AccessLog"] = path }).Build());
         var repository = new Mock<IBlockRuleRepository>();
         repository.Setup(r => r.GetAllAsync()).ReturnsAsync(Rules);
-        var service = new BlockRuleService(repository.Object, reader);
+        var countries = new Mock<IIpCountryLookup>();
+        countries.Setup(c => c.CountryOf("200.87.1.5")).Returns("BO");
+        var service = new BlockRuleService(repository.Object, reader, countries.Object);
 
         var all = await service.GetRecentRequestsAsync(null, null, 10);
         Assert.Equal(["200.87.1.5", "190.1.1.1"], all.Select(e => e.Ip));
@@ -57,9 +59,22 @@ public class BlockRuleTests
         Assert.False(all[1].Blocked);
         Assert.Equal(7800, all[1].DurationMs);
         Assert.Equal("https://chatgpt.com/", all[0].Referer);
+        Assert.Equal("BO", all[0].Country);
+        Assert.Null(all[1].Country);
 
         var search = await service.GetRecentRequestsAsync(null, "chatgpt", 10);
         Assert.Equal("200.87.1.5", Assert.Single(search).Ip);
         File.Delete(path);
+    }
+}
+
+public class DbIpCountryLookupTests
+{
+    [Fact]
+    public void WithoutTheDatabase_EveryCountryIsUnknown()
+    {
+        using var geo = new OnlineJudgeAdmin.Infrastructure.FileSystemLocalManager.DbIpCountryLookup(
+            new Microsoft.Extensions.Configuration.ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["BlockRules:CountryDb"] = "/no/such/file.mmdb" }).Build());
+        Assert.Null(geo.CountryOf("8.8.8.8"));
     }
 }
