@@ -180,6 +180,10 @@ public class AuthorizationContractTests
         ["PublicController.GetTopicsAsync [GET temas]"] = "anonymous",
         ["PublicController.RegisterForContestAsync [POST contests/{contestId:int}/register]"] = "authenticated",
         ["PublicController.SubmitAsync [POST submit]"] = "authenticated",
+        ["BlockRulesController.AddAsync [POST ]"] = "roles:Administrador",
+        ["BlockRulesController.DeleteAsync [DELETE {id:int}]"] = "roles:Administrador",
+        ["BlockRulesController.GetAllAsync [GET ]"] = "roles:Administrador",
+        ["BlockRulesController.GetRecentRequestsAsync [GET requests]"] = "roles:Administrador",
         ["RolesController.AddRoleToUserAsync [POST {userId}/{role}]"] = "roles:Administrador",
         ["RolesController.GetAllRolesAsync [GET rolesAvailable]"] = "roles:Administrador",
         ["RolesController.GetUserRolesAsync [GET ]"] = "roles:Administrador",
@@ -238,6 +242,10 @@ public class AuthorizationContractTests
 
     [Theory]
     [InlineData("RolesController")]
+    [InlineData("BlockRulesController.AddAsync")]
+    [InlineData("BlockRulesController.DeleteAsync")]
+    [InlineData("BlockRulesController.GetAllAsync")]
+    [InlineData("BlockRulesController.GetRecentRequestsAsync")]
     [InlineData("ProblemsController.ExportProblemAsync")]
     [InlineData("ProblemsController.ImportProblemAsync")]
     [InlineData("ContestPackagesController")]

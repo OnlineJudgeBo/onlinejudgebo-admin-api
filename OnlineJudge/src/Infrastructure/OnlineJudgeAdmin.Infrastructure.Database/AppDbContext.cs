@@ -12,6 +12,7 @@ public partial class AppDbContext : DbContext
         : base(options)
     {
     }
+    public virtual DbSet<DbBlockRule> BlockRules { get; set; }
     public virtual DbSet<DbClassification> Classifications { get; set; }
     public virtual DbSet<DbContest> Contests { get; set; }
     public virtual DbSet<DbContestProblem> ContestProblems { get; set; }

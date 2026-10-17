@@ -9,6 +9,7 @@ namespace OnlineJudgeAdmin.Infrastructure.FileSystemLocalManager.DependencyInjec
         public static IServiceCollection AddFileSystemLocalManagerInfrastructureManager(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddScoped<IFileSystemLocalManagerManager, FileSystemLocalManagerManager>();
+            services.AddSingleton<IAccessLogReader, TraefikAccessLogReader>();
             return services;
         }
     }

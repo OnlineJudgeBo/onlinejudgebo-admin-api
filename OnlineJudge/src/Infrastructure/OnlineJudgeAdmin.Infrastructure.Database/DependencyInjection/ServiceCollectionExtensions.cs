@@ -21,6 +21,7 @@ namespace OnlineJudgeAdmin.Infrastructure.Database.DependencyInjection
             services.AddScoped<IRoleRepository, RoleRepository>();
             services.AddScoped<IPrivilegeRepository, PrivilegeRepository>();
             services.AddScoped<IProgrammingLanguagesRepository, ProgrammingLanguageRepository>();
+            services.AddScoped<IBlockRuleRepository, BlockRuleRepository>();
             services.AddScoped<IStaticsRepository, StaticsRepository>();
             services.AddScoped<IJudgeRepository, JudgeRepository>();
             services.AddScoped<ISolutionRepository, SolutionRepository>();
