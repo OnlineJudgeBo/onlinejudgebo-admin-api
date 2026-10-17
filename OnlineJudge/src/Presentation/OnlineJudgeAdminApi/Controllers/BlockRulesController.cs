@@ -10,7 +10,7 @@ namespace OnlineJudgeAdminApi.Controllers;
 // Blocked IPs and texts, applied by BlockRuleMiddleware here and by the PHP web, which reads the table.
 [ApiController]
 [Route("/api/blockrules")]
-[Authorize(Roles = AuthorizationRoles.Administrador)]
+[Authorize(Roles = AuthorizationRoles.AdministradorDocenteAuxiliar)]
 public class BlockRulesController : ControllerBase
 {
     private readonly IBlockRuleService _blockRuleService;
