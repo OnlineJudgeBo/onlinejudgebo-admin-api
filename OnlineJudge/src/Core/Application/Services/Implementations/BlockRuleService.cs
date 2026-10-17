@@ -16,11 +16,13 @@ public class BlockRuleService : IBlockRuleService
 
     private readonly IBlockRuleRepository _blockRuleRepository;
     private readonly IAccessLogReader _accessLogReader;
+    private readonly IIpCountryLookup _ipCountryLookup;
 
-    public BlockRuleService(IBlockRuleRepository blockRuleRepository, IAccessLogReader accessLogReader)
+    public BlockRuleService(IBlockRuleRepository blockRuleRepository, IAccessLogReader accessLogReader, IIpCountryLookup ipCountryLookup)
     {
         _blockRuleRepository = blockRuleRepository ?? throw new ArgumentNullException(nameof(blockRuleRepository));
         _accessLogReader = accessLogReader ?? throw new ArgumentNullException(nameof(accessLogReader));
+        _ipCountryLookup = ipCountryLookup ?? throw new ArgumentNullException(nameof(ipCountryLookup));
     }
 
     public Task<IEnumerable<BlockRule>> GetAllAsync()
@@ -75,6 +77,7 @@ public class BlockRuleService : IBlockRuleService
             }
 
             entry.Blocked = BlockRule.Blocks(rules, entry.Ip, requestText);
+            entry.Country = _ipCountryLookup.CountryOf(entry.Ip);
             result.Add(entry);
             if (result.Count == limit)
             {

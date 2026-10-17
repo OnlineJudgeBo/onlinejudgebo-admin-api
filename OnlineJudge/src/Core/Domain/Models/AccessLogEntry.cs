@@ -19,6 +19,9 @@ public class AccessLogEntry
 
     public string? Referer { get; set; }
 
+    // ISO 3166 country code of the IP ("BO"), when known.
+    public string? Country { get; set; }
+
     // Whether the current block rules reject this request.
     public bool Blocked { get; set; }
 }
