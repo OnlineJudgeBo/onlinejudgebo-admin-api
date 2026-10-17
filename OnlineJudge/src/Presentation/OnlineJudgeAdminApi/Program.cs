@@ -16,6 +16,7 @@ using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using OnlineJudgeAdminApi.ExceptionHandler;
 using OnlineJudgeAdminApi.Helpers;
+using OnlineJudgeAdminApi.Middleware;
 using OnlineJudgeAdmin.Infrastructure.Database.Models;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
 
@@ -155,6 +156,16 @@ using (var scope = app.Services.CreateScope())
           PRIMARY KEY (solution_id, case_number)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
         """);
+    dbContext.Database.ExecuteSqlRaw("""
+        CREATE TABLE IF NOT EXISTS block_rule (
+          id INT NOT NULL AUTO_INCREMENT,
+          type VARCHAR(8) NOT NULL,
+          value VARCHAR(255) NOT NULL,
+          note VARCHAR(255) NULL,
+          created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        """);
 
     var academicContext = scope.ServiceProvider.GetRequiredService<AcademicCatalogDbContext>();
     academicContext.Database.ExecuteSqlRaw("""
@@ -204,6 +215,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseMiddleware<BlockRuleMiddleware>();
 
 app.UseRouting();
 

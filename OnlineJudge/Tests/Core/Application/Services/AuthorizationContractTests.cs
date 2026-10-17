@@ -180,6 +180,10 @@ public class AuthorizationContractTests
         ["PublicController.GetTopicsAsync [GET temas]"] = "anonymous",
         ["PublicController.RegisterForContestAsync [POST contests/{contestId:int}/register]"] = "authenticated",
         ["PublicController.SubmitAsync [POST submit]"] = "authenticated",
+        ["BlockRulesController.AddAsync [POST ]"] = "roles:Administrador",
+        ["BlockRulesController.DeleteAsync [DELETE {id:int}]"] = "roles:Administrador",
+        ["BlockRulesController.GetActiveAsync [GET active]"] = "anonymous",
+        ["BlockRulesController.GetAllAsync [GET ]"] = "roles:Administrador",
         ["RolesController.AddRoleToUserAsync [POST {userId}/{role}]"] = "roles:Administrador",
         ["RolesController.GetAllRolesAsync [GET rolesAvailable]"] = "roles:Administrador",
         ["RolesController.GetUserRolesAsync [GET ]"] = "roles:Administrador",
@@ -238,6 +242,9 @@ public class AuthorizationContractTests
 
     [Theory]
     [InlineData("RolesController")]
+    [InlineData("BlockRulesController.AddAsync")]
+    [InlineData("BlockRulesController.DeleteAsync")]
+    [InlineData("BlockRulesController.GetAllAsync")]
     [InlineData("ProblemsController.ExportProblemAsync")]
     [InlineData("ProblemsController.ImportProblemAsync")]
     [InlineData("ContestPackagesController")]
@@ -264,7 +271,9 @@ public class AuthorizationContractTests
             || key.Contains("/api/patito-ide/", StringComparison.Ordinal)
             || key.StartsWith("IdeContextController.", StringComparison.Ordinal)
             // The lab ISO logs in before it has any token; it validates the Patito password itself.
-            || key == "LabLoginController.LoginAsync [POST login]",
+            || key == "LabLoginController.LoginAsync [POST login]"
+            // The PHP web reads the block rules with the shared BlockRules:Token header.
+            || key == "BlockRulesController.GetActiveAsync [GET active]",
             $"Unexpected anonymous endpoint: {key}"));
     }
 }
