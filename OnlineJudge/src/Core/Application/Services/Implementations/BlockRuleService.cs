@@ -11,6 +11,8 @@ public class BlockRuleService : IBlockRuleService
     // How far back a search looks in the access log.
     private const int SearchedRequests = 20_000;
     private const int MaxLimit = 1_000;
+    // The Bloqueos page itself and its polling, which would otherwise fill the list.
+    private static readonly string[] OwnPaths = ["/api/blockrules", "/admin/management/blocks"];
 
     private readonly IBlockRuleRepository _blockRuleRepository;
     private readonly IAccessLogReader _accessLogReader;
@@ -60,6 +62,11 @@ public class BlockRuleService : IBlockRuleService
         var result = new List<AccessLogEntry>();
         foreach (var entry in entries)
         {
+            if (OwnPaths.Any(path => entry.Url.StartsWith(path, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
             var requestText = BlockRule.RequestText(entry.UserAgent, entry.Referer, entry.Url);
             if ((!string.IsNullOrWhiteSpace(ip) && !entry.Ip.StartsWith(ip.Trim(), StringComparison.Ordinal))
                 || (!string.IsNullOrWhiteSpace(text) && !requestText.Contains(text.Trim(), StringComparison.OrdinalIgnoreCase)))
