@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -9,7 +7,7 @@ using OnlineJudgeAdminApi.Helpers;
 
 namespace OnlineJudgeAdminApi.Controllers;
 
-// Blocked IPs and texts, applied by BlockRuleMiddleware here and by the PHP web through "active".
+// Blocked IPs and texts, applied by BlockRuleMiddleware here and by the PHP web, which reads the table.
 [ApiController]
 [Route("/api/blockrules")]
 [Authorize(Roles = AuthorizationRoles.Administrador)]
@@ -17,13 +15,11 @@ public class BlockRulesController : ControllerBase
 {
     private readonly IBlockRuleService _blockRuleService;
     private readonly IMemoryCache _cache;
-    private readonly IConfiguration _configuration;
 
-    public BlockRulesController(IBlockRuleService blockRuleService, IMemoryCache cache, IConfiguration configuration)
+    public BlockRulesController(IBlockRuleService blockRuleService, IMemoryCache cache)
     {
         _blockRuleService = blockRuleService ?? throw new ArgumentNullException(nameof(blockRuleService));
         _cache = cache ?? throw new ArgumentNullException(nameof(cache));
-        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
     }
 
     [HttpGet]
@@ -53,22 +49,5 @@ public class BlockRulesController : ControllerBase
     public async Task<IActionResult> GetRecentRequestsAsync(string? ip, string? text, int limit = 200)
     {
         return Ok(await _blockRuleService.GetRecentRequestsAsync(ip, text, limit));
-    }
-
-    // For the PHP web, which has no admin session: it sends the shared BlockRules:Token instead.
-    [HttpGet("active")]
-    [AllowAnonymous]
-    public async Task<IActionResult> GetActiveAsync()
-    {
-        var token = _configuration["BlockRules:Token"];
-        var sent = Request.Headers["X-Block-Rules-Token"].ToString();
-        if (string.IsNullOrEmpty(token)
-            || !CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(sent), Encoding.UTF8.GetBytes(token)))
-        {
-            return NotFound();
-        }
-
-        var rules = await BlockRuleCache.RulesAsync(HttpContext);
-        return Ok(rules.Select(rule => new { type = rule.Type, value = rule.Value }));
     }
 }

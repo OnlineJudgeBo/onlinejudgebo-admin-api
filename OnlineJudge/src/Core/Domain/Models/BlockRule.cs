@@ -4,7 +4,7 @@ namespace OnlineJudgeAdmin.Core.Domain.Models;
 
 // A request is rejected when its client IP matches an "ip" rule (address or CIDR) or when its
 // User-Agent, Referer or URL contains a "text" rule, ignoring case. Same matching as
-// patito-client-web public/BlockRules.php: keep both in step.
+// patito-client-web BlockRulesMiddleware.php: keep both in step.
 public class BlockRule
 {
     public const string IpType = "ip";

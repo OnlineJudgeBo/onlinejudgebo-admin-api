@@ -182,7 +182,6 @@ public class AuthorizationContractTests
         ["PublicController.SubmitAsync [POST submit]"] = "authenticated",
         ["BlockRulesController.AddAsync [POST ]"] = "roles:Administrador",
         ["BlockRulesController.DeleteAsync [DELETE {id:int}]"] = "roles:Administrador",
-        ["BlockRulesController.GetActiveAsync [GET active]"] = "anonymous",
         ["BlockRulesController.GetAllAsync [GET ]"] = "roles:Administrador",
         ["BlockRulesController.GetRecentRequestsAsync [GET requests]"] = "roles:Administrador",
         ["RolesController.AddRoleToUserAsync [POST {userId}/{role}]"] = "roles:Administrador",
@@ -273,9 +272,7 @@ public class AuthorizationContractTests
             || key.Contains("/api/patito-ide/", StringComparison.Ordinal)
             || key.StartsWith("IdeContextController.", StringComparison.Ordinal)
             // The lab ISO logs in before it has any token; it validates the Patito password itself.
-            || key == "LabLoginController.LoginAsync [POST login]"
-            // The PHP web reads the block rules with the shared BlockRules:Token header.
-            || key == "BlockRulesController.GetActiveAsync [GET active]",
+            || key == "LabLoginController.LoginAsync [POST login]",
             $"Unexpected anonymous endpoint: {key}"));
     }
 }
