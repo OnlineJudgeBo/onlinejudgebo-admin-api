@@ -48,6 +48,13 @@ public class BlockRulesController : ControllerBase
         return Ok();
     }
 
+    // The latest requests seen by Traefik, to find what to block.
+    [HttpGet("requests")]
+    public async Task<IActionResult> GetRecentRequestsAsync(string? ip, string? text, int limit = 200)
+    {
+        return Ok(await _blockRuleService.GetRecentRequestsAsync(ip, text, limit));
+    }
+
     // For the PHP web, which has no admin session: it sends the shared BlockRules:Token instead.
     [HttpGet("active")]
     [AllowAnonymous]

@@ -1,5 +1,8 @@
 using OnlineJudgeAdmin.Core.Application.Services.Implementations;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
+using OnlineJudgeAdmin.Infrastructure.FileSystemLocalManager;
+using Microsoft.Extensions.Configuration;
 using OnlineJudgeAdmin.Core.Domain.Models;
 
 public class BlockRuleTests
@@ -28,7 +31,34 @@ public class BlockRuleTests
     [InlineData("text", " ")]
     public async Task AddAsync_RejectsInvalidRules(string type, string value)
     {
-        var service = new BlockRuleService(new Mock<IBlockRuleRepository>().Object);
+        var service = new BlockRuleService(new Mock<IBlockRuleRepository>().Object, new Mock<IAccessLogReader>().Object);
         await Assert.ThrowsAsync<ArgumentException>(() => service.AddAsync(type, value, null));
+    }
+
+    [Fact]
+    public async Task RecentRequests_ReadsTraefikJsonNewestFirstAndMarksBlocked()
+    {
+        var path = Path.GetTempFileName();
+        await File.WriteAllLinesAsync(path,
+        [
+            "cut line from the seek",
+            """{"ClientHost":"190.1.1.1","RequestMethod":"GET","RequestPath":"/oj/status.php","DownstreamStatus":200,"Duration":7800000000,"request_User-Agent":"Mozilla/5.0","time":"2026-10-16T18:00:00-04:00"}""",
+            """{"ClientHost":"200.87.1.5","RequestMethod":"GET","RequestPath":"/oj/index.php","DownstreamStatus":200,"Duration":300000000,"request_User-Agent":"GPTBot/1.2","request_Referer":"https://chatgpt.com/","time":"2026-10-16T18:00:01-04:00"}""",
+        ]);
+        var reader = new TraefikAccessLogReader(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["BlockRules:AccessLog"] = path }).Build());
+        var repository = new Mock<IBlockRuleRepository>();
+        repository.Setup(r => r.GetAllAsync()).ReturnsAsync(Rules);
+        var service = new BlockRuleService(repository.Object, reader);
+
+        var all = await service.GetRecentRequestsAsync(null, null, 10);
+        Assert.Equal(["200.87.1.5", "190.1.1.1"], all.Select(e => e.Ip));
+        Assert.True(all[0].Blocked);
+        Assert.False(all[1].Blocked);
+        Assert.Equal(7800, all[1].DurationMs);
+        Assert.Equal("https://chatgpt.com/", all[0].Referer);
+
+        var search = await service.GetRecentRequestsAsync(null, "chatgpt", 10);
+        Assert.Equal("200.87.1.5", Assert.Single(search).Ip);
+        File.Delete(path);
     }
 }

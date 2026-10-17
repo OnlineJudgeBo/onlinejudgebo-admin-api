@@ -1,4 +1,5 @@
 using System.Net;
+using OnlineJudgeAdmin.Core.Domain.Abstractions.Infrastructure;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Repositories;
 using OnlineJudgeAdmin.Core.Domain.Abstractions.Services;
 using OnlineJudgeAdmin.Core.Domain.Models;
@@ -7,11 +8,17 @@ namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
 
 public class BlockRuleService : IBlockRuleService
 {
-    private readonly IBlockRuleRepository _blockRuleRepository;
+    // How far back a search looks in the access log.
+    private const int SearchedRequests = 20_000;
+    private const int MaxLimit = 1_000;
 
-    public BlockRuleService(IBlockRuleRepository blockRuleRepository)
+    private readonly IBlockRuleRepository _blockRuleRepository;
+    private readonly IAccessLogReader _accessLogReader;
+
+    public BlockRuleService(IBlockRuleRepository blockRuleRepository, IAccessLogReader accessLogReader)
     {
         _blockRuleRepository = blockRuleRepository ?? throw new ArgumentNullException(nameof(blockRuleRepository));
+        _accessLogReader = accessLogReader ?? throw new ArgumentNullException(nameof(accessLogReader));
     }
 
     public Task<IEnumerable<BlockRule>> GetAllAsync()
@@ -41,5 +48,32 @@ public class BlockRuleService : IBlockRuleService
     public Task DeleteAsync(int id)
     {
         return _blockRuleRepository.DeleteAsync(id);
+    }
+
+    public async Task<IReadOnlyList<AccessLogEntry>> GetRecentRequestsAsync(string? ip, string? text, int limit)
+    {
+        limit = Math.Clamp(limit, 1, MaxLimit);
+        var filtered = !string.IsNullOrWhiteSpace(ip) || !string.IsNullOrWhiteSpace(text);
+        var entries = await _accessLogReader.ReadLastAsync(filtered ? SearchedRequests : limit);
+        var rules = (await _blockRuleRepository.GetAllAsync()).ToList();
+
+        var result = new List<AccessLogEntry>();
+        foreach (var entry in entries)
+        {
+            var requestText = BlockRule.RequestText(entry.UserAgent, entry.Referer, entry.Url);
+            if ((!string.IsNullOrWhiteSpace(ip) && !entry.Ip.StartsWith(ip.Trim(), StringComparison.Ordinal))
+                || (!string.IsNullOrWhiteSpace(text) && !requestText.Contains(text.Trim(), StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            entry.Blocked = BlockRule.Blocks(rules, entry.Ip, requestText);
+            result.Add(entry);
+            if (result.Count == limit)
+            {
+                break;
+            }
+        }
+        return result;
     }
 }
