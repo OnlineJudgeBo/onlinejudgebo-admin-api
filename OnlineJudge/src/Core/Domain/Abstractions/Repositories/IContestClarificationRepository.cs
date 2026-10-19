@@ -13,5 +13,7 @@ public interface IContestClarificationRepository
 
     Task<DateTime?> GetLastQuestionAtAsync(int contestId, int siteId, string userId);
 
+    Task<int> CountPendingQuestionsAsync(int contestId, int siteId, string userId);
+
     Task<IReadOnlyList<ContestClarificationPendingCount>> GetPendingCountsAsync(int siteId);
 }

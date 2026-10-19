@@ -9,6 +9,8 @@ namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
 public class ContestClarificationService : IContestClarificationService
 {
     private static readonly TimeSpan QuestionInterval = TimeSpan.FromSeconds(30);
+    // Unanswered questions one participant may have open in a contest (anti-spam).
+    public const int MaxPendingQuestions = 5;
 
     private readonly IContestClarificationRepository _clarificationRepository;
     private readonly IContestsRepository _contestRepository;
@@ -87,6 +89,10 @@ public class ContestClarificationService : IContestClarificationService
         if (last.HasValue && now - last.Value < QuestionInterval)
         {
             throw new InvalidOperationException("Espera unos segundos antes de enviar otra pregunta.");
+        }
+        if (await _clarificationRepository.CountPendingQuestionsAsync(contestId, siteId, currentUser.UserId) >= MaxPendingQuestions)
+        {
+            throw new InvalidOperationException($"Tienes {MaxPendingQuestions} preguntas sin responder; espera a que el juez las responda.");
         }
 
         return await _clarificationRepository.AddAsync(new ContestClarification

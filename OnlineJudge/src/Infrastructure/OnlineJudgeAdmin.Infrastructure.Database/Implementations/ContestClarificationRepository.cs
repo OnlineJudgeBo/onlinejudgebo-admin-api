@@ -73,6 +73,12 @@ public class ContestClarificationRepository : IContestClarificationRepository
             .MaxAsync(item => (DateTime?)item.CreatedAt);
     }
 
+    public Task<int> CountPendingQuestionsAsync(int contestId, int siteId, string userId)
+    {
+        return _context.ContestClarifications.AsNoTracking()
+            .CountAsync(item => item.ContestId == contestId && item.SiteId == siteId && item.UserId == userId && item.Answer == null);
+    }
+
     public async Task<IReadOnlyList<ContestClarificationPendingCount>> GetPendingCountsAsync(int siteId)
     {
         return await _context.ContestClarifications.AsNoTracking()

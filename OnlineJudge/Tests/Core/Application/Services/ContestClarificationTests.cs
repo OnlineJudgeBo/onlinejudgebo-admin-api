@@ -51,6 +51,28 @@ public class ContestClarificationTests
     }
 
     [Fact]
+    public async Task Ask_StopsAtFivePendingQuestions_UntilOneIsAnswered()
+    {
+        using var seed = new JudgeSeed();
+        var contest = RunningContest(seed, Now.AddHours(-1), Now.AddHours(1));
+        for (var i = 0; i < ContestClarificationService.MaxPendingQuestions; i++)
+        {
+            seed.Db.ContestClarifications.Add(new OnlineJudgeAdmin.Infrastructure.Database.Models.DbContestClarification
+            {
+                ContestId = contest, SiteId = 1, UserId = "ana", Question = "Q" + i, CreatedAt = Now.AddMinutes(-10 - i)
+            });
+        }
+        seed.Save();
+        var service = Service(seed);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.AskAsync(1, contest, null, "Sexta", Ana));
+
+        var first = (await service.GetAllAsync(contest, 1)).First();
+        await service.AnswerAsync(contest, first.Id, "Listo", false, Judge);
+        await service.AskAsync(1, contest, null, "Sexta", Ana);
+    }
+
+    [Fact]
     public async Task PrivateContest_OnlyItsParticipantsCanAsk()
     {
         using var seed = new JudgeSeed();
