@@ -34,7 +34,7 @@ public class ContestClarificationService : IContestClarificationService
 
     public Task<ContestClarification> AnswerAsync(int contestId, int id, string answer, bool isPublic, CurrentUser currentUser)
     {
-        return _clarificationRepository.AnswerAsync(contestId, currentUser.SiteId, id, CleanText(answer, "La respuesta"), isPublic, currentUser.UserId, DateTime.Now);
+        return _clarificationRepository.AnswerAsync(contestId, currentUser.SiteId, id, CleanText(answer, "La respuesta", ContestClarification.MaxAnswerLength), isPublic, currentUser.UserId, DateTime.Now);
     }
 
     public async Task<ContestClarification> AnnounceAsync(int contestId, int? problemNum, string text, CurrentUser currentUser)
@@ -46,7 +46,7 @@ public class ContestClarificationService : IContestClarificationService
         {
             ContestId = contestId,
             ProblemNum = problemNum,
-            Answer = CleanText(text, "El anuncio"),
+            Answer = CleanText(text, "El anuncio", ContestClarification.MaxAnswerLength),
             IsPublic = true,
             AnsweredBy = currentUser.UserId,
             CreatedAt = now,
@@ -81,7 +81,7 @@ public class ContestClarificationService : IContestClarificationService
             throw new InvalidOperationException("El concurso ya terminó; no se reciben más preguntas.");
         }
         CheckProblemNum(contest, problemNum);
-        var text = CleanText(question, "La pregunta");
+        var text = CleanText(question, "La pregunta", ContestClarification.MaxQuestionLength);
 
         var last = await _clarificationRepository.GetLastQuestionAtAsync(contestId, siteId, currentUser.UserId);
         if (last.HasValue && now - last.Value < QuestionInterval)
@@ -113,12 +113,12 @@ public class ContestClarificationService : IContestClarificationService
         }
     }
 
-    private static string CleanText(string? text, string what)
+    private static string CleanText(string? text, string what, int maxLength)
     {
         text = text?.Trim() ?? string.Empty;
-        if (text.Length is 0 or > ContestClarification.MaxTextLength)
+        if (text.Length == 0 || text.Length > maxLength)
         {
-            throw new ArgumentException($"{what} debe tener entre 1 y {ContestClarification.MaxTextLength} caracteres.");
+            throw new ArgumentException($"{what} debe tener entre 1 y {maxLength} caracteres.");
         }
         return text;
     }

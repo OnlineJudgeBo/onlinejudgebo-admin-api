@@ -4,7 +4,9 @@ namespace OnlineJudgeAdmin.Core.Domain.Models;
 // Public ones are shown to everyone in the contest; the rest only to whoever asked.
 public class ContestClarification
 {
-    public const int MaxTextLength = 2000;
+    public const int MaxQuestionLength = 2000;
+    // Answers and announcements are HTML from the admin editor.
+    public const int MaxAnswerLength = 20000;
 
     public int Id { get; set; }
 
