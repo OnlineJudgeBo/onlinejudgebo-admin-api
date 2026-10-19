@@ -15,6 +15,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<DbBlockRule> BlockRules { get; set; }
     public virtual DbSet<DbClassification> Classifications { get; set; }
     public virtual DbSet<DbContest> Contests { get; set; }
+    public virtual DbSet<DbContestClarification> ContestClarifications { get; set; }
     public virtual DbSet<DbContestProblem> ContestProblems { get; set; }
     public virtual DbSet<DbContestUser> ContestUsers { get; set; }
     public virtual DbSet<DbCustomInput> CustomInputs { get; set; }

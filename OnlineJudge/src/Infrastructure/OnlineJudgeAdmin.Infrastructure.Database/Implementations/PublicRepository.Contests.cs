@@ -400,6 +400,11 @@ public partial class PublicRepository
         return contest;
     }
 
+    public async Task CheckContestAccessAsync(int siteId, int contestId, CurrentUser? currentUser)
+    {
+        await CheckContestAccessAsync(siteId, await GetContestAsync(siteId, contestId), currentUser);
+    }
+
     private async Task CheckContestAccessAsync(int siteId, DbContest contest, CurrentUser? currentUser)
     {
         if (contest.Private == 0)
