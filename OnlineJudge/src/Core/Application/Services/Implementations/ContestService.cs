@@ -161,13 +161,13 @@ public class ContestService : IContestService
     // Soft delete: the contest and its submissions stay in the database.
     public Task DeleteContestAsync(int contestId, int siteId)
     {
-        return _contestRepository.SetContestDefunctAsync(contestId, siteId, "Y");
+        return _contestRepository.SetContestDefunctAsync(contestId, siteId, DefunctStates.Deleted);
     }
 
     // Comes back hidden (link only), so restoring never publishes it by surprise.
     public Task RestoreContestAsync(int contestId, int siteId)
     {
-        return _contestRepository.SetContestDefunctAsync(contestId, siteId, "H");
+        return _contestRepository.SetContestDefunctAsync(contestId, siteId, DefunctStates.Hidden);
     }
 
     private static IEnumerable<string> ParseManualUserList(string? manualUserList)

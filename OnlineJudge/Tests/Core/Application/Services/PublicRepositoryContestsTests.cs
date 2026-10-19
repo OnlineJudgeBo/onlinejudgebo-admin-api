@@ -45,7 +45,7 @@ public class PublicRepositoryContestsTests
     {
         using var seed = new JudgeSeed();
         seed.Contest("Visible", Now.AddDays(-2), Now.AddDays(-1));
-        seed.Contest("Deleted", Now.AddDays(-2), Now.AddDays(-1), defunct: "Y");
+        seed.Contest("Deleted", Now.AddDays(-2), Now.AddDays(-1), defunct: "D");
         seed.Contest("Other site", Now.AddDays(-2), Now.AddDays(-1), siteId: 2);
 
         var result = await seed.PublicRepository().GetContestsAsync(1, "all", null, null, 1, 10, null);
@@ -78,7 +78,7 @@ public class PublicRepositoryContestsTests
     public async Task HiddenContest_IsNotListedButOpensByLink()
     {
         using var seed = new JudgeSeed();
-        var hidden = seed.Contest("Hidden", Now.AddDays(-2), Now.AddDays(-1), defunct: "H");
+        var hidden = seed.Contest("Hidden", Now.AddDays(-2), Now.AddDays(-1), defunct: "Y");
         var repository = seed.PublicRepository();
 
         Assert.Empty((await repository.GetContestsAsync(1, "all", null, null, 1, 10, null)).Items);
@@ -256,7 +256,7 @@ public class PublicRepositoryContestsTests
     public async Task ContestReport_UnknownDefunctOrOtherSiteContestIsNotFound()
     {
         using var seed = new JudgeSeed();
-        var deleted = seed.Contest("Deleted", Now.AddDays(-2), Now.AddDays(-1), defunct: "Y");
+        var deleted = seed.Contest("Deleted", Now.AddDays(-2), Now.AddDays(-1), defunct: "D");
         var otherSite = seed.Contest("Other", Now.AddDays(-2), Now.AddDays(-1), siteId: 2);
         var repository = seed.PublicRepository();
 

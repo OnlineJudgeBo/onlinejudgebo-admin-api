@@ -82,7 +82,7 @@ foreach (var target in targets)
             TimeLimit = limits.TimeLimitSeconds,
             MemoryLimit = limits.MemoryLimitMb,
             Spj = "N",
-            Defunct = "N",
+            Defunct = DefunctStates.Visible,
             InDate = DateTime.Now,
         };
 

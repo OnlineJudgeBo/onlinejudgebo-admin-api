@@ -1,3 +1,4 @@
+using OnlineJudgeAdmin.Core.Domain.Models;
 using System.Text.Json.Serialization;
 
 namespace OnlineJudgeAdminApi.DataTransferObjects;
@@ -34,7 +35,7 @@ public class ProblemForCreation
 
     public int MemoryLimit { get; set; } = 128;
 
-    public string Defunct { get; set; } = "N";
+    public string Defunct { get; set; } = DefunctStates.Visible;
 
     [JsonIgnore]
     public int Accepted { get; set; } = 0;

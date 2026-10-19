@@ -13,7 +13,7 @@ public partial class ContestForUpdate
 
     public bool IsOfficial { get; set; }
 
-    // Hidden from every list, still open by link (defunct 'H').
+    // Hidden from every list, still open by link (DefunctStates.Hidden).
     public bool IsHidden { get; set; }
 
     public string Track { get; set; } = "GENERAL";

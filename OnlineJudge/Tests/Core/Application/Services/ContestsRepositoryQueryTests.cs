@@ -33,8 +33,8 @@ public class ContestsRepositoryQueryTests
     public async Task DeletedContests_OnlyShowInTheDeletedView()
     {
         using var seed = new JudgeSeed();
-        var hidden = seed.Contest("Hidden", Now, Now.AddHours(1), defunct: "H");
-        var deleted = seed.Contest("Deleted", Now, Now.AddHours(1), defunct: "Y");
+        var hidden = seed.Contest("Hidden", Now, Now.AddHours(1), defunct: "Y");
+        var deleted = seed.Contest("Deleted", Now, Now.AddHours(1), defunct: "D");
         var repository = Repository(seed);
 
         var docente = (await repository.GetContestsByUserIdDocenteRoleAsync("teacher", true, 1, includePromoted: true)).Select(item => item.ContestId);
