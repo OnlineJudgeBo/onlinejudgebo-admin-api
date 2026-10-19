@@ -17,7 +17,7 @@ public class ContestsRepository : IContestsRepository
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
-    public async Task<IEnumerable<Contest>> GetContestsByUserIdDocenteRoleAsync(string userId, bool showAllContest, int siteId, bool includePromoted = false)
+    public async Task<IEnumerable<Contest>> GetContestsByUserIdDocenteRoleAsync(string userId, bool showAllContest, int siteId, bool includePromoted = false, bool includeDeleted = false)
     {
         IQueryable<DbContest> query;
 
@@ -43,6 +43,9 @@ public class ContestsRepository : IContestsRepository
             query = query.Where(c => c.Defunct != "O");
         }
 
+        // Soft-deleted contests ('Y', as in HUSTOJ) only show up in the "deleted" view.
+        query = includeDeleted ? query.Where(c => c.Defunct == "Y") : query.Where(c => c.Defunct != "Y");
+
         var contests = await query
             .OrderByDescending(c => c.ContestId)
             .Select(c => new DbContest
@@ -61,7 +64,7 @@ public class ContestsRepository : IContestsRepository
         return _mapper.Map<IEnumerable<Contest>>(contests);
     }
 
-    public async Task<IEnumerable<Contest>> GetContestsByAuxiliarRoleAsync(string userId, int siteId, bool includePromoted = false)
+    public async Task<IEnumerable<Contest>> GetContestsByAuxiliarRoleAsync(string userId, int siteId, bool includePromoted = false, bool includeDeleted = false)
     {
         IQueryable<DbContest> query = _context.Contests
             .Where(c => c.ContestSites.Any(site => site.SiteId == siteId));
@@ -70,6 +73,9 @@ public class ContestsRepository : IContestsRepository
         {
             query = query.Where(c => c.Defunct != "O");
         }
+
+        // Soft-deleted contests ('Y', as in HUSTOJ) only show up in the "deleted" view.
+        query = includeDeleted ? query.Where(c => c.Defunct == "Y") : query.Where(c => c.Defunct != "Y");
 
         var contests = await query
             .OrderByDescending(c => c.ContestId)
@@ -216,7 +222,11 @@ public class ContestsRepository : IContestsRepository
         var ownerContest = existingContest.ContestUsers.FirstOrDefault(p => p.IsOwner && p.SiteId == siteId)
             ?? throw new KeyNotFoundException("No se encontró el concurso con ID: " + contestId);
 
+        var previousDefunct = existingContest.Defunct;
         _context.Entry(existingContest).CurrentValues.SetValues(contest);
+        // Editing never revives a deleted contest: only Restore does.
+        if (previousDefunct == "Y")
+            existingContest.Defunct = "Y";
 
         existingContest.ContestProblems.Clear();
         foreach (var problem in contestsToUpdate.ContestProblems)
@@ -251,6 +261,12 @@ public class ContestsRepository : IContestsRepository
 
     public async Task<Contest> PromoteContestAsync(int contestId, int siteId)
     {
+        await SetContestDefunctAsync(contestId, siteId, "O");
+        return await GetContestByIdAsync(contestId, siteId);
+    }
+
+    public async Task SetContestDefunctAsync(int contestId, int siteId, string defunct)
+    {
         var existingContest = await _context.Contests
             .Where(c => c.ContestSites.Any(cs => cs.SiteId == siteId))
             .FirstOrDefaultAsync(c => c.ContestId == contestId);
@@ -258,10 +274,8 @@ public class ContestsRepository : IContestsRepository
         if (existingContest == null)
             throw new KeyNotFoundException("No se encontró el concurso con ID: " + contestId);
 
-        existingContest.Defunct = "O";
-
+        existingContest.Defunct = defunct;
         await _context.SaveChangesAsync();
-        return await GetContestByIdAsync(contestId, siteId);
     }
 
     // The exam a participant is taking right now; when two overlap, the one that started last wins.

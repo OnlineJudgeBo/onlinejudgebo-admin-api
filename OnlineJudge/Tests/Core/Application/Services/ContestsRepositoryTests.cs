@@ -127,6 +127,25 @@ public class ContestsRepositoryTests
     }
 
     [Fact]
+    public async Task UpdateContestAsync_KeepsADeletedContestDeleted()
+    {
+        using AppDbContext context = CreateContext();
+        var repository = new ContestsRepository(context, CreateMapper());
+        Contest toCreate = NewContest("Contest A");
+        toCreate.ContestUsers!.Add(new ContestUser { UserId = "owner", IsOwner = true });
+        Contest created = await repository.CreateContestAsync(toCreate, siteId: 1);
+        await repository.SetContestDefunctAsync(created.ContestId, siteId: 1, "Y");
+
+        Contest edit = NewContest("Updated");
+        edit.ContestId = created.ContestId;
+        await repository.UpdateContestAsync(created.ContestId, edit, siteId: 1);
+
+        DbContest saved = await context.Contests.SingleAsync();
+        Assert.Equal("Updated", saved.Title);
+        Assert.Equal("Y", saved.Defunct);
+    }
+
+    [Fact]
     public async Task PromoteContestAsync_ThrowsWhenNotFoundForSite()
     {
         using AppDbContext context = CreateContext();

@@ -13,6 +13,9 @@ public partial class ContestForUpdate
 
     public bool IsOfficial { get; set; }
 
+    // Hidden from every list, still open by link (defunct 'H').
+    public bool IsHidden { get; set; }
+
     public string Track { get; set; } = "GENERAL";
 
     public string Level { get; set; } = "PRACTICE";

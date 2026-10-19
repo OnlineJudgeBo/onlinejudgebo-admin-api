@@ -28,9 +28,9 @@ public class ContestsController : ControllerBase
     }
 
     [HttpGet()]
-    public async Task<IActionResult> GetAllContestAsync([FromQuery] bool includePromoted = false)
+    public async Task<IActionResult> GetAllContestAsync([FromQuery] bool includePromoted = false, [FromQuery] bool includeDeleted = false)
     {
-        return Ok(await _contestService.GetAllContestAsync(_currentUser, includePromoted));
+        return Ok(await _contestService.GetAllContestAsync(_currentUser, includePromoted, includeDeleted));
     }
 
     [HttpGet("{contestId:int}")]
@@ -75,5 +75,21 @@ public class ContestsController : ControllerBase
     {
         await _contestService.PromoteContestAsync(contestId, _currentUser.SiteId);
         return Ok();
+    }
+
+    [HttpDelete("{contestId:int}")]
+    [Authorize(Roles = AuthorizationRoles.Administrador)]
+    public async Task<IActionResult> DeleteContestAsync(int contestId)
+    {
+        await _contestService.DeleteContestAsync(contestId, _currentUser.SiteId);
+        return NoContent();
+    }
+
+    [HttpPut("{contestId:int}/restore")]
+    [Authorize(Roles = AuthorizationRoles.Administrador)]
+    public async Task<IActionResult> RestoreContestAsync(int contestId)
+    {
+        await _contestService.RestoreContestAsync(contestId, _currentUser.SiteId);
+        return NoContent();
     }
 }

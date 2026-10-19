@@ -113,6 +113,8 @@ public class AuthorizationContractTests
         ["ContestsController.GetExamMonitorAsync [GET {contestId:int}/exam-monitor]"] = "roles:Administrador,Auxiliar,Docente",
         ["ContestsController.PromoteContestAsync [PUT {contestId:int}/promote]"] = "roles:Administrador,Auxiliar,Docente",
         ["ContestsController.UpdateContestAsync [PUT {contestId:int}]"] = "roles:Administrador,Auxiliar,Docente",
+        ["ContestsController.DeleteContestAsync [DELETE {contestId:int}]"] = "roles:Administrador,Auxiliar,Docente & Administrador",
+        ["ContestsController.RestoreContestAsync [PUT {contestId:int}/restore]"] = "roles:Administrador,Auxiliar,Docente & Administrador",
         ["ContestPackagesController.ExportAsync [GET {contestId:int}/export]"] = "roles:Administrador",
         ["ContestPackagesController.ImportAsync [POST import]"] = "roles:Administrador",
         ["TaskImportController.ImportAsync [POST import-task]"] = "roles:Administrador",
