@@ -75,6 +75,17 @@ public class PublicRepositoryContestsTests
     }
 
     [Fact]
+    public async Task HiddenContest_IsNotListedButOpensByLink()
+    {
+        using var seed = new JudgeSeed();
+        var hidden = seed.Contest("Hidden", Now.AddDays(-2), Now.AddDays(-1), defunct: "H");
+        var repository = seed.PublicRepository();
+
+        Assert.Empty((await repository.GetContestsAsync(1, "all", null, null, 1, 10, null)).Items);
+        await repository.GetContestReportAsync(1, hidden);
+    }
+
+    [Fact]
     public async Task GetContests_PromotedContestStaysActiveAfterEnd()
     {
         using var seed = new JudgeSeed();

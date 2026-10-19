@@ -30,6 +30,23 @@ public class ContestsRepositoryQueryTests
     }
 
     [Fact]
+    public async Task DeletedContests_OnlyShowInTheDeletedView()
+    {
+        using var seed = new JudgeSeed();
+        var hidden = seed.Contest("Hidden", Now, Now.AddHours(1), defunct: "H");
+        var deleted = seed.Contest("Deleted", Now, Now.AddHours(1), defunct: "Y");
+        var repository = Repository(seed);
+
+        var docente = (await repository.GetContestsByUserIdDocenteRoleAsync("teacher", true, 1, includePromoted: true)).Select(item => item.ContestId);
+        var auxiliar = (await repository.GetContestsByAuxiliarRoleAsync("aux", 1, includePromoted: true)).Select(item => item.ContestId);
+        var trash = (await repository.GetContestsByUserIdDocenteRoleAsync("teacher", true, 1, includePromoted: true, includeDeleted: true)).Select(item => item.ContestId);
+
+        Assert.Equal(new[] { hidden }, docente);
+        Assert.Equal(new[] { hidden }, auxiliar);
+        Assert.Equal(new[] { deleted }, trash);
+    }
+
+    [Fact]
     public async Task Auxiliar_SeesSiteContestsNewestFirstCappedAt100()
     {
         using var seed = new JudgeSeed();

@@ -28,19 +28,19 @@ public class ContestService : IContestService
         _userValidation = ProblemValidation ?? throw new ArgumentNullException(nameof(ProblemValidation));
     }
 
-    public async Task<IEnumerable<Contest>> GetAllContestAsync(CurrentUser userContextRole, bool includePromoted = false)
+    public async Task<IEnumerable<Contest>> GetAllContestAsync(CurrentUser userContextRole, bool includePromoted = false, bool includeDeleted = false)
     {
         if (userContextRole.Role is UserRolesEnum.Administrador or UserRolesEnum.Docente)
         {
-            return await _contestRepository.GetContestsByUserIdDocenteRoleAsync(userContextRole.UserId, showAllContest: true, userContextRole.SiteId, includePromoted);
+            return await _contestRepository.GetContestsByUserIdDocenteRoleAsync(userContextRole.UserId, showAllContest: true, userContextRole.SiteId, includePromoted, includeDeleted);
         }
 
         if (userContextRole.Role == UserRolesEnum.Auxiliar)
         {
-            return await _contestRepository.GetContestsByAuxiliarRoleAsync(userContextRole.UserId, userContextRole.SiteId, includePromoted);
+            return await _contestRepository.GetContestsByAuxiliarRoleAsync(userContextRole.UserId, userContextRole.SiteId, includePromoted, includeDeleted);
         }
 
-        return await _contestRepository.GetContestsByUserIdDocenteRoleAsync(userContextRole.UserId, showAllContest: false, userContextRole.SiteId, includePromoted);
+        return await _contestRepository.GetContestsByUserIdDocenteRoleAsync(userContextRole.UserId, showAllContest: false, userContextRole.SiteId, includePromoted, includeDeleted);
     }
 
     public async Task<Contest> GetContestById(int contestId, int siteId)
@@ -156,6 +156,18 @@ public class ContestService : IContestService
         }
         await _contestRepository.PromoteContestAsync(contestId, siteId);
         await _problemRepository.PromoteProblemAsync(problemIdList);
+    }
+
+    // Soft delete: the contest and its submissions stay in the database.
+    public Task DeleteContestAsync(int contestId, int siteId)
+    {
+        return _contestRepository.SetContestDefunctAsync(contestId, siteId, "Y");
+    }
+
+    // Comes back hidden (link only), so restoring never publishes it by surprise.
+    public Task RestoreContestAsync(int contestId, int siteId)
+    {
+        return _contestRepository.SetContestDefunctAsync(contestId, siteId, "H");
     }
 
     private static IEnumerable<string> ParseManualUserList(string? manualUserList)

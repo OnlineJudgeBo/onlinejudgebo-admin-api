@@ -12,27 +12,27 @@ public class ContestServiceTests
     {
         var contestRepository = new Mock<IContestsRepository>();
         contestRepository
-            .Setup(item => item.GetContestsByUserIdDocenteRoleAsync("user1", showAll, 1, false))
+            .Setup(item => item.GetContestsByUserIdDocenteRoleAsync("user1", showAll, 1, false, false))
             .ReturnsAsync(new[] { new Contest { ContestId = 1 } });
         var service = CreateService(contestRepository.Object);
 
         var result = await service.GetAllContestAsync(new CurrentUser { UserId = "user1", SiteId = 1, Role = role });
 
         Assert.Single(result);
-        contestRepository.Verify(item => item.GetContestsByUserIdDocenteRoleAsync("user1", showAll, 1, false), Times.Once);
+        contestRepository.Verify(item => item.GetContestsByUserIdDocenteRoleAsync("user1", showAll, 1, false, false), Times.Once);
     }
 
     [Fact]
     public async Task GetAllContestAsync_UsesAuxiliarRepositoryForAuxiliarRole()
     {
         var contestRepository = new Mock<IContestsRepository>();
-        contestRepository.Setup(item => item.GetContestsByAuxiliarRoleAsync("aux", 1, false)).ReturnsAsync(new[] { new Contest { ContestId = 2 } });
+        contestRepository.Setup(item => item.GetContestsByAuxiliarRoleAsync("aux", 1, false, false)).ReturnsAsync(new[] { new Contest { ContestId = 2 } });
         var service = CreateService(contestRepository.Object);
 
         var result = await service.GetAllContestAsync(new CurrentUser { UserId = "aux", SiteId = 1, Role = UserRolesEnum.Auxiliar });
 
         Assert.Single(result);
-        contestRepository.Verify(item => item.GetContestsByAuxiliarRoleAsync("aux", 1, false), Times.Once);
+        contestRepository.Verify(item => item.GetContestsByAuxiliarRoleAsync("aux", 1, false, false), Times.Once);
     }
 
     [Fact]
@@ -40,14 +40,14 @@ public class ContestServiceTests
     {
         var contestRepository = new Mock<IContestsRepository>();
         contestRepository
-            .Setup(item => item.GetContestsByUserIdDocenteRoleAsync("teacher", true, 1, true))
+            .Setup(item => item.GetContestsByUserIdDocenteRoleAsync("teacher", true, 1, true, false))
             .ReturnsAsync(new[] { new Contest { ContestId = 1, Defunct = "O" } });
         var service = CreateService(contestRepository.Object);
 
         var result = await service.GetAllContestAsync(new CurrentUser { UserId = "teacher", SiteId = 1, Role = UserRolesEnum.Docente }, includePromoted: true);
 
         Assert.Single(result);
-        contestRepository.Verify(item => item.GetContestsByUserIdDocenteRoleAsync("teacher", true, 1, true), Times.Once);
+        contestRepository.Verify(item => item.GetContestsByUserIdDocenteRoleAsync("teacher", true, 1, true, false), Times.Once);
     }
 
     [Fact]
@@ -55,14 +55,14 @@ public class ContestServiceTests
     {
         var contestRepository = new Mock<IContestsRepository>();
         contestRepository
-            .Setup(item => item.GetContestsByAuxiliarRoleAsync("aux", 1, true))
+            .Setup(item => item.GetContestsByAuxiliarRoleAsync("aux", 1, true, false))
             .ReturnsAsync(new[] { new Contest { ContestId = 2, Defunct = "O" } });
         var service = CreateService(contestRepository.Object);
 
         var result = await service.GetAllContestAsync(new CurrentUser { UserId = "aux", SiteId = 1, Role = UserRolesEnum.Auxiliar }, includePromoted: true);
 
         Assert.Single(result);
-        contestRepository.Verify(item => item.GetContestsByAuxiliarRoleAsync("aux", 1, true), Times.Once);
+        contestRepository.Verify(item => item.GetContestsByAuxiliarRoleAsync("aux", 1, true, false), Times.Once);
     }
 
     [Fact]
@@ -193,6 +193,19 @@ public class ContestServiceTests
         Assert.Equal(new[] { "alsoKeep", "keep" }, capturedContest!.ContestUsers!.Select(user => user.UserId).OrderBy(userId => userId).ToArray());
         Assert.DoesNotContain(capturedContest.ContestUsers!, user => user.UserId == "removed");
         Assert.All(capturedContest.ContestUsers!, user => Assert.Equal(1, user.SiteId));
+    }
+
+    [Fact]
+    public async Task DeleteContestAsync_SoftDeletes_AndRestoreBringsItBackHidden()
+    {
+        var contestRepository = new Mock<IContestsRepository>();
+        var service = CreateService(contestRepository.Object, new Mock<IProblemRepository>().Object);
+
+        await service.DeleteContestAsync(10, 1);
+        await service.RestoreContestAsync(10, 1);
+
+        contestRepository.Verify(item => item.SetContestDefunctAsync(10, 1, "Y"), Times.Once);
+        contestRepository.Verify(item => item.SetContestDefunctAsync(10, 1, "H"), Times.Once);
     }
 
     [Fact]

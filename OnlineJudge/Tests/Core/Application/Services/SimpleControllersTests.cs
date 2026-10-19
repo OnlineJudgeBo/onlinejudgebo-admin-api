@@ -195,7 +195,7 @@ public class ContestsControllerTests
     {
         await Controller().GetAllContestAsync(includePromoted);
 
-        _service.Verify(item => item.GetAllContestAsync(It.Is<CurrentUser>(u => u.UserId == "teacher"), includePromoted), Times.Once);
+        _service.Verify(item => item.GetAllContestAsync(It.Is<CurrentUser>(u => u.UserId == "teacher"), includePromoted, false), Times.Once);
     }
 
     [Fact]
@@ -233,6 +233,16 @@ public class ContestsControllerTests
         Assert.IsType<OkResult>(await Controller(siteId: 2).PromoteContestAsync(42));
 
         _service.Verify(item => item.PromoteContestAsync(42, 2), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteAndRestore_Delegate()
+    {
+        Assert.IsType<NoContentResult>(await Controller(siteId: 2).DeleteContestAsync(42));
+        Assert.IsType<NoContentResult>(await Controller(siteId: 2).RestoreContestAsync(42));
+
+        _service.Verify(item => item.DeleteContestAsync(42, 2), Times.Once);
+        _service.Verify(item => item.RestoreContestAsync(42, 2), Times.Once);
     }
 
     private static T ContestDto<T>() where T : new()

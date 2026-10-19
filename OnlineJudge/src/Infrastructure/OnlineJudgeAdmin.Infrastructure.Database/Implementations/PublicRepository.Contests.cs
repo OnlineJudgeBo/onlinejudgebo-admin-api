@@ -388,7 +388,7 @@ public partial class PublicRepository
         var contest = await (
             from contestSite in _context.ContestSites
             join item in _context.Contests on contestSite.ContestId equals item.ContestId
-            where contestSite.SiteId == siteId && item.ContestId == contestId && (item.Defunct == "N" || item.Defunct == "O")
+            where contestSite.SiteId == siteId && item.ContestId == contestId && (item.Defunct == "N" || item.Defunct == "O" || item.Defunct == "H")
             select item
         ).FirstOrDefaultAsync();
 
