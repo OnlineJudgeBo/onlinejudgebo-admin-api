@@ -204,8 +204,8 @@ public class ContestServiceTests
         await service.DeleteContestAsync(10, 1);
         await service.RestoreContestAsync(10, 1);
 
+        contestRepository.Verify(item => item.SetContestDefunctAsync(10, 1, "D"), Times.Once);
         contestRepository.Verify(item => item.SetContestDefunctAsync(10, 1, "Y"), Times.Once);
-        contestRepository.Verify(item => item.SetContestDefunctAsync(10, 1, "H"), Times.Once);
     }
 
     [Fact]

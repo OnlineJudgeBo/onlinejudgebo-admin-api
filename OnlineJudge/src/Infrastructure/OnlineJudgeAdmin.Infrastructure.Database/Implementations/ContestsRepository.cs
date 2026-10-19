@@ -40,11 +40,11 @@ public class ContestsRepository : IContestsRepository
 
         if (!includePromoted)
         {
-            query = query.Where(c => c.Defunct != "O");
+            query = query.Where(c => c.Defunct != DefunctStates.Official);
         }
 
-        // Soft-deleted contests ('Y', as in HUSTOJ) only show up in the "deleted" view.
-        query = includeDeleted ? query.Where(c => c.Defunct == "Y") : query.Where(c => c.Defunct != "Y");
+        // Soft-deleted contests only show up in the "deleted" view.
+        query = includeDeleted ? query.Where(c => c.Defunct == DefunctStates.Deleted) : query.Where(c => c.Defunct != DefunctStates.Deleted);
 
         var contests = await query
             .OrderByDescending(c => c.ContestId)
@@ -71,11 +71,11 @@ public class ContestsRepository : IContestsRepository
 
         if (!includePromoted)
         {
-            query = query.Where(c => c.Defunct != "O");
+            query = query.Where(c => c.Defunct != DefunctStates.Official);
         }
 
-        // Soft-deleted contests ('Y', as in HUSTOJ) only show up in the "deleted" view.
-        query = includeDeleted ? query.Where(c => c.Defunct == "Y") : query.Where(c => c.Defunct != "Y");
+        // Soft-deleted contests only show up in the "deleted" view.
+        query = includeDeleted ? query.Where(c => c.Defunct == DefunctStates.Deleted) : query.Where(c => c.Defunct != DefunctStates.Deleted);
 
         var contests = await query
             .OrderByDescending(c => c.ContestId)
@@ -225,8 +225,8 @@ public class ContestsRepository : IContestsRepository
         var previousDefunct = existingContest.Defunct;
         _context.Entry(existingContest).CurrentValues.SetValues(contest);
         // Editing never revives a deleted contest: only Restore does.
-        if (previousDefunct == "Y")
-            existingContest.Defunct = "Y";
+        if (previousDefunct == DefunctStates.Deleted)
+            existingContest.Defunct = DefunctStates.Deleted;
 
         existingContest.ContestProblems.Clear();
         foreach (var problem in contestsToUpdate.ContestProblems)
@@ -261,7 +261,7 @@ public class ContestsRepository : IContestsRepository
 
     public async Task<Contest> PromoteContestAsync(int contestId, int siteId)
     {
-        await SetContestDefunctAsync(contestId, siteId, "O");
+        await SetContestDefunctAsync(contestId, siteId, DefunctStates.Official);
         return await GetContestByIdAsync(contestId, siteId);
     }
 
@@ -282,7 +282,7 @@ public class ContestsRepository : IContestsRepository
     public async Task<Contest?> GetActiveExamForUserAsync(string userId, int siteId, DateTime now)
     {
         var contest = await _context.Contests
-            .Where(c => c.IsExam && c.Defunct == "N" && c.StartTime <= now && c.EndTime >= now
+            .Where(c => c.IsExam && c.Defunct == DefunctStates.Visible && c.StartTime <= now && c.EndTime >= now
                 && c.ContestSites.Any(site => site.SiteId == siteId)
                 && c.ContestUsers.Any(user => user.UserId == userId && user.SiteId == siteId && !user.IsOwner))
             .OrderByDescending(c => c.StartTime)

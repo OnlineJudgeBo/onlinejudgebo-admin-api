@@ -72,7 +72,7 @@ public class BocaImportService(
         TimeLimit = package.TimeLimitSeconds,
         MemoryLimit = package.MemoryLimitMb,
         Spj = "N",
-        Defunct = "N",
+        Defunct = DefunctStates.Visible,
         InDate = DateTime.Now,
     };
 }

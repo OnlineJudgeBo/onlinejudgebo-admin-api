@@ -134,7 +134,7 @@ public class ContestsRepositoryTests
         Contest toCreate = NewContest("Contest A");
         toCreate.ContestUsers!.Add(new ContestUser { UserId = "owner", IsOwner = true });
         Contest created = await repository.CreateContestAsync(toCreate, siteId: 1);
-        await repository.SetContestDefunctAsync(created.ContestId, siteId: 1, "Y");
+        await repository.SetContestDefunctAsync(created.ContestId, siteId: 1, "D");
 
         Contest edit = NewContest("Updated");
         edit.ContestId = created.ContestId;
@@ -142,7 +142,7 @@ public class ContestsRepositoryTests
 
         DbContest saved = await context.Contests.SingleAsync();
         Assert.Equal("Updated", saved.Title);
-        Assert.Equal("Y", saved.Defunct);
+        Assert.Equal("D", saved.Defunct);
     }
 
     [Fact]

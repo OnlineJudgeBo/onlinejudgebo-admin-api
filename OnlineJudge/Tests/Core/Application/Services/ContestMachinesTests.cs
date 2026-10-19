@@ -492,7 +492,7 @@ public class ActiveExamRepositoryTests
         var newer = Exam(seed, "Recuperatorio", startHoursAgo: 1, endHoursAhead: 1);
         var finished = Exam(seed, "Terminado", startHoursAgo: 5, endHoursAhead: -1);
         var practice = Exam(seed, "Practica", startHoursAgo: 0, endHoursAhead: 1, isExam: false);
-        var deleted = Exam(seed, "Borrado", startHoursAgo: 0, endHoursAhead: 1, defunct: "Y");
+        var deleted = Exam(seed, "Borrado", startHoursAgo: 0, endHoursAhead: 1, defunct: "D");
         var otherSite = Exam(seed, "Otro sitio", startHoursAgo: 0, endHoursAhead: 1, siteId: 2);
         foreach (var contest in new[] { older, newer, finished, practice, deleted })
         {

@@ -21,7 +21,7 @@ public class ProblemRepository : IProblemRepository
     {
         IEnumerable<DbProblem> problems = await _context.Problems
             .Where(c => c.ProblemSites.Any(site => site.SiteId == siteId && site.IsActive))
-            .Where(p => p.Defunct == "N" || p.Defunct == "Y")
+            .Where(p => p.Defunct == DefunctStates.Visible || p.Defunct == DefunctStates.Hidden)
             .OrderByDescending(p => p.ProblemId)
             .Select(p => new DbProblem
             {
@@ -117,7 +117,7 @@ public class ProblemRepository : IProblemRepository
             ProblemId = row.ProblemId ?? 0,
             Title = row.Title,
             Sites = row.Sites,
-            Hidden = row.Defunct == "Y",
+            Hidden = row.Defunct == DefunctStates.Hidden,
             HasDescription = HasText(row.Description),
             HasInput = HasText(row.Input),
             HasOutput = HasText(row.Output),
@@ -171,7 +171,7 @@ public class ProblemRepository : IProblemRepository
     {
         IQueryable<DbProblem> query = _context.Problems
             .Where(p => p.ProblemSites.Any(site => site.SiteId == siteId && site.IsActive))
-            .Where(p => p.Defunct == "N" || p.Defunct == "Y")
+            .Where(p => p.Defunct == DefunctStates.Visible || p.Defunct == DefunctStates.Hidden)
             .OrderBy(p => p.ProblemId);
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
@@ -341,7 +341,7 @@ public class ProblemRepository : IProblemRepository
 
         foreach (var problem in existingProblems)
         {
-            problem.Defunct = "O";
+            problem.Defunct = DefunctStates.Official;
         }
 
         await _context.SaveChangesAsync();
@@ -356,13 +356,13 @@ public class ProblemRepository : IProblemRepository
         if (existingProblem == null)
             throw new KeyNotFoundException("No se encontraron problemas con los IDs proporcionados.");
 
-        if (existingProblem.Defunct == "Y")
+        if (existingProblem.Defunct == DefunctStates.Hidden)
         {
-            existingProblem.Defunct = "N";
+            existingProblem.Defunct = DefunctStates.Visible;
         }
-        else if (existingProblem.Defunct != "O")
+        else if (existingProblem.Defunct != DefunctStates.Official)
         {
-            existingProblem.Defunct = "Y";
+            existingProblem.Defunct = DefunctStates.Hidden;
         }
         await _context.SaveChangesAsync();
     }

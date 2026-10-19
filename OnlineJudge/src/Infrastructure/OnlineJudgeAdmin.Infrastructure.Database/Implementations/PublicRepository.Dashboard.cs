@@ -31,7 +31,7 @@ public partial class PublicRepository
             from contestSite in _context.ContestSites
             join contest in _context.Contests on contestSite.ContestId equals contest.ContestId
             where contestSite.SiteId == siteId
-                && contest.Defunct == "N"
+                && contest.Defunct == DefunctStates.Visible
                 && contest.StartTime <= contestNow
                 && contest.EndTime >= contestNow
             select contest.ContestId
@@ -41,7 +41,7 @@ public partial class PublicRepository
             from contestSite in _context.ContestSites
             join contest in _context.Contests on contestSite.ContestId equals contest.ContestId
             where contestSite.SiteId == siteId
-                && contest.Defunct == "N"
+                && contest.Defunct == DefunctStates.Visible
                 && contest.StartTime > contestNow
             orderby contest.StartTime
             select new UpcomingContest

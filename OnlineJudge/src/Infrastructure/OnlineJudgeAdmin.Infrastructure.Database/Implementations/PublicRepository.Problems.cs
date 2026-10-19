@@ -56,7 +56,7 @@ public partial class PublicRepository
                 && problem.ProblemSites!.Any(problemSite => problemSite.SiteId == siteId && problemSite.IsActive)
                 && (!contestId.HasValue || _context.ContestProblems.Any(contestProblem =>
                     contestProblem.ContestId == contestId.Value && contestProblem.ProblemId == problem.ProblemId))
-                && (problem.Defunct == "N" || problem.Defunct == "Y" || problem.Defunct == "O"))
+                && (problem.Defunct == DefunctStates.Visible || problem.Defunct == DefunctStates.Hidden || problem.Defunct == DefunctStates.Official))
             .Select(problem => new ProblemListProjection
             {
                 ProblemId = problem.ProblemId!.Value,
@@ -241,7 +241,7 @@ public partial class PublicRepository
             .Include(item => item.SampleCases)
             .FirstOrDefaultAsync(item => item.ProblemId == problemId
                 && item.ProblemSites!.Any(problemSite => problemSite.SiteId == siteId && problemSite.IsActive)
-                && (item.Defunct == "N" || item.Defunct == "Y" || item.Defunct == "O"));
+                && (item.Defunct == DefunctStates.Visible || item.Defunct == DefunctStates.Hidden || item.Defunct == DefunctStates.Official));
 
         if (problem == null)
         {
@@ -258,7 +258,7 @@ public partial class PublicRepository
             .Include(item => item.SampleCases)
             .FirstOrDefaultAsync(item => item.ProblemId == contestProblem.ProblemId
                 && item.ProblemSites!.Any(problemSite => problemSite.SiteId == siteId && problemSite.IsActive)
-                && (item.Defunct == "N" || item.Defunct == "Y" || item.Defunct == "O"));
+                && (item.Defunct == DefunctStates.Visible || item.Defunct == DefunctStates.Hidden || item.Defunct == DefunctStates.Official));
 
         if (problem == null)
         {
@@ -586,7 +586,7 @@ public partial class PublicRepository
             where contestProblem.ProblemId.HasValue
                 && contestSite.SiteId == siteId
                 && problemIdList.Contains(contestProblem.ProblemId.Value)
-                && contest.Defunct == "N"
+                && contest.Defunct == DefunctStates.Visible
             select new
             {
                 ProblemId = contestProblem.ProblemId!.Value,

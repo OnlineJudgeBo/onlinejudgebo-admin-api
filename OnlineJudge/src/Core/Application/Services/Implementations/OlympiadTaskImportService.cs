@@ -99,7 +99,7 @@ public sealed class OlympiadTaskImportService(IProblemService problems, IFileSys
                 OriginSource = task.Source,
                 TimeLimit = Math.Max(1, (int)Math.Ceiling(task.TimeLimit)),
                 MemoryLimit = Math.Max(1, (int)Math.Ceiling(task.MemoryLimit)),
-                Defunct = "N",
+                Defunct = DefunctStates.Visible,
                 Spj = task.Checker != null ? "Y" : "N",
                 InDate = DateTime.Now,
                 SampleCases = task.Samples

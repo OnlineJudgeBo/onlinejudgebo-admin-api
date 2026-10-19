@@ -35,7 +35,7 @@ public partial class PublicRepository
         var contests = await (
             from contestSite in _context.ContestSites
             join contest in _context.Contests on contestSite.ContestId equals contest.ContestId
-            where contestSite.SiteId == siteId && (contest.Defunct == "N" || contest.Defunct == "O")
+            where contestSite.SiteId == siteId && (contest.Defunct == DefunctStates.Visible || contest.Defunct == DefunctStates.Official)
             select new ContestProjection
             {
                 ContestId = contest.ContestId,
@@ -45,7 +45,7 @@ public partial class PublicRepository
                 IsPrivate = contest.Private != 0,
                 Track = contest.Track,
                 Level = contest.Level,
-                IsPromoted = contest.Defunct == "O"
+                IsPromoted = contest.Defunct == DefunctStates.Official
             }
         ).ToListAsync();
 
@@ -155,7 +155,7 @@ public partial class PublicRepository
             .Distinct()
             .ToListAsync();
         var participantIdSet = participantIds.ToHashSet(StringComparer.Ordinal);
-        var isPromotedContest = contest.Defunct == "O";
+        var isPromotedContest = contest.Defunct == DefunctStates.Official;
 
         var submissionStats = await OfficialSolutions()
             .Where(solution => solution.SiteId == siteId && solution.ContestId == contestId)
@@ -365,7 +365,7 @@ public partial class PublicRepository
                 && item.Num.HasValue
                 && item.Num.Value == contestProblemNum
                 && problem.ProblemSites!.Any(problemSite => problemSite.SiteId == siteId && problemSite.IsActive)
-                && (problem.Defunct == "N" || problem.Defunct == "Y" || problem.Defunct == "O")
+                && (problem.Defunct == DefunctStates.Visible || problem.Defunct == DefunctStates.Hidden || problem.Defunct == DefunctStates.Official)
             select new ContestProblemReference
             {
                 ContestId = contestId,
@@ -388,7 +388,7 @@ public partial class PublicRepository
         var contest = await (
             from contestSite in _context.ContestSites
             join item in _context.Contests on contestSite.ContestId equals item.ContestId
-            where contestSite.SiteId == siteId && item.ContestId == contestId && (item.Defunct == "N" || item.Defunct == "O" || item.Defunct == "H")
+            where contestSite.SiteId == siteId && item.ContestId == contestId && (item.Defunct == DefunctStates.Visible || item.Defunct == DefunctStates.Official || item.Defunct == DefunctStates.Hidden)
             select item
         ).FirstOrDefaultAsync();
 
@@ -467,7 +467,7 @@ public partial class PublicRepository
 
     private static void CheckContestOpen(DbContest contest)
     {
-        if (contest.Defunct == "O")
+        if (contest.Defunct == DefunctStates.Official)
         {
             return;
         }
