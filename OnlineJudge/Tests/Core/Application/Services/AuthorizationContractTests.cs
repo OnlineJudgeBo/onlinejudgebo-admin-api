@@ -181,6 +181,12 @@ public class AuthorizationContractTests
         ["PublicController.GetSubmissionsAsync [GET submissions]"] = "anonymous",
         ["PublicController.GetTopicsAsync [GET temas]"] = "anonymous",
         ["PublicController.RegisterForContestAsync [POST contests/{contestId:int}/register]"] = "authenticated",
+        ["PublicClarificationsController.GetAsync [GET ]"] = "anonymous",
+        ["PublicClarificationsController.AskAsync [POST ]"] = "authenticated",
+        ["ContestClarificationsController.GetPendingCountsAsync [GET clarifications/pending]"] = "roles:Administrador,Auxiliar,Docente",
+        ["ContestClarificationsController.GetAllAsync [GET {contestId:int}/clarifications]"] = "roles:Administrador,Auxiliar,Docente",
+        ["ContestClarificationsController.AnswerAsync [PUT {contestId:int}/clarifications/{id:int}/answer]"] = "roles:Administrador,Auxiliar,Docente",
+        ["ContestClarificationsController.AnnounceAsync [POST {contestId:int}/clarifications/announcements]"] = "roles:Administrador,Auxiliar,Docente",
         ["PublicController.SubmitAsync [POST submit]"] = "authenticated",
         ["BlockRulesController.AddAsync [POST ]"] = "roles:Administrador,Auxiliar,Docente",
         ["BlockRulesController.DeleteAsync [DELETE {id:int}]"] = "roles:Administrador,Auxiliar,Docente",
@@ -265,6 +271,7 @@ public class AuthorizationContractTests
 
         Assert.All(anonymous, key => Assert.True(
             key.StartsWith("PublicController.Get", StringComparison.Ordinal)
+            || key.StartsWith("PublicClarificationsController.Get", StringComparison.Ordinal)
             || key.StartsWith("PublicAuthController.", StringComparison.Ordinal)
             || key.StartsWith("AcademicController.GetLearningPath", StringComparison.Ordinal)
             || key.Contains("/api/patito-ide/", StringComparison.Ordinal)

@@ -24,6 +24,9 @@ public interface IPublicRepository
 
     Task<ContestReportResponse> GetContestReportAsync(int siteId, int contestId, CurrentUser? currentUser = null);
 
+    // Throws when the contest is not open to this user (missing, deleted, other site or private).
+    Task CheckContestAccessAsync(int siteId, int contestId, CurrentUser? currentUser);
+
     Task<bool> CanDownloadContestReportCsvAsync(CurrentUser currentUser, int siteId, int contestId);
 
     Task RegisterForContestAsync(CurrentUser currentUser, int siteId, int contestId);
