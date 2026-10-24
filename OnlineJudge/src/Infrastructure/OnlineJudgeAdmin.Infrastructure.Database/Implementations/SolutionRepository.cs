@@ -23,6 +23,7 @@ public class SolutionRepository : ISolutionRepository
             .Include(item => item.Compileinfo)
             .Include(item => item.Runtimeinfo)
             .Include(item => item.SourceCode)
+            .Include(item => item.Subtasks)
             .Include(item => item.User)
             .ThenInclude(item => item!.UserProfile)
             .FirstOrDefaultAsync(item => item.SolutionId == solutionId);

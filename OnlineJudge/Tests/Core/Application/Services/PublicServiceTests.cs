@@ -181,6 +181,78 @@ public class PublicServiceTests
         Assert.Equal("print(42)", status.SourceCode);
     }
 
+    private static Solution ScoredSolution(short result, decimal passRate) => new()
+    {
+        SolutionId = 123,
+        SiteId = 1,
+        ProblemId = 1000,
+        UserId = "student1",
+        Language = 2,
+        Result = result,
+        PassRate = passRate,
+        InDate = new DateTime(2024, 1, 1),
+        Runtimeinfo = new Runtimeinfo { Error = "failed test 3" },
+        Subtasks = new List<SolutionSubtask>
+        {
+            new() { Subtask = 2, Points = 0, MaxPoints = 60, Tests = 5 },
+            new() { Subtask = 1, Points = 40, MaxPoints = 40, Tests = 3 }
+        }
+    };
+
+    private async Task<PublicSubmissionStatusResponse> StatusFor(Solution solution, UserRolesEnum role, bool usesChecker = false)
+    {
+        var solutionService = new Mock<ISolutionService>();
+        solutionService.Setup(item => item.GetSolutionByIdAsync(123)).ReturnsAsync(solution);
+        var publicRepository = new Mock<IPublicRepository>();
+        publicRepository.Setup(item => item.ProblemUsesCheckerAsync(1000)).ReturnsAsync(usesChecker);
+        var service = CreateService(publicRepository.Object, solutionService: solutionService.Object);
+        return await service.GetSubmissionStatusAsync(new CurrentUser { UserId = "student1", SiteId = 1, Role = role }, 123);
+    }
+
+    [Fact]
+    public async Task GetSubmissionStatusAsync_HidesTheFailedTestOfAScoredSubmissionFromTheParticipant()
+    {
+        var status = await StatusFor(ScoredSolution(JudgeResultCodes.WrongAnswer, 0.4m), UserRolesEnum.Invitado);
+
+        Assert.True(status.IsScored);
+        Assert.Null(status.RuntimeMessage);
+        Assert.Equal(new[] { 1, 2 }, status.Subtasks.Select(item => item.Subtask));
+        Assert.Equal(40, status.Subtasks[0].Points);
+    }
+
+    [Theory]
+    [InlineData(UserRolesEnum.Administrador)]
+    [InlineData(UserRolesEnum.Docente)]
+    [InlineData(UserRolesEnum.Auxiliar)]
+    public async Task GetSubmissionStatusAsync_ShowsTheFailedTestOfAScoredSubmissionToStaff(UserRolesEnum role)
+    {
+        var status = await StatusFor(ScoredSolution(JudgeResultCodes.WrongAnswer, 0.4m), role);
+
+        Assert.Equal("failed test 3", status.RuntimeMessage);
+    }
+
+    [Fact]
+    public async Task GetSubmissionStatusAsync_KeepsTheFailedTestOfAClassicSubmissionAndReportsTheChecker()
+    {
+        var solution = ScoredSolution(JudgeResultCodes.WrongAnswer, 0);
+        solution.Subtasks.Clear();
+
+        var status = await StatusFor(solution, UserRolesEnum.Invitado, usesChecker: true);
+
+        Assert.False(status.IsScored);
+        Assert.Equal("failed test 3", status.RuntimeMessage);
+        Assert.True(status.UsesChecker);
+    }
+
+    [Fact]
+    public async Task GetSubmissionStatusAsync_KeepsTheDetailOfACompileErrorInAScoredProblem()
+    {
+        var status = await StatusFor(ScoredSolution(JudgeResultCodes.CompileError, 0), UserRolesEnum.Invitado);
+
+        Assert.True(status.IsScored);
+        Assert.Equal("failed test 3", status.RuntimeMessage);
+    }
+
     [Fact]
     public async Task GetSubmissionStatusAsync_AllowsAcademicManagerWhenRepositoryAllowsSourceView()
     {

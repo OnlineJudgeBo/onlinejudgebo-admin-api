@@ -56,4 +56,7 @@ public interface IPublicRepository
     Task<bool> ResetPasswordWithTokenAsync(string email, int siteId, string tokenHash, DateTime nowUtc, string passwordHash);
 
     Task<PublicAuthenticatedUser> GetAuthenticatedUserAsync(string userId, int siteId);
+
+    // True when the problem is judged by a checker (special judge) instead of comparing the output.
+    Task<bool> ProblemUsesCheckerAsync(int problemId);
 }

@@ -77,6 +77,24 @@ public class PublicSubmissionStatusResponse
     public string? RuntimeMessage { get; set; }
 
     public string? SourceCode { get; set; }
+
+    // Scored by points (IOI style): the participant doesn't see the failed test.
+    public bool IsScored { get; set; }
+
+    public bool UsesChecker { get; set; }
+
+    public List<PublicSubmissionSubtask> Subtasks { get; set; } = new();
+}
+
+public class PublicSubmissionSubtask
+{
+    public int Subtask { get; set; }
+
+    public decimal Points { get; set; }
+
+    public decimal MaxPoints { get; set; }
+
+    public int Tests { get; set; }
 }
 
 public class PublicSubmissionListItem
