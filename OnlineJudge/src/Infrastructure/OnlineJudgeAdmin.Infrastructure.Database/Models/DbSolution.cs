@@ -69,4 +69,7 @@ public partial class DbSolution
     public virtual DbSourceCode? SourceCode { get; set; }
 
     public virtual DbUser User { get; set; } = null!;
+
+    [ForeignKey(nameof(DbSolutionSubtask.SolutionId))]
+    public virtual ICollection<DbSolutionSubtask> Subtasks { get; set; } = new List<DbSolutionSubtask>();
 }

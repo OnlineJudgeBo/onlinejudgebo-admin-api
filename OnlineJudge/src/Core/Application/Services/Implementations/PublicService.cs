@@ -255,7 +255,14 @@ public class PublicService : IPublicService
             throw new KeyNotFoundException("No se encontró el envío solicitado.");
         }
 
-        return PublicSubmissionStatusMapper.Map(solution);
+        var response = PublicSubmissionStatusMapper.Map(solution);
+        // Same rule as the PHP status page: in IOI style only staff see the failed test; a compile error is always shown.
+        if (response.IsScored && !IsAcademicManager(currentUser) && solution.Result != JudgeResultCodes.CompileError)
+        {
+            response.RuntimeMessage = null;
+        }
+        response.UsesChecker = await _publicRepository.ProblemUsesCheckerAsync(solution.ProblemId);
+        return response;
     }
 
     private static bool IsAcademicManager(CurrentUser currentUser)

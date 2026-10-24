@@ -794,4 +794,13 @@ public partial class PublicRepository
             || string.Equals(source, "OBI", StringComparison.OrdinalIgnoreCase)
             || string.Equals(source, "ICPC Bolivia", StringComparison.OrdinalIgnoreCase);
     }
+
+    public async Task<bool> ProblemUsesCheckerAsync(int problemId)
+    {
+        var spj = await _context.Problems.AsNoTracking()
+            .Where(problem => problem.ProblemId == problemId)
+            .Select(problem => problem.Spj)
+            .FirstOrDefaultAsync();
+        return spj == "1" || spj == "Y";
+    }
 }

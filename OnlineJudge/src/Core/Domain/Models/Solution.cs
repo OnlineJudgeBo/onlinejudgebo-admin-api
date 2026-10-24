@@ -51,4 +51,6 @@ public partial class Solution
     public virtual SourceCode? SourceCode { get; set; }
 
     public virtual User User { get; set; } = null!;
+
+    public virtual ICollection<SolutionSubtask> Subtasks { get; set; } = new List<SolutionSubtask>();
 }

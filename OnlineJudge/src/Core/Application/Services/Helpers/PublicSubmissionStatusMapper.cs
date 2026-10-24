@@ -30,7 +30,12 @@ internal static class PublicSubmissionStatusMapper
             JudgeTimeUtc = solution.JudgeTime,
             CompileMessage = solution.Compileinfo?.Error,
             RuntimeMessage = solution.Runtimeinfo?.Error,
-            SourceCode = solution.SourceCode?.Source
+            SourceCode = solution.SourceCode?.Source,
+            IsScored = solution.PassRate > 0 || solution.Subtasks.Count > 0,
+            Subtasks = solution.Subtasks
+                .OrderBy(item => item.Subtask)
+                .Select(item => new PublicSubmissionSubtask { Subtask = item.Subtask, Points = item.Points, MaxPoints = item.MaxPoints, Tests = item.Tests })
+                .ToList()
         };
     }
 }

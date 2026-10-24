@@ -65,6 +65,7 @@ public class DbProblemProfile : Profile
         CreateMap<Problem, DbProblem>();
 
         CreateMap<DbRuntimeinfo, Runtimeinfo>();
+        CreateMap<DbSolutionSubtask, SolutionSubtask>();
         CreateMap<DbSourceCode, SourceCode>();
 
 
@@ -90,6 +91,8 @@ public class DbProblemProfile : Profile
 
         CreateMap<DbSolution, Solution>()
             .ReverseMap()
+            // Only the judge writes subtasks.
+            .ForMember(dest => dest.Subtasks, opt => opt.Ignore())
             .ForMember(dest => dest.ProblemId, opt => opt.MapFrom(src => src.ProblemId))
             .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
             .ForMember(dest => dest.Time, opt => opt.MapFrom(src => src.Time))
