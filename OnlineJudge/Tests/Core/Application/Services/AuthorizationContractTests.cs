@@ -169,6 +169,7 @@ public class AuthorizationContractTests
         ["PublicController.GetCourseRecentSubmissionsAsync [GET activity/course/{courseId:long}/recent-submissions]"] = "authenticated",
         ["PublicController.GetDashboardAsync [GET dashboard]"] = "anonymous",
         ["PublicController.GetLanguagesAsync [GET languages]"] = "anonymous",
+        ["PublicController.GetHealthAsync [GET /api/health]"] = "anonymous",
         ["PublicController.GetSiteAsync [GET site]"] = "anonymous",
         ["SiteController.GetAsync [GET ]"] = "roles:Administrador",
         ["SiteController.UpdateAsync [PUT ]"] = "roles:Administrador",

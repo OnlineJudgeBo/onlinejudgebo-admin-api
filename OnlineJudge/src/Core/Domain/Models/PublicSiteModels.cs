@@ -1,5 +1,13 @@
 namespace OnlineJudgeAdmin.Core.Domain.Models;
 
+public class PublicHealthResponse
+{
+    // "ok", or "judge_stuck" when submissions wait too long.
+    public string Status { get; set; } = "ok";
+
+    public int StuckSubmissions { get; set; }
+}
+
 public class PublicSiteResponse
 {
     public int SiteId { get; set; }

@@ -35,6 +35,9 @@ public interface IPublicRepository
 
     Task<PublicSiteResponse?> GetSiteByDomainAsync(string domain);
 
+    // Submissions of the last day still waiting for the judge after this many minutes.
+    Task<int> CountStuckSubmissionsAsync(int waitingMinutes);
+
     Task<PublicSubmissionsResponse> GetSubmissionsAsync(int siteId, int page, int pageSize, int? contestId, int? problemId, string? userId, int? languageId, string? statusKey, CurrentUser? currentUser = null);
 
     Task<PublicSubmissionsResponse> GetOwnSubmissionsAsync(CurrentUser currentUser, int page, int pageSize);

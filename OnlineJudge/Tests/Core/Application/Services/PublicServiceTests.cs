@@ -45,6 +45,20 @@ public class PublicServiceTests
     }
 
     [Theory]
+    [InlineData(0, "ok")]
+    [InlineData(3, "judge_stuck")]
+    public async Task GetHealthAsync_ReportsStuckSubmissions(int stuck, string status)
+    {
+        var repository = new Mock<IPublicRepository>();
+        repository.Setup(item => item.CountStuckSubmissionsAsync(15)).ReturnsAsync(stuck);
+
+        var health = await CreateService(repository.Object).GetHealthAsync();
+
+        Assert.Equal(status, health.Status);
+        Assert.Equal(stuck, health.StuckSubmissions);
+    }
+
+    [Theory]
     [InlineData("juez.example.bo")]
     [InlineData(" Juez.Example.BO:443 ")]
     [InlineData("juez.example.bo.")]
