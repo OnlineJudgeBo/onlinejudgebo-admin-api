@@ -150,6 +150,14 @@ public partial class PublicRepository
         };
     }
 
+    public Task<PublicSiteResponse?> GetSiteByDomainAsync(string domain)
+    {
+        return _context.SiteDomains.AsNoTracking()
+            .Where(item => item.Domain == domain)
+            .Select(item => new PublicSiteResponse { SiteId = item.SiteId, Name = item.Site.Name })
+            .FirstOrDefaultAsync();
+    }
+
     public async Task<IReadOnlyCollection<PublicLanguageItem>> GetLanguagesAsync()
     {
         return await _context.ProgrammingLanguages

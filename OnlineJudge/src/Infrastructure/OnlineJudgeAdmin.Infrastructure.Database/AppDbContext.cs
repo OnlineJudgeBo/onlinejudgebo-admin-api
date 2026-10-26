@@ -45,6 +45,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<DbSolutionClient> DbSolutionClient { get; set; }
     public virtual DbSet<DbContestSite> ContestSites { get; set; }
     public virtual DbSet<DbSite> Sites { get; set; }
+    public virtual DbSet<DbSiteDomain> SiteDomains { get; set; }
     public virtual DbSet<DbProblemSite> ProblemSites { get; set; }
 
     private static readonly int[] value = new[] { 0, 0 };

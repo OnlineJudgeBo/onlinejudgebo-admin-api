@@ -30,6 +30,9 @@ public interface IPublicService
 
     Task<IReadOnlyCollection<PublicLanguageItem>> GetLanguagesAsync();
 
+    // The site that a domain opens, so one front deploy can serve every site.
+    Task<PublicSiteResponse> GetSiteByHostAsync(string? host);
+
     Task<PublicSubmissionsResponse> GetSubmissionsAsync(int siteId, int page, int pageSize, int? contestId, int? problemId, string? userId, int? languageId, string? statusKey, CurrentUser? currentUser = null);
 
     Task<PublicSubmissionsResponse> GetOwnSubmissionsAsync(CurrentUser currentUser, int page, int pageSize);
