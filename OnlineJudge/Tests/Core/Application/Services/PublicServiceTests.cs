@@ -44,6 +44,32 @@ public class PublicServiceTests
         Assert.Null(capturedRequest.ProblemId);
     }
 
+    [Theory]
+    [InlineData("juez.example.bo")]
+    [InlineData(" Juez.Example.BO:443 ")]
+    [InlineData("juez.example.bo.")]
+    public async Task GetSiteByHostAsync_NormalizesTheHost(string host)
+    {
+        var repository = new Mock<IPublicRepository>();
+        repository.Setup(item => item.GetSiteByDomainAsync("juez.example.bo"))
+            .ReturnsAsync(new PublicSiteResponse { SiteId = 3, Name = "Juez" });
+
+        var site = await CreateService(repository.Object).GetSiteByHostAsync(host);
+
+        Assert.Equal(3, site.SiteId);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("unknown.example.bo")]
+    public async Task GetSiteByHostAsync_ThrowsWhenNoSiteHasTheDomain(string? host)
+    {
+        var service = CreateService(new Mock<IPublicRepository>().Object);
+
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => service.GetSiteByHostAsync(host));
+    }
+
     [Fact]
     public async Task GetProblemsAsync_ClampsPagingAndRejectsInvalidContestId()
     {

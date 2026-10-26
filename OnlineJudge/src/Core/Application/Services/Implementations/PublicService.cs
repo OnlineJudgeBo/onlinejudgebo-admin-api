@@ -123,6 +123,14 @@ public class PublicService : IPublicService
         return _publicRepository.GetLanguagesAsync();
     }
 
+    public async Task<PublicSiteResponse> GetSiteByHostAsync(string? host)
+    {
+        // "Juez.Example.bo:443" and "juez.example.bo." are the same domain.
+        var domain = (host ?? string.Empty).Trim().ToLowerInvariant().Split(':')[0].TrimEnd('.');
+        var site = domain.Length is > 0 and <= 255 ? await _publicRepository.GetSiteByDomainAsync(domain) : null;
+        return site ?? throw new KeyNotFoundException("No hay un sitio para este dominio.");
+    }
+
     public Task<PublicSubmissionsResponse> GetSubmissionsAsync(int siteId, int page, int pageSize, int? contestId, int? problemId, string? userId, int? languageId, string? statusKey, CurrentUser? currentUser = null)
     {
         ValidateSite(siteId);

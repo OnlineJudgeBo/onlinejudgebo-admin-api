@@ -141,6 +141,13 @@ public class PublicController : ControllerBase
     }
 
     [AllowAnonymous]
+    [HttpGet("site")]
+    public async Task<IActionResult> GetSiteAsync([FromQuery] string? host)
+    {
+        return Ok(await _publicService.GetSiteByHostAsync(host));
+    }
+
+    [AllowAnonymous]
     [HttpGet("languages")]
     public async Task<IActionResult> GetLanguagesAsync()
     {
