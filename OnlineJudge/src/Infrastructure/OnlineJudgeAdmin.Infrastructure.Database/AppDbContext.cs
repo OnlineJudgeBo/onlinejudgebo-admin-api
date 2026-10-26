@@ -250,6 +250,14 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Name)
                 .HasColumnType("varchar(100)")
                 .HasColumnName("name");
+
+            entity.Property(e => e.LogoUrl)
+                .HasColumnType("varchar(500)")
+                .HasColumnName("logo_url");
+
+            entity.Property(e => e.PrimaryColor)
+                .HasColumnType("char(7)")
+                .HasColumnName("primary_color");
         });
 
         modelBuilder.Entity<DbSimilarCode>(entity =>

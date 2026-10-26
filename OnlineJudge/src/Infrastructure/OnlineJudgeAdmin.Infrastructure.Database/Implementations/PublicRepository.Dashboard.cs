@@ -154,7 +154,7 @@ public partial class PublicRepository
     {
         return _context.SiteDomains.AsNoTracking()
             .Where(item => item.Domain == domain)
-            .Select(item => new PublicSiteResponse { SiteId = item.SiteId, Name = item.Site.Name })
+            .Select(item => new PublicSiteResponse { SiteId = item.SiteId, Name = item.Site.Name, LogoUrl = item.Site.LogoUrl, PrimaryColor = item.Site.PrimaryColor })
             .FirstOrDefaultAsync();
     }
 
