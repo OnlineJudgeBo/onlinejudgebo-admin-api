@@ -20,7 +20,7 @@ public class OlympiadTaskImportServiceTests
             .Callback<string, string, string>((_, name, content) => _written[name] = content);
     }
 
-    private Task<Problem> Import(Dictionary<string, string> entries, Func<string, Task<TaskStatement?>>? readStatement = null)
+    private Task<Problem> Import(Dictionary<string, string> entries, Func<string, Task<TaskStatement?>>? readStatement = null, int? problemId = null)
     {
         var stream = new MemoryStream();
         using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
@@ -39,7 +39,7 @@ public class OlympiadTaskImportServiceTests
             statements.Setup(item => item.ReadAsync(It.IsAny<string>())).Returns(readStatement);
         }
 
-        return new OlympiadTaskImportService(_problems.Object, _files.Object, statements.Object).ImportAsync("admin", stream, 1);
+        return new OlympiadTaskImportService(_problems.Object, _files.Object, statements.Object).ImportAsync("admin", stream, 1, problemId);
     }
 
     private static Dictionary<string, string> Task(int tests, string gen = "", string yaml = "")
@@ -83,6 +83,34 @@ public class OlympiadTaskImportServiceTests
         Assert.Equal(new[] { 30m, 70m }, scoring.Groups.Select(group => group.Points));
         Assert.All(scoring.Groups, group => Assert.Equal("min", group.Type));
         Assert.Equal(new[] { "s02_*" }, scoring.Groups[1].Tests);
+    }
+
+    [Fact]
+    public async Task Reimport_ReplacesTheDataOfTheSameProblem()
+    {
+        var topics = new List<Classification> { new() { ClassificationId = 5 } };
+        _problems.Setup(item => item.GetProblemByIdAsync(77, 1))
+            .ReturnsAsync(new Problem { ProblemId = 77, Defunct = DefunctStates.Hidden, Classifications = topics });
+        _problems.Setup(item => item.UpdateProblemAsync("admin", 77, It.IsAny<Problem>(), 1))
+            .ReturnsAsync((string _, int _, Problem problem, int _) => { problem.ProblemId = 77; _created = problem; return problem; });
+        _files.Setup(item => item.ListFiles("77")).Returns(["viejo.in", "viejo.out", "checker_cms.cpp"]);
+
+        await Import(Task(1), problemId: 77);
+
+        _files.Verify(item => item.DeleteFile("77", "viejo.in"));
+        _files.Verify(item => item.DeleteFile("77", "checker_cms.cpp"));
+        _problems.Verify(item => item.CreateProblemAsync(It.IsAny<string>(), It.IsAny<Problem>(), It.IsAny<int>()), Times.Never);
+        Assert.Equal(DefunctStates.Hidden, _created!.Defunct);
+        Assert.Equal(topics, _created.Classifications);
+        Assert.Equal("Suma de pares", _created.Title);
+        Assert.Contains("scoring.json", _written.Keys);
+    }
+
+    [Fact]
+    public async Task Reimport_OfAProblemOfAnotherSite_IsNotFound()
+    {
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => Import(Task(1), problemId: 99));
+        _files.Verify(item => item.DeleteFile(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     private static Dictionary<string, string> Tps(string problemExtra = "\"has_grader\": false", bool withTests = true)

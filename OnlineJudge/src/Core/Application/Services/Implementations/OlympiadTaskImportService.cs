@@ -67,8 +67,13 @@ public sealed class OlympiadTaskImportService(IProblemService problems, IFileSys
         public string? StatementText;
     }
 
-    public async Task<Problem> ImportAsync(string userId, Stream zipStream, int siteId)
+    public async Task<Problem> ImportAsync(string userId, Stream zipStream, int siteId, int? problemId = null)
     {
+        // Reimport: the same problem keeps its id, visibility and topics; everything else comes from the zip.
+        var existing = problemId is { } id
+            ? await problems.GetProblemByIdAsync(id, siteId) ?? throw new KeyNotFoundException("No se encontró el ID del problema.")
+            : null;
+
         var stagingDir = Path.Combine(Path.GetTempPath(), "task-import", Guid.NewGuid().ToString("N"));
         try
         {
@@ -88,7 +93,7 @@ public sealed class OlympiadTaskImportService(IProblemService problems, IFileSys
                     ? $"<pre style=\"white-space: pre-wrap\">{System.Net.WebUtility.HtmlEncode(task.StatementText)}</pre>"
                     : "<p>Enunciado pendiente: la tarea se importó sin texto.</p>");
 
-            var created = await problems.CreateProblemAsync(userId, new Problem
+            var problem = new Problem
             {
                 Title = task.Title,
                 Description = description,
@@ -99,14 +104,31 @@ public sealed class OlympiadTaskImportService(IProblemService problems, IFileSys
                 OriginSource = task.Source,
                 TimeLimit = Math.Max(1, (int)Math.Ceiling(task.TimeLimit)),
                 MemoryLimit = Math.Max(1, (int)Math.Ceiling(task.MemoryLimit)),
-                Defunct = DefunctStates.Visible,
+                Defunct = existing?.Defunct ?? DefunctStates.Visible,
                 Spj = task.Checker != null ? "Y" : "N",
                 InDate = DateTime.Now,
                 SampleCases = task.Samples
                     .Select((sample, index) => new ProblemSample { Num = index + 1, Input = File.ReadAllText(sample.Input), Output = File.ReadAllText(sample.Output) })
                     .ToList(),
-                Classifications = [],
-            }, siteId);
+                Classifications = existing?.Classifications?.ToList() ?? [],
+            };
+
+            Problem created;
+            if (existing != null)
+            {
+                // The old tests, checker and graders may not be in the new zip; the samples are rewritten by the update.
+                var oldFolder = existing.ProblemId!.Value.ToString();
+                foreach (var name in files.ListFiles(oldFolder))
+                {
+                    files.DeleteFile(oldFolder, name);
+                }
+
+                created = await problems.UpdateProblemAsync(userId, existing.ProblemId.Value, problem, siteId);
+            }
+            else
+            {
+                created = await problems.CreateProblemAsync(userId, problem, siteId);
+            }
 
             var folder = created.ProblemId!.Value.ToString();
             files.CreateFolder(folder);

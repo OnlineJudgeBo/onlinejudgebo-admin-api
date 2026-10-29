@@ -26,7 +26,15 @@ public sealed class TaskImportController : ControllerBase
     [HttpPost("import-task")]
     [RequestSizeLimit(200_000_000)]
     [RequestFormLimits(MultipartBodyLengthLimit = 200_000_000)]
-    public async Task<IActionResult> ImportAsync(IFormFile file)
+    public Task<IActionResult> ImportAsync(IFormFile file) => Import(file, null);
+
+    // Same zip over an existing problem: replaces its statement, limits, tests, checker and graders.
+    [HttpPost("{problemId:int}/import-task")]
+    [RequestSizeLimit(200_000_000)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 200_000_000)]
+    public Task<IActionResult> ReimportAsync(int problemId, IFormFile file) => Import(file, problemId);
+
+    private async Task<IActionResult> Import(IFormFile file, int? problemId)
     {
         if (file == null || file.Length == 0)
         {
@@ -37,7 +45,7 @@ public sealed class TaskImportController : ControllerBase
         {
             await using var stream = file.OpenReadStream();
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? _currentUser.UserId;
-            return Ok(await _import.ImportAsync(userId, stream, _currentUser.SiteId));
+            return Ok(await _import.ImportAsync(userId, stream, _currentUser.SiteId, problemId));
         }
         catch (Exception error) when (error is InvalidDataException or System.Text.Json.JsonException)
         {
