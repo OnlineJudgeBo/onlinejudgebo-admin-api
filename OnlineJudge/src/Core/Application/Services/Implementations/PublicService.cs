@@ -123,6 +123,13 @@ public class PublicService : IPublicService
         return _publicRepository.GetLanguagesAsync();
     }
 
+    public async Task<PublicHealthResponse> GetHealthAsync()
+    {
+        const int StuckAfterMinutes = 15;
+        var stuck = await _publicRepository.CountStuckSubmissionsAsync(StuckAfterMinutes);
+        return new PublicHealthResponse { Status = stuck > 0 ? "judge_stuck" : "ok", StuckSubmissions = stuck };
+    }
+
     public async Task<PublicSiteResponse> GetSiteByHostAsync(string? host)
     {
         var domain = SiteDomain.Normalize(host);

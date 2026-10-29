@@ -141,6 +141,14 @@ public class PublicController : ControllerBase
     }
 
     [AllowAnonymous]
+    [HttpGet("/api/health")]
+    public async Task<IActionResult> GetHealthAsync()
+    {
+        var health = await _publicService.GetHealthAsync();
+        return health.Status == "ok" ? Ok(health) : StatusCode(StatusCodes.Status503ServiceUnavailable, health);
+    }
+
+    [AllowAnonymous]
     [HttpGet("site")]
     public async Task<IActionResult> GetSiteAsync([FromQuery] string? host)
     {

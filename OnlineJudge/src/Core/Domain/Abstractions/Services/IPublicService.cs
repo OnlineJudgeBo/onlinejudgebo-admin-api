@@ -33,6 +33,9 @@ public interface IPublicService
     // The site that a domain opens, so one front deploy can serve every site.
     Task<PublicSiteResponse> GetSiteByHostAsync(string? host);
 
+    // For the uptime monitor: the database answers and the judge is not stuck.
+    Task<PublicHealthResponse> GetHealthAsync();
+
     Task<PublicSubmissionsResponse> GetSubmissionsAsync(int siteId, int page, int pageSize, int? contestId, int? problemId, string? userId, int? languageId, string? statusKey, CurrentUser? currentUser = null);
 
     Task<PublicSubmissionsResponse> GetOwnSubmissionsAsync(CurrentUser currentUser, int page, int pageSize);

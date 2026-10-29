@@ -158,6 +158,15 @@ public partial class PublicRepository
             .FirstOrDefaultAsync();
     }
 
+    public Task<int> CountStuckSubmissionsAsync(int waitingMinutes)
+    {
+        // DateTime.Now runs in the database, the same clock that wrote in_date.
+        return _context.Solutions.AsNoTracking().CountAsync(solution =>
+            solution.Result < JudgeResultCodes.Accepted
+            && solution.InDate < DateTime.Now.AddMinutes(-waitingMinutes)
+            && solution.InDate > DateTime.Now.AddDays(-1));
+    }
+
     public async Task<IReadOnlyCollection<PublicLanguageItem>> GetLanguagesAsync()
     {
         return await _context.ProgrammingLanguages
