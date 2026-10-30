@@ -228,6 +228,11 @@ public class ContestsRepository : IContestsRepository
         if (previousDefunct == DefunctStates.Deleted)
             existingContest.Defunct = DefunctStates.Deleted;
 
+        // Submissions and clarifications point at a problem by its letter (num): they follow it when the order changes.
+        var oldNums = existingContest.ContestProblems.Where(p => p.Num.HasValue).ToDictionary(p => p.ProblemId, p => p.Num!.Value);
+        var newNums = contestsToUpdate.ContestProblems.Where(p => p.Num.HasValue).ToDictionary(p => p.ProblemId, p => p.Num!.Value);
+        var moved = newNums.Where(item => oldNums.TryGetValue(item.Key, out var old) && old != item.Value).ToList();
+
         existingContest.ContestProblems.Clear();
         foreach (var problem in contestsToUpdate.ContestProblems)
         {
@@ -255,7 +260,38 @@ public class ContestsRepository : IContestsRepository
             }
         }
 
-        await _context.SaveChangesAsync();
+        if (moved.Count == 0)
+        {
+            await _context.SaveChangesAsync();
+            return await GetContestByIdAsync(contestId, siteId);
+        }
+
+        await using (var transaction = await _context.Database.BeginTransactionAsync())
+        {
+            await _context.SaveChangesAsync();
+            foreach (var (problemId, num) in moved)
+            {
+                await _context.Solutions
+                    .Where(solution => solution.ContestId == contestId && solution.ProblemId == problemId)
+                    .ExecuteUpdateAsync(set => set.SetProperty(solution => solution.Num, num));
+            }
+
+            var newNumByOld = moved.ToDictionary(item => oldNums[item.Key], item => item.Value);
+            var clarifications = await _context.ContestClarifications
+                .Where(item => item.ContestId == contestId && item.ProblemNum.HasValue)
+                .ToListAsync();
+            foreach (var clarification in clarifications)
+            {
+                if (newNumByOld.TryGetValue(clarification.ProblemNum!.Value, out var num))
+                {
+                    clarification.ProblemNum = num;
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+
         return await GetContestByIdAsync(contestId, siteId);
     }
 
