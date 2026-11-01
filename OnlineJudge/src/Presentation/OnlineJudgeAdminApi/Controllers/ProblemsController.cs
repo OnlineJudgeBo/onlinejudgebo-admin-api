@@ -131,7 +131,16 @@ public class ProblemsController : ControllerBase
     [HttpPost("import")]
     [RequestSizeLimit(200_000_000)]
     [RequestFormLimits(MultipartBodyLengthLimit = 200_000_000)]
-    public async Task<IActionResult> ImportProblemAsync(IFormFile file)
+    public Task<IActionResult> ImportProblemAsync(IFormFile file) => ImportPackage(file, null);
+
+    // Same package over an existing problem: replaces its statement, limits, tests, checker and graders.
+    [Authorize(Roles = AuthorizationRoles.Administrador)]
+    [HttpPost("{problemId:int}/import")]
+    [RequestSizeLimit(200_000_000)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 200_000_000)]
+    public Task<IActionResult> ReimportProblemAsync(int problemId, IFormFile file) => ImportPackage(file, problemId);
+
+    private async Task<IActionResult> ImportPackage(IFormFile file, int? problemId)
     {
         if (file == null || file.Length == 0)
         {
@@ -142,7 +151,7 @@ public class ProblemsController : ControllerBase
         var userId = claimsIdentity?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         using var stream = file.OpenReadStream();
-        var problem = await _problemPackageService.ImportProblemPackageAsync(userId, stream, _currentUser.SiteId);
+        var problem = await _problemPackageService.ImportProblemPackageAsync(userId, stream, _currentUser.SiteId, problemId);
         return Ok(problem);
     }
 }
