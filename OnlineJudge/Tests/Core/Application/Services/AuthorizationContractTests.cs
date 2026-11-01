@@ -154,6 +154,7 @@ public class AuthorizationContractTests
         ["ProblemsController.GetAllProblemsAsync [GET ]"] = "roles:Administrador,Auxiliar,Docente",
         ["ProblemsController.GetProblemByIdAsync [GET {problem_id}]"] = "roles:Administrador,Auxiliar,Docente",
         ["ProblemsController.ImportProblemAsync [POST import]"] = "roles:Administrador,Auxiliar,Docente & Administrador",
+        ["ProblemsController.ReimportProblemAsync [POST {problemId:int}/import]"] = "roles:Administrador,Auxiliar,Docente & Administrador",
         ["ProblemsController.UpdateProblemAsync [PUT {problemId:int}]"] = "roles:Administrador,Auxiliar,Docente",
         ["ProgrammingLanguagesController.GetAllContestAsync [GET ]"] = "roles:Administrador,Auxiliar,Docente",
         ["PublicAuthController.ConfirmPasswordRecoveryAsync [POST password-recovery/confirm]"] = "anonymous",
@@ -257,6 +258,7 @@ public class AuthorizationContractTests
     [InlineData("RolesController")]
     [InlineData("ProblemsController.ExportProblemAsync")]
     [InlineData("ProblemsController.ImportProblemAsync")]
+    [InlineData("ProblemsController.ReimportProblemAsync")]
     [InlineData("ContestPackagesController")]
     [InlineData("AcademicController.CreateLearningPath")]
     [InlineData("AcademicController.DeleteLearningPath")]
