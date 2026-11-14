@@ -13,6 +13,7 @@ namespace OnlineJudgeAdmin.Core.Application.Services.Implementations;
 public sealed class ContestSimilarityService(IContestsRepository contests, IFileSystemLocalManagerManager files) : IContestSimilarityService
 {
     private const string RequestFile = "similarity.request";
+    private const string ErrorFile = "similarity.error";
 
     public async Task RequestRunAsync(int contestId, int siteId)
     {
@@ -28,6 +29,9 @@ public sealed class ContestSimilarityService(IContestsRepository contests, IFile
         return new ContestSimilarityResponse
         {
             Running = files.ListFiles(Folder(contestId)).Contains(RequestFile),
+            Error = files.FileExists(Folder(contestId), ErrorFile)
+                ? Encoding.UTF8.GetString(files.ReadFile(Folder(contestId), ErrorFile)).Trim()
+                : null,
             // A whole-contest run stores both directions of a pair; report each pair once.
             Items = rows
                 .GroupBy(item => (Math.Min(item.SolutionId, item.SimilarSolutionId), Math.Max(item.SolutionId, item.SimilarSolutionId)))

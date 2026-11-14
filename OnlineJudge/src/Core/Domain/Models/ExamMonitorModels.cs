@@ -24,6 +24,7 @@ public static class ExamAlertCodes
     public const string ConcurrentUse = "CONCURRENT_USE";
     public const string MultipleIps = "MULTIPLE_IPS";
     public const string SharedIp = "SHARED_IP";
+    public const string SimilarCode = "SIMILAR_CODE";
 }
 
 public sealed class ExamMonitorResponse

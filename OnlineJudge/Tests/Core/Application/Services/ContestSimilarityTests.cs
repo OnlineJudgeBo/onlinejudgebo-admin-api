@@ -77,6 +77,21 @@ public class ContestSimilarityTests
     }
 
     [Fact]
+    public async Task Get_ReportsTheErrorTheKernelLeftForAFailedRun()
+    {
+        var folder = Path.Combine("contests", "7");
+        _contests.Setup(item => item.GetContestByIdAsync(7, 1)).ReturnsAsync(new Contest { ContestId = 7 });
+        _contests.Setup(item => item.GetSimilarityAsync(7, 1)).ReturnsAsync(Array.Empty<ContestSimilarityItem>());
+        _files.Setup(item => item.ListFiles(folder)).Returns(Array.Empty<string>());
+        Assert.Null((await Service().GetAsync(7, 1)).Error);
+
+        _files.Setup(item => item.FileExists(folder, "similarity.error")).Returns(true);
+        _files.Setup(item => item.ReadFile(folder, "similarity.error")).Returns("2026-11-14 10:00:00\nDolos falló en el problema 1000 (.cc)\n"u8.ToArray());
+
+        Assert.Equal("2026-11-14 10:00:00\nDolos falló en el problema 1000 (.cc)", (await Service().GetAsync(7, 1)).Error);
+    }
+
+    [Fact]
     public async Task RequestRun_LeavesTheRequestFileOnlyForContestsOfTheSite()
     {
         _contests.Setup(item => item.GetContestByIdAsync(7, 1)).ReturnsAsync(new Contest { ContestId = 7 });

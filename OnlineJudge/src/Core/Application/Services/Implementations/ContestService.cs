@@ -189,7 +189,8 @@ public class ContestService : IContestService
         }
 
         var activity = await _contestRepository.GetExamActivityAsync(contestId, currentUser.SiteId, contest.StartTime, contest.EndTime);
-        return ExamActivityAnalyzer.Analyze(contest, activity, DateTime.Now);
+        var similar = await _contestRepository.GetSimilarityAsync(contestId, currentUser.SiteId);
+        return ExamActivityAnalyzer.Analyze(contest, activity, DateTime.Now, similar);
     }
 
     private static void EnsureContestMetadata(Contest contest)
