@@ -26,7 +26,8 @@ public partial class AcademicRepository
             .Select(item => item.TopicId)
             .ToListAsync();
 
-        return BuildLearningPathProgressResponse(
+        return await BuildLearningPathProgressResponseAsync(
+            siteId,
             progressContext,
             userId,
             progress?.LastTopicId,
@@ -95,7 +96,8 @@ public partial class AcademicRepository
 
         await _academicContext.SaveChangesAsync();
 
-        return BuildLearningPathProgressResponse(
+        return await BuildLearningPathProgressResponseAsync(
+            siteId,
             progressContext,
             userId,
             normalizedLastTopicId,
@@ -222,14 +224,7 @@ public partial class AcademicRepository
 
     private async Task<LearningPathProgressContext> BuildLearningPathProgressContextAsync(int siteId, string learningPathKey)
     {
-        var learningPath = await _academicContext.LearningPaths
-            .AsNoTracking()
-            .FirstOrDefaultAsync(path => path.SiteId == siteId && path.LearningPathKey == learningPathKey);
-
-        if (learningPath == null)
-        {
-            throw new ArgumentException("Ruta de aprendizaje no encontrada.");
-        }
+        var learningPath = await FindVisibleLearningPathAsync(siteId, learningPathKey);
 
         var linkedTopics = await _academicContext.LearningPathTopics
             .AsNoTracking()
@@ -282,12 +277,36 @@ public partial class AcademicRepository
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
+        var subtopicIds = subtopics.Select(subtopic => subtopic.SubtopicId).ToList();
+        var topicProblems = await _academicContext.SubtopicProblems
+            .AsNoTracking()
+            .Where(link => subtopicIds.Contains(link.SubtopicId))
+            .ToListAsync();
+        var linkedProblemIds = topicProblems.Select(link => link.ProblemId).Distinct().ToList();
+        var availableProblemIdSet = (await _context.ProblemSites
+                .Where(problemSite => problemSite.SiteId == siteId && problemSite.IsActive && linkedProblemIds.Contains(problemSite.problemId))
+                .Select(problemSite => problemSite.problemId)
+                .ToListAsync())
+            .ToHashSet();
+        topicProblems = topicProblems.Where(link => availableProblemIdSet.Contains(link.ProblemId)).ToList();
+
         return new LearningPathProgressContext
         {
             LearningPathId = learningPath.LearningPathId,
             LearningPathKey = learningPath.LearningPathKey,
             OrderedTopicIds = orderedTopicIds,
-            ValidTopicIdSet = orderedTopicIds.ToHashSet(StringComparer.OrdinalIgnoreCase)
+            ValidTopicIdSet = orderedTopicIds.ToHashSet(StringComparer.OrdinalIgnoreCase),
+            CoreProblemIdsByTopic = subtopics
+                .GroupBy(BuildLearningPathTopicId, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    group => group.Key,
+                    group => topicProblems
+                        .Where(link => group.Any(subtopic => subtopic.SubtopicId == link.SubtopicId) && link.RoleInTopic != ChallengeProblemRole)
+                        .Select(link => link.ProblemId)
+                        .Distinct()
+                        .ToList(),
+                    StringComparer.OrdinalIgnoreCase),
+            ProblemIds = topicProblems.Select(link => link.ProblemId).Distinct().ToList()
         };
     }
 
@@ -316,14 +335,33 @@ public partial class AcademicRepository
             .ToList();
     }
 
-    private static LearningPathProgressResponse BuildLearningPathProgressResponse(
+    // A topic is completed when it was marked by hand (theory-only topics) or every core problem is accepted.
+    // ponytail: progress rows are keyed by user id only, so a path shared between sites mixes the marks of
+    // users with the same id on both sites; solved problems are per site. Add site_id to the key if that matters.
+    private async Task<LearningPathProgressResponse> BuildLearningPathProgressResponseAsync(
+        int siteId,
         LearningPathProgressContext progressContext,
         string userId,
         string? lastTopicId,
         IEnumerable<string> completedTopicIds,
         DateTime? updatedAtUtc)
     {
-        var normalizedCompletedTopicIds = NormalizeLearningPathTopicIds(completedTopicIds, progressContext.OrderedTopicIds);
+        var solvedProblemIds = progressContext.ProblemIds.Count == 0
+            ? new List<int>()
+            : await _context.Solutions
+                .AsNoTracking()
+                .Where(solution => solution.UserId == userId
+                    && solution.SiteId == siteId
+                    && solution.Result == AcceptedResultCode
+                    && progressContext.ProblemIds.Contains(solution.ProblemId))
+                .Select(solution => solution.ProblemId)
+                .Distinct()
+                .ToListAsync();
+        var solvedSet = solvedProblemIds.ToHashSet();
+        var solvedTopicIds = progressContext.CoreProblemIdsByTopic
+            .Where(topic => topic.Value.Count > 0 && topic.Value.All(solvedSet.Contains))
+            .Select(topic => topic.Key);
+        var normalizedCompletedTopicIds = NormalizeLearningPathTopicIds(completedTopicIds.Concat(solvedTopicIds), progressContext.OrderedTopicIds);
         var normalizedLastTopicId = ResolveCanonicalLearningPathTopicId(lastTopicId, progressContext.OrderedTopicIds);
 
         return new LearningPathProgressResponse
@@ -332,6 +370,7 @@ public partial class AcademicRepository
             UserId = userId,
             LastTopicId = normalizedLastTopicId,
             CompletedTopicIds = normalizedCompletedTopicIds,
+            SolvedProblemIds = solvedProblemIds.OrderBy(problemId => problemId).ToList(),
             UpdatedAtUtc = updatedAtUtc
         };
     }

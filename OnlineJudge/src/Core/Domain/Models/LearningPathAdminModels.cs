@@ -29,4 +29,20 @@ public class LearningPathTopicAdminRequest
     public string? Difficulty { get; set; }
     public int Order { get; set; }
     public List<int> ProblemIds { get; set; } = new();
+    public List<int> ChallengeProblemIds { get; set; } = new();
+}
+
+// One row per site: whether the path is shown there and how many of its problems that site lacks.
+public class LearningPathSiteAvailability
+{
+    public int SiteId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public bool IsOwner { get; set; }
+    public bool IsActive { get; set; }
+    public int MissingProblemCount { get; set; }
+}
+
+public class LearningPathSiteUpdateRequest
+{
+    public bool IsActive { get; set; }
 }

@@ -88,4 +88,67 @@ public class AcademicRepositoryProgressTests
         var error = await Assert.ThrowsAsync<ArgumentException>(() => repository.SaveLearningPathProgressAsync(1, "empty", "ana", new LearningPathProgressUpdateRequest()));
         Assert.Equal("La ruta de aprendizaje no tiene etapas configuradas.", error.Message);
     }
+
+    [Fact]
+    public async Task Progress_CompletesTopicWhenEveryCoreProblemIsAccepted()
+    {
+        using var seed = new JudgeSeed();
+        var repository = new AcademicRepository(seed.Db, seed.Academic);
+        var core = seed.Problem("Core");
+        var challenge = seed.Problem("Challenge");
+        var other = seed.Problem("Other");
+        seed.Save();
+        await repository.CreateLearningPathAsync(1, new LearningPathAdminUpsertRequest { Key = "icpc", Title = "ICPC" });
+        var path = await repository.CreateLearningPathStageAsync(1, "icpc", new LearningPathStageAdminRequest { Key = "icpc_basics", Name = "Basics", Order = 1 });
+        var stageId = path.Stages.Single().StageId;
+        await repository.CreateLearningPathTopicAsync(1, "icpc", stageId, new LearningPathTopicAdminRequest { Key = "io", Title = "IO", Order = 1, ProblemIds = new List<int> { core }, ChallengeProblemIds = new List<int> { challenge } });
+        await repository.CreateLearningPathTopicAsync(1, "icpc", stageId, new LearningPathTopicAdminRequest { Key = "theory", Title = "Theory", Order = 2 });
+        seed.Solution("ana", challenge, 4);
+        seed.Solution("ana", other, 4);
+        seed.Solution("ana", core, 6);
+        seed.Solution("ana", core, 4, siteId: 2);
+
+        var before = await repository.GetLearningPathProgressAsync(1, "icpc", "ana");
+        seed.Solution("ana", core, 4);
+        var after = await repository.GetLearningPathProgressAsync(1, "icpc", "ana");
+
+        Assert.Empty(before.CompletedTopicIds);
+        Assert.Equal(new[] { challenge }, before.SolvedProblemIds);
+        Assert.Equal(new[] { "io" }, after.CompletedTopicIds);
+        Assert.Equal(new[] { core, challenge }.OrderBy(id => id), after.SolvedProblemIds);
+        var topic = (await repository.GetLearningPathAsync(1, "icpc")).Stages.Single().Topics.First();
+        Assert.Equal(new[] { core }, topic.RecommendedProblems);
+        Assert.Equal(new[] { challenge }, topic.ChallengeProblems);
+    }
+
+    [Fact]
+    public async Task Sites_ToggleVisibilityPerSite()
+    {
+        using var seed = new JudgeSeed();
+        seed.Site(1).Site(2).Save();
+        var repository = new AcademicRepository(seed.Db, seed.Academic);
+        var shared = seed.Problem("Shared");
+        seed.Db.ProblemSites.Add(new DbProblemSite { problemId = shared, SiteId = 2, IsActive = true });
+        var onlyOwner = seed.Problem("Only owner");
+        seed.Save();
+        await repository.CreateLearningPathAsync(1, new LearningPathAdminUpsertRequest { Key = "icpc", Title = "ICPC" });
+        var path = await repository.CreateLearningPathStageAsync(1, "icpc", new LearningPathStageAdminRequest { Key = "icpc_basics", Name = "Basics", Order = 1 });
+        await repository.CreateLearningPathTopicAsync(1, "icpc", path.Stages.Single().StageId, new LearningPathTopicAdminRequest { Key = "io", Title = "IO", Order = 1, ProblemIds = new List<int> { shared, onlyOwner } });
+
+        var sites = (await repository.GetLearningPathSitesAsync(1, "icpc")).ToList();
+        Assert.Equal(new[] { (1, true, true, 0), (2, false, false, 1) }, sites.Select(site => (site.SiteId, site.IsOwner, site.IsActive, site.MissingProblemCount)));
+        Assert.Empty(await repository.GetLearningPathsAsync(2));
+        await Assert.ThrowsAsync<ArgumentException>(() => repository.GetLearningPathAsync(2, "icpc"));
+
+        await repository.SetLearningPathSiteAsync(1, "icpc", 2, true);
+        await repository.SetLearningPathSiteAsync(1, "icpc", 1, false);
+
+        Assert.Single(await repository.GetLearningPathsAsync(2));
+        Assert.Equal(new[] { shared }, (await repository.GetLearningPathAsync(2, "icpc")).Stages.Single().Topics.Single().RecommendedProblems);
+        Assert.Empty(await repository.GetLearningPathsAsync(1));
+        Assert.Single(await repository.GetManagedLearningPathsAsync(1));
+        Assert.Empty(await repository.GetManagedLearningPathsAsync(2));
+        await Assert.ThrowsAsync<ArgumentException>(() => repository.CreateLearningPathAsync(2, new LearningPathAdminUpsertRequest { Key = "icpc", Title = "Copy" }));
+        await Assert.ThrowsAsync<ArgumentException>(() => repository.SetLearningPathSiteAsync(1, "icpc", 99, true));
+    }
 }

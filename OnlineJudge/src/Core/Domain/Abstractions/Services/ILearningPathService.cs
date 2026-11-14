@@ -8,6 +8,11 @@ public interface ILearningPathService
 
     Task<LearningPathResponse> GetLearningPathAsync(int siteId, string learningPathKey, CurrentUser currentUser);
 
+    Task<IEnumerable<LearningPathTrackSummary>> GetManagedLearningPathsAsync(int siteId, CurrentUser currentUser);
+    Task<LearningPathResponse> GetManagedLearningPathAsync(int siteId, string learningPathKey, CurrentUser currentUser);
+    Task<IEnumerable<LearningPathSiteAvailability>> GetLearningPathSitesAsync(int siteId, string learningPathKey, CurrentUser currentUser);
+    Task<IEnumerable<LearningPathSiteAvailability>> SetLearningPathSiteAsync(int siteId, string learningPathKey, int targetSiteId, bool isActive, CurrentUser currentUser);
+
     Task<LearningPathResponse> CreateLearningPathAsync(int siteId, CurrentUser currentUser, LearningPathAdminUpsertRequest request);
     Task<LearningPathResponse> UpdateLearningPathAsync(int siteId, string learningPathKey, CurrentUser currentUser, LearningPathAdminUpsertRequest request);
     Task DeleteLearningPathAsync(int siteId, string learningPathKey, CurrentUser currentUser);

@@ -287,6 +287,39 @@ public class AcademicController : ControllerBase
     }
 
     // The learning-path catalog is scoped to the authenticated administrator's site.
+    // Admin reads include paths hidden on every site; the public reads above only list visible ones.
+    [HttpGet("learning-paths")]
+    [Authorize(Roles = AuthorizationRoles.Administrador)]
+    public async Task<IActionResult> GetManagedLearningPathsAsync()
+    {
+        var currentUser = _userClaimsHelper.GetUserContextRole();
+        return Ok(await _learningPathService.GetManagedLearningPathsAsync(currentUser.SiteId, currentUser));
+    }
+
+    [HttpGet("learning-paths/{learningPathKey}")]
+    [Authorize(Roles = AuthorizationRoles.Administrador)]
+    public async Task<IActionResult> GetManagedLearningPathAsync(string learningPathKey)
+    {
+        var currentUser = _userClaimsHelper.GetUserContextRole();
+        return Ok(await _learningPathService.GetManagedLearningPathAsync(currentUser.SiteId, learningPathKey, currentUser));
+    }
+
+    [HttpGet("learning-paths/{learningPathKey}/sites")]
+    [Authorize(Roles = AuthorizationRoles.Administrador)]
+    public async Task<IActionResult> GetLearningPathSitesAsync(string learningPathKey)
+    {
+        var currentUser = _userClaimsHelper.GetUserContextRole();
+        return Ok(await _learningPathService.GetLearningPathSitesAsync(currentUser.SiteId, learningPathKey, currentUser));
+    }
+
+    [HttpPut("learning-paths/{learningPathKey}/sites/{targetSiteId:int}")]
+    [Authorize(Roles = AuthorizationRoles.Administrador)]
+    public async Task<IActionResult> SetLearningPathSiteAsync(string learningPathKey, int targetSiteId, LearningPathSiteUpdateRequest request)
+    {
+        var currentUser = _userClaimsHelper.GetUserContextRole();
+        return Ok(await _learningPathService.SetLearningPathSiteAsync(currentUser.SiteId, learningPathKey, targetSiteId, request.IsActive, currentUser));
+    }
+
     [HttpPost("learning-paths")]
     [Authorize(Roles = AuthorizationRoles.Administrador)]
     public async Task<IActionResult> CreateLearningPathAsync(LearningPathAdminUpsertRequest request)

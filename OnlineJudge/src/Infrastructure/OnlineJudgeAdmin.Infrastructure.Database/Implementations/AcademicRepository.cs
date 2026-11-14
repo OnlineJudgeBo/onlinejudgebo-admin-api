@@ -36,6 +36,11 @@ public partial class AcademicRepository : IAcademicRepository, ILearningPathRepo
         public List<string> OrderedTopicIds { get; init; } = new();
 
         public HashSet<string> ValidTopicIdSet { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+
+        // Problems active on the site, core ones per topic key and every path problem (core and challenge).
+        public Dictionary<string, List<int>> CoreProblemIdsByTopic { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+
+        public List<int> ProblemIds { get; init; } = new();
     }
 
     private readonly AppDbContext _context;

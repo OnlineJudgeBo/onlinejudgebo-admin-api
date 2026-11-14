@@ -10,6 +10,9 @@ public class LearningPathProgressResponse
 
     public List<string> CompletedTopicIds { get; set; } = new();
 
+    // Path problems the user has an accepted submission for on this site.
+    public List<int> SolvedProblemIds { get; set; } = new();
+
     public DateTime? UpdatedAtUtc { get; set; }
 }
 

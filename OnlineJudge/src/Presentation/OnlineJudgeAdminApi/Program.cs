@@ -200,6 +200,19 @@ using (var scope = app.Services.CreateScope())
         CREATE UNIQUE INDEX IF NOT EXISTS site_learning_path_key ON learning_path (site_id, learning_path_key);
         """);
     academicContext.Database.ExecuteSqlRaw("""
+        CREATE TABLE IF NOT EXISTS learning_path_site (
+          learning_path_id BIGINT NOT NULL,
+          site_id INT NOT NULL,
+          is_active TINYINT(1) NOT NULL DEFAULT 1,
+          PRIMARY KEY (learning_path_id, site_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        """);
+    // Paths created before learning_path_site stay visible on their own site; IGNORE keeps rows already set.
+    academicContext.Database.ExecuteSqlRaw("""
+        INSERT IGNORE INTO learning_path_site (learning_path_id, site_id, is_active)
+        SELECT learning_path_id, site_id, 1 FROM learning_path;
+        """);
+    academicContext.Database.ExecuteSqlRaw("""
         ALTER TABLE course DROP FOREIGN KEY IF EXISTS fk_course_path;
         """);
     academicContext.Database.ExecuteSqlRaw("""

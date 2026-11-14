@@ -12,6 +12,7 @@ public partial class AcademicCatalogDbContext : DbContext
     public virtual DbSet<DbAcademicTopic> Topics { get; set; }
     public virtual DbSet<DbLearningPath> LearningPaths { get; set; }
     public virtual DbSet<DbLearningPathTopic> LearningPathTopics { get; set; }
+    public virtual DbSet<DbLearningPathSite> LearningPathSites { get; set; }
     public virtual DbSet<DbLearningPathProgress> LearningPathProgresses { get; set; }
     public virtual DbSet<DbLearningPathTopicProgress> LearningPathTopicProgresses { get; set; }
     public virtual DbSet<DbSubtopic> Subtopics { get; set; }
@@ -46,6 +47,12 @@ public partial class AcademicCatalogDbContext : DbContext
         {
             entity.ToTable("learning_path_topic");
             entity.HasKey(e => new { e.LearningPathId, e.TopicId });
+        });
+
+        modelBuilder.Entity<DbLearningPathSite>(entity =>
+        {
+            entity.ToTable("learning_path_site");
+            entity.HasKey(e => new { e.LearningPathId, e.SiteId });
         });
 
         modelBuilder.Entity<DbLearningPathProgress>(entity =>
