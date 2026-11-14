@@ -31,6 +31,34 @@ public class LearningPathService : ILearningPathService
         return await _repository.GetLearningPathAsync(siteId, learningPathKey);
     }
 
+    public Task<IEnumerable<LearningPathTrackSummary>> GetManagedLearningPathsAsync(int siteId, CurrentUser currentUser)
+    {
+        ValidateLearningPathManager(siteId, currentUser);
+        return _repository.GetManagedLearningPathsAsync(siteId);
+    }
+
+    public Task<LearningPathResponse> GetManagedLearningPathAsync(int siteId, string learningPathKey, CurrentUser currentUser)
+    {
+        ValidateLearningPathManager(siteId, currentUser);
+        ValidateKey(learningPathKey, "Learning path key");
+        return _repository.GetManagedLearningPathAsync(siteId, learningPathKey.Trim());
+    }
+
+    public Task<IEnumerable<LearningPathSiteAvailability>> GetLearningPathSitesAsync(int siteId, string learningPathKey, CurrentUser currentUser)
+    {
+        ValidateLearningPathManager(siteId, currentUser);
+        ValidateKey(learningPathKey, "Learning path key");
+        return _repository.GetLearningPathSitesAsync(siteId, learningPathKey.Trim());
+    }
+
+    public Task<IEnumerable<LearningPathSiteAvailability>> SetLearningPathSiteAsync(int siteId, string learningPathKey, int targetSiteId, bool isActive, CurrentUser currentUser)
+    {
+        ValidateLearningPathManager(siteId, currentUser);
+        ValidateKey(learningPathKey, "Learning path key");
+        ValidatePositiveId(targetSiteId, "Site id");
+        return _repository.SetLearningPathSiteAsync(siteId, learningPathKey.Trim(), targetSiteId, isActive);
+    }
+
     public Task<LearningPathResponse> CreateLearningPathAsync(int siteId, CurrentUser currentUser, LearningPathAdminUpsertRequest request)
     {
         ValidateLearningPathManager(siteId, currentUser);
@@ -175,7 +203,8 @@ public class LearningPathService : ILearningPathService
         ArgumentNullException.ThrowIfNull(request);
         ValidateKey(request.Key, "Topic key");
         ValidateKey(request.Title, "Topic title");
-        if (request.ProblemIds.Any(id => id <= 0)) throw new ArgumentException("Los ids de problema deben ser positivos.");
+        if (request.ProblemIds.Concat(request.ChallengeProblemIds).Any(id => id <= 0)) throw new ArgumentException("Los ids de problema deben ser positivos.");
+        if (request.ProblemIds.Intersect(request.ChallengeProblemIds).Any()) throw new ArgumentException("Un problema no puede ser obligatorio y de desafío a la vez.");
     }
 
     private static void ValidateKey(string? value, string name)

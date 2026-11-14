@@ -16,6 +16,9 @@ public class LearningPathTopic
 
     public List<int> RecommendedProblems { get; set; } = new();
 
+    // Optional extra practice; only RecommendedProblems count toward completing the topic.
+    public List<int> ChallengeProblems { get; set; } = new();
+
     public bool HasTheory => !string.IsNullOrWhiteSpace(Theory);
 
     public bool HasRecommendedProblems => RecommendedProblems.Count > 0;
