@@ -178,4 +178,23 @@ public class ExamActivityAnalyzerTests
         Assert.Equal("idle", result.Participants.Single(participant => participant.UserId == "idle").Nick);
         Assert.Equal("Parcial", result.Title);
     }
+
+    [Fact]
+    public void SimilarCode_OneAlertPerPairAndProblemEvenForUsersWithoutActivity()
+    {
+        var similar = new[]
+        {
+            new ContestSimilarityItem(10, 0, 1, "bob", 2, "ana", 80),
+            new ContestSimilarityItem(10, 0, 3, "ana", 4, "bob", 93),
+            new ContestSimilarityItem(11, 1, 5, "ana", 6, "zoe", 71),
+        };
+
+        var result = ExamActivityAnalyzer.Analyze(Exam(), new ExamActivity { ParticipantUserIds = new[] { "ana", "bob" } }, Start.AddHours(3), similar);
+
+        Assert.Equal(
+            new[] { "ana y bob tienen código 93% similar en el problema A.", "ana y zoe tienen código 71% similar en el problema B." },
+            result.Alerts.Where(alert => alert.Code == ExamAlertCodes.SimilarCode).Select(alert => alert.Message));
+        Assert.Equal(new[] { ExamAlertCodes.SimilarCode }, Codes(result, "bob"));
+        Assert.Equal(new[] { ExamAlertCodes.SimilarCode }, Codes(result, "zoe"));
+    }
 }

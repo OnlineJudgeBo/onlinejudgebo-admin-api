@@ -44,7 +44,7 @@ public static class ExamActivityAnalyzer
         return entries.Count == 0 ? null : string.Join(", ", entries);
     }
 
-    public static ExamMonitorResponse Analyze(Contest contest, ExamActivity activity, DateTime now)
+    public static ExamMonitorResponse Analyze(Contest contest, ExamActivity activity, DateTime now, IEnumerable<ContestSimilarityItem>? similar = null)
     {
         var labNetworks = ParseLabIps(contest.ExamLabIps);
         var events = activity.Events
@@ -78,7 +78,13 @@ public static class ExamActivityAnalyzer
             alerts.Add(new ExamMonitorAlert { Code = code, Severity = severity, Message = message, UserIds = users, Ips = ips.ToList() });
             foreach (var userId in users)
             {
-                alertCodesByUser[userId].Add(code);
+                // Similarity covers every contest submission, so it can name someone with no activity in the window.
+                if (!alertCodesByUser.TryGetValue(userId, out var codes))
+                {
+                    alertCodesByUser[userId] = codes = new List<string>();
+                    participantIds.Add(userId);
+                }
+                codes.Add(code);
             }
         }
 
@@ -111,6 +117,25 @@ public static class ExamActivityAnalyzer
             .OrderBy(group => group.Ip))
         {
             AddAlert(ExamAlertCodes.SharedIp, "medium", $"{group.Users.Count} cuentas usaron la misma IP {group.Ip}.", group.Users, new[] { group.Ip });
+        }
+
+        // What the judge's anti-plagiarism run found: one alert per pair of users and problem.
+        foreach (var pair in (similar ?? Array.Empty<ContestSimilarityItem>())
+            .Select(item => new
+            {
+                First = string.Compare(item.UserId, item.SimilarUserId, StringComparison.OrdinalIgnoreCase) <= 0 ? item.UserId : item.SimilarUserId,
+                Second = string.Compare(item.UserId, item.SimilarUserId, StringComparison.OrdinalIgnoreCase) <= 0 ? item.SimilarUserId : item.UserId,
+                item.ProblemNum,
+                item.Percentage
+            })
+            .GroupBy(item => (item.First.ToLowerInvariant(), item.Second.ToLowerInvariant(), item.ProblemNum))
+            .Select(group => group.MaxBy(item => item.Percentage)!)
+            .OrderByDescending(item => item.Percentage))
+        {
+            var problem = pair.ProblemNum >= 0 ? ContestProblemCode.FromNumber(pair.ProblemNum) : "?";
+            AddAlert(ExamAlertCodes.SimilarCode, "medium",
+                $"{pair.First} y {pair.Second} tienen código {Math.Round(pair.Percentage)}% similar en el problema {problem}.",
+                new[] { pair.First, pair.Second }, Array.Empty<string>());
         }
 
         var dockerIps = events.Select(item => item.Ip).Distinct().Where(IsProxy).ToList();
