@@ -12,6 +12,10 @@ public class LearningPathTopic
 
     public string? Theory { get; set; }
 
+    public string? Difficulty { get; set; }
+
+    public int SortOrder { get; set; }
+
     public List<string> Skills { get; set; } = new();
 
     public List<int> RecommendedProblems { get; set; } = new();

@@ -220,6 +220,8 @@ public partial class AcademicRepository
                     Title = subtopic.Title,
                     Description = subtopic.Summary,
                     Theory = subtopic.Theory,
+                    Difficulty = subtopic.DifficultyBand,
+                    SortOrder = subtopic.SortOrder,
                     Skills = SplitPipeList(subtopic.LearningObjectives),
                     RecommendedProblems = ProblemsOf(subtopic, false),
                     ChallengeProblems = ProblemsOf(subtopic, true)
