@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.RegularExpressions;
 using MySqlConnector;
 namespace OnlineJudgeAdminApi.ExceptionHandler;
 
@@ -39,6 +40,10 @@ public class ExceptionHandler
         catch (MySqlException ex) when (this.IsMissingAcademicSchemaException(ex))
         {
             await this.HandleAcademicSchemaExceptionAsync(httpContext, ex);
+        }
+        catch (Exception ex) when (DescribeDatabaseError(ex) is { } reason)
+        {
+            await this.HandleDatabaseErrorAsync(httpContext, ex, reason);
         }
         catch (Exception ex)
         {
@@ -104,6 +109,40 @@ public class ExceptionHandler
             StatusCode = context.Response.StatusCode,
             Message = message,
         }.ToString());
+    }
+
+    private async Task HandleDatabaseErrorAsync(HttpContext context, Exception ex, string reason)
+    {
+        context.Response.ContentType = "application/json";
+        context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+        this.logger.LogInformation(ex.ToString());
+
+        await context.Response.WriteAsync(new ErrorDetails
+        {
+            StatusCode = context.Response.StatusCode,
+            Message = $"No se pudo completar la operación: {reason}",
+        }.ToString());
+    }
+
+    // Database errors caused by the data sent, in words the user can act on; the rest stay "error interno".
+    // EF wraps the MySqlException in a DbUpdateException, so the inner exception is checked too.
+    private static string? DescribeDatabaseError(Exception ex)
+    {
+        var message = (ex as MySqlException ?? ex.InnerException as MySqlException)?.Message;
+        if (message is null)
+        {
+            return null;
+        }
+
+        var column = Regex.Match(message, "column '([^']+)'", RegexOptions.IgnoreCase).Groups[1].Value;
+        if (message.StartsWith("Data too long", StringComparison.OrdinalIgnoreCase)) return $"el campo '{column}' es demasiado largo.";
+        if (message.StartsWith("Out of range", StringComparison.OrdinalIgnoreCase)) return $"el valor del campo '{column}' está fuera de rango.";
+        if (message.StartsWith("Incorrect", StringComparison.OrdinalIgnoreCase) && column.Length > 0) return $"el campo '{column}' tiene un valor inválido.";
+        if (message.Contains("cannot be null", StringComparison.OrdinalIgnoreCase)) return $"el campo '{column}' es obligatorio.";
+        if (message.StartsWith("Duplicate entry", StringComparison.OrdinalIgnoreCase)) return "ya existe un registro con ese valor.";
+        if (message.StartsWith("Cannot add or update a child row", StringComparison.OrdinalIgnoreCase)) return "hace referencia a un registro que no existe.";
+        if (message.StartsWith("Cannot delete or update a parent row", StringComparison.OrdinalIgnoreCase)) return "otros registros dependen de este.";
+        return null;
     }
 
     private bool IsMissingAcademicSchemaException(MySqlException ex)

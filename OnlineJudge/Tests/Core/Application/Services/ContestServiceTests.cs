@@ -121,6 +121,19 @@ public class ContestServiceTests
     }
 
     [Fact]
+    public async Task CreateContestAsync_RejectsTitleLongerThanColumn()
+    {
+        var service = CreateService();
+
+        var error = await Assert.ThrowsAsync<ArgumentException>(() => service.CreateContestAsync("owner", new Contest
+        {
+            Title = new string('a', 256)
+        }, string.Empty, 1));
+
+        Assert.Equal("El título del concurso no puede tener más de 255 caracteres.", error.Message);
+    }
+
+    [Fact]
     public async Task UpdateContestAsync_ThrowsWhenExistingContestDoesNotExist()
     {
         var contestRepository = new Mock<IContestsRepository>();

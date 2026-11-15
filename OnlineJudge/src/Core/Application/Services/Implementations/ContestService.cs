@@ -199,6 +199,12 @@ public class ContestService : IContestService
         contest.Track = string.IsNullOrWhiteSpace(contest.Track) ? "GENERAL" : contest.Track;
         contest.Level = string.IsNullOrWhiteSpace(contest.Level) ? "PRACTICE" : contest.Level;
 
+        // contest.title is varchar(255); longer titles fail in the database with a 500.
+        if (contest.Title?.Length > 255)
+        {
+            throw new ArgumentException("El título del concurso no puede tener más de 255 caracteres.");
+        }
+
         if (contest.Track != "OBI"
             && contest.Track != "ICPC_BOLIVIA"
             && contest.Track != "GENERAL")
