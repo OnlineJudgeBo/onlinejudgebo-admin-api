@@ -398,13 +398,27 @@ public class ExceptionHandlerTests
     [InlineData("Table 'academic.course_user' doesn't exist", 500, "tablas académicas")]
     [InlineData("Table 'academic.learning_path' doesn't exist", 500, "tablas académicas")]
     [InlineData("Table 'jol.solution' doesn't exist", 500, "error interno")]
-    [InlineData("Duplicate entry 'x' for key 'course'", 500, "error interno")]
+    [InlineData("Duplicate entry 'x' for key 'course'", 400, "ya existe un registro con ese valor.")]
+    [InlineData("Data too long for column 'title' at row 1", 400, "el campo 'title' es demasiado largo.")]
+    [InlineData("Column 'user_id' cannot be null", 400, "el campo 'user_id' es obligatorio.")]
+    [InlineData("Lock wait timeout exceeded", 500, "error interno")]
     public async Task MySqlErrors_OnlyMissingAcademicTablesGetSpecificMessage(string mysqlMessage, int status, string expectedFragment)
     {
         var (context, body) = await Invoke(_ => throw CreateMySqlException(mysqlMessage));
 
         Assert.Equal(status, context.Response.StatusCode);
         Assert.Contains(expectedFragment, body.GetProperty("message").GetString());
+    }
+
+    [Fact]
+    public async Task DatabaseErrorWrappedByEfIsDescribed()
+    {
+        var wrapped = new Exception("An error occurred while saving the entity changes.", CreateMySqlException("Data too long for column 'title' at row 1"));
+
+        var (context, body) = await Invoke(_ => throw wrapped);
+
+        Assert.Equal(400, context.Response.StatusCode);
+        Assert.Equal("No se pudo completar la operación: el campo 'title' es demasiado largo.", body.GetProperty("message").GetString());
     }
 
     [Fact]
