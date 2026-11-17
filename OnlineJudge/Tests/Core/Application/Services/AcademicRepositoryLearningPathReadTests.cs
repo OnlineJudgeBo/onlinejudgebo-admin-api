@@ -46,6 +46,21 @@ public class AcademicRepositoryLearningPathReadTests
     }
 
     [Fact]
+    public async Task GetLearningPath_StageDescriptionPrefersStageOverFirstTopicSummary()
+    {
+        using var seed = new JudgeSeed();
+        var (repository, stageId) = await SeedAsync(seed);
+        await repository.CreateLearningPathTopicAsync(1, "algo101", stageId, new LearningPathTopicAdminRequest { Key = "t1", Title = "T1", Summary = "Resumen del tema", Order = 1 });
+
+        Assert.Equal("Resumen del tema", (await repository.GetLearningPathAsync(1, "algo101")).Stages.Single().Description);
+
+        (await seed.Academic.Topics.SingleAsync(topic => topic.TopicId == stageId)).Description = "Qué cubre la etapa";
+        await seed.Academic.SaveChangesAsync();
+
+        Assert.Equal("Qué cubre la etapa", (await repository.GetLearningPathAsync(1, "algo101")).Stages.Single().Description);
+    }
+
+    [Fact]
     public async Task GetLearningPath_UnknownKeyOrSiteThrows()
     {
         using var seed = new JudgeSeed();

@@ -159,7 +159,7 @@ public partial class AcademicRepository
 
         var topics = await _academicContext.Topics
             .Where(topic => topicIds.Contains(topic.TopicId))
-            .Select(topic => new { topic.TopicId, topic.TopicKey, topic.Name, topic.SortOrder, topic.UnlockedByDefault })
+            .Select(topic => new { topic.TopicId, topic.TopicKey, topic.Name, topic.Description, topic.SortOrder, topic.UnlockedByDefault })
             .ToListAsync();
 
         var subtopics = await _academicContext.Subtopics
@@ -188,6 +188,7 @@ public partial class AcademicRepository
                 topic.TopicId,
                 topic.TopicKey,
                 topic.Name,
+                topic.Description,
                 topic.SortOrder,
                 topic.UnlockedByDefault,
                 Order = topic.SortOrder > 0 ? topic.SortOrder : ExtractStageOrder(topic.Name, index + 1)
@@ -235,7 +236,9 @@ public partial class AcademicRepository
                 Name = orderedTopic.Name,
                 SortOrder = orderedTopic.Order,
                 Difficulty = MapDifficulty(stageSubtopics.Select(subtopic => subtopic.DifficultyBand).FirstOrDefault()),
-                Description = stageSubtopics.Select(subtopic => subtopic.Summary).FirstOrDefault(summary => !string.IsNullOrWhiteSpace(summary)) ?? orderedTopic.Name,
+                Description = !string.IsNullOrWhiteSpace(orderedTopic.Description)
+                    ? orderedTopic.Description
+                    : stageSubtopics.Select(subtopic => subtopic.Summary).FirstOrDefault(summary => !string.IsNullOrWhiteSpace(summary)) ?? orderedTopic.Name,
                 LearningObjectives = stageSubtopics
                     .SelectMany(subtopic => SplitPipeList(subtopic.LearningObjectives))
                     .Distinct(StringComparer.OrdinalIgnoreCase)
