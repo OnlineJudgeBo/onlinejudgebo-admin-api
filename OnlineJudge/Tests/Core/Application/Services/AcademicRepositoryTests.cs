@@ -347,6 +347,25 @@ public class AcademicRepositoryTests
     }
 
     [Fact]
+    public async Task LearningPathStage_SavesDescription_OnCreateAndUpdate()
+    {
+        using SqliteContext<AcademicCatalogDbContext> scope = CreateSqliteContext<AcademicCatalogDbContext>(o => new SqliteAcademicCatalogDbContext(o));
+        AcademicCatalogDbContext academicContext = scope.Context;
+        using AppDbContext context = CreateContext();
+        var repository = new AcademicRepository(context, academicContext);
+        await repository.CreateLearningPathAsync(1, new LearningPathAdminUpsertRequest { Key = "algo101", Title = "Algorithms", LanguagePrimary = "cpp", Category = "core" });
+
+        LearningPathResponse created = await repository.CreateLearningPathStageAsync(1, "algo101",
+            new LearningPathStageAdminRequest { Key = "arrays", Name = "Arrays", Description = "  Vectores y matrices. ", Order = 1 });
+        Assert.Equal("Vectores y matrices.", created.Stages.Single().Description);
+
+        long stageId = (await academicContext.Topics.SingleAsync()).TopicId;
+        await repository.UpdateLearningPathStageAsync(1, "algo101", stageId,
+            new LearningPathStageAdminRequest { Key = "arrays", Name = "Arrays", Description = " ", Order = 1 });
+        Assert.Null((await academicContext.Topics.SingleAsync()).Description);
+    }
+
+    [Fact]
     public async Task DeleteLearningPathStageAsync_RemovesStage_WhenNotShared()
     {
         using SqliteContext<AcademicCatalogDbContext> scope = CreateSqliteContext<AcademicCatalogDbContext>(o => new SqliteAcademicCatalogDbContext(o));
