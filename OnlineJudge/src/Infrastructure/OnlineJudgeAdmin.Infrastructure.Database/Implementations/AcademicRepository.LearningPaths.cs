@@ -385,7 +385,7 @@ public partial class AcademicRepository
         if (await _academicContext.Topics.AnyAsync(topic => topic.TopicKey == key)) throw new ArgumentException("La clave de la etapa ya existe.");
         if (await HasStageWithOrderAsync(path.LearningPathId, request.Order)) throw new ArgumentException("El orden de la etapa ya existe en esta ruta de aprendizaje.");
         await using var transaction = await _academicContext.Database.BeginTransactionAsync();
-        var stage = new DbAcademicTopic { TopicKey = key, Name = request.Name.Trim(), SortOrder = request.Order, UnlockedByDefault = request.UnlockedByDefault };
+        var stage = new DbAcademicTopic { TopicKey = key, Name = request.Name.Trim(), Description = NormalizeOptionalText(request.Description), SortOrder = request.Order, UnlockedByDefault = request.UnlockedByDefault };
         await _academicContext.Topics.AddAsync(stage);
         await _academicContext.SaveChangesAsync();
         await _academicContext.LearningPathTopics.AddAsync(new DbLearningPathTopic { LearningPathId = path.LearningPathId, TopicId = stage.TopicId });
@@ -430,7 +430,7 @@ public partial class AcademicRepository
         var key = NormalizeCatalogKey(request.Key);
         if (await _academicContext.Topics.AnyAsync(item => item.TopicId != stageId && item.TopicKey == key)) throw new ArgumentException("La clave de la etapa ya existe.");
         if (await HasStageWithOrderAsync(path.LearningPathId, request.Order, stageId)) throw new ArgumentException("El orden de la etapa ya existe en esta ruta de aprendizaje.");
-        stage.TopicKey = key; stage.Name = request.Name.Trim(); stage.SortOrder = request.Order; stage.UnlockedByDefault = request.UnlockedByDefault;
+        stage.TopicKey = key; stage.Name = request.Name.Trim(); stage.Description = NormalizeOptionalText(request.Description); stage.SortOrder = request.Order; stage.UnlockedByDefault = request.UnlockedByDefault;
         await _academicContext.SaveChangesAsync();
         return await GetManagedLearningPathAsync(siteId, path.LearningPathKey);
     }
@@ -611,6 +611,8 @@ public partial class AcademicRepository
         topic.LearningObjectives = string.Join('|', request.LearningObjectives.Where(item => !string.IsNullOrWhiteSpace(item)).Select(item => item.Trim()).Distinct(StringComparer.OrdinalIgnoreCase));
         topic.DifficultyBand = request.Difficulty?.Trim(); topic.SortOrder = request.Order;
     }
+
+    private static string? NormalizeOptionalText(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static string NormalizeCatalogKey(string value)
     {
