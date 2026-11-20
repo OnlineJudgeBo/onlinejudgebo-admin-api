@@ -176,6 +176,7 @@ public class AuthorizationContractTests
         ["PublicController.GetLanguagesAsync [GET languages]"] = "anonymous",
         ["PublicController.GetHealthAsync [GET /api/health]"] = "anonymous",
         ["PublicController.GetSiteAsync [GET site]"] = "anonymous",
+        ["SitemapController.GetSitemapAsync [GET /api/public/sitemap.xml]"] = "anonymous",
         ["SiteController.GetAsync [GET ]"] = "roles:Administrador",
         ["SiteController.UpdateAsync [PUT ]"] = "roles:Administrador",
         ["PublicController.GetOnlineUsersAsync [GET activity/online-users]"] = "authenticated",
@@ -281,6 +282,7 @@ public class AuthorizationContractTests
         Assert.All(anonymous, key => Assert.True(
             key.StartsWith("PublicController.Get", StringComparison.Ordinal)
             || key.StartsWith("PublicClarificationsController.Get", StringComparison.Ordinal)
+            || key.StartsWith("SitemapController.Get", StringComparison.Ordinal)
             || key.StartsWith("PublicAuthController.", StringComparison.Ordinal)
             || key.StartsWith("AcademicController.GetLearningPath", StringComparison.Ordinal)
             || key.Contains("/api/patito-ide/", StringComparison.Ordinal)
