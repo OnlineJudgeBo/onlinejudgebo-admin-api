@@ -120,8 +120,8 @@ public class ProblemsControllerTests
         var file = new FormFile(new MemoryStream(bytes), 0, bytes.Length, "file", "p.zip");
         string? received = null;
         _packages
-            .Setup(item => item.ImportProblemPackageAsync("admin", It.IsAny<Stream>(), 6))
-            .Callback<string, Stream, int>((_, stream, _) => received = new StreamReader(stream).ReadToEnd())
+            .Setup(item => item.ImportProblemPackageAsync("admin", It.IsAny<Stream>(), 6, null))
+            .Callback<string, Stream, int, int?>((_, stream, _, _) => received = new StreamReader(stream).ReadToEnd())
             .ReturnsAsync(new Problem { ProblemId = 77 });
 
         var result = await Controller("admin", 6, "Administrador").ImportProblemAsync(file);

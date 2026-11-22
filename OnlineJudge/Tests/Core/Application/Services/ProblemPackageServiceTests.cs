@@ -517,6 +517,56 @@ public class ProblemPackageServiceTests
         Assert.True(after.SetEquals(before), "El directorio de staging debe limpiarse incluso si CreateProblemAsync falla.");
     }
 
+    [Fact]
+    public async Task ImportProblemPackageAsync_OverAProblem_ReplacesItsDataButKeepsVisibilityAndTopics()
+    {
+        var existing = BuildProblem(7);
+        existing.Defunct = "Y";
+        existing.Classifications = new List<Classification> { new() { ClassificationId = 5 } };
+        var problemService = new Mock<IProblemService>();
+        problemService.Setup(item => item.GetProblemByIdAsync(7, 1)).ReturnsAsync(existing);
+        Problem? updated = null;
+        problemService
+            .Setup(item => item.UpdateProblemAsync("teacher", 7, It.IsAny<Problem>(), 1))
+            .Callback<string, int, Problem, int>((_, _, problem, _) => updated = problem)
+            .ReturnsAsync((string _, int id, Problem problem, int _) => { problem.ProblemId = id; return problem; });
+        var fileManager = new Mock<IFileSystemLocalManagerManager>();
+        fileManager.Setup(item => item.ListFiles("7")).Returns(new[] { "old.in", "old.out", "checker.cpp" });
+        var service = CreateService(problemService.Object, fileManager.Object);
+
+        var zipBytes = BuildZip(entries =>
+        {
+            entries["metadata.json"] = JsonSerializer.Serialize(new { Title = "Nuevo", Defunct = "N", ClassificationIds = new[] { 3 } });
+            entries["data/secret/1.in"] = "secret-in";
+            entries["data/secret/1.out"] = "secret-out";
+        });
+
+        using var stream = new MemoryStream(zipBytes);
+        var result = await service.ImportProblemPackageAsync("teacher", stream, 1, 7);
+
+        Assert.Equal(7, result.ProblemId);
+        Assert.Equal("Nuevo", updated!.Title);
+        Assert.Equal("Y", updated.Defunct);
+        Assert.Single(updated.Classifications!, c => c.ClassificationId == 5);
+        fileManager.Verify(item => item.DeleteFile("7", "old.in"), Times.Once);
+        fileManager.Verify(item => item.DeleteFile("7", "checker.cpp"), Times.Once);
+        fileManager.Verify(item => item.WriteToFile("7", "1.in", "secret-in"), Times.Once);
+        problemService.Verify(item => item.CreateProblemAsync(It.IsAny<string>(), It.IsAny<Problem>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ImportProblemPackageAsync_OverAMissingProblem_ThrowsBeforeTouchingFiles()
+    {
+        var problemService = new Mock<IProblemService>();
+        var fileManager = new Mock<IFileSystemLocalManagerManager>();
+        var service = CreateService(problemService.Object, fileManager.Object);
+
+        using var stream = new MemoryStream(BuildZip(entries => entries["metadata.json"] = JsonSerializer.Serialize(new { Title = "x" })));
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => service.ImportProblemPackageAsync("teacher", stream, 1, 99));
+
+        fileManager.Verify(item => item.DeleteFile(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
     private static IProblemService StubProblemService(int problemId, Problem problem)
     {
         var problemService = new Mock<IProblemService>();

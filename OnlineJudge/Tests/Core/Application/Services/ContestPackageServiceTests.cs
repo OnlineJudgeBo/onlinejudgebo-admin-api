@@ -37,7 +37,7 @@ public class ContestPackageServiceTests
         var package = await Service().ExportAsync(7, 3);
 
         var nextId = 100;
-        _problems.Setup(item => item.ImportProblemPackageAsync("admin", It.IsAny<Stream>(), 3))
+        _problems.Setup(item => item.ImportProblemPackageAsync("admin", It.IsAny<Stream>(), 3, null))
             .ReturnsAsync(() => new Problem { ProblemId = nextId++ });
         _languages.Setup(item => item.GetAllProgrammingLanguageAsync())
             .ReturnsAsync([new ProgrammingLanguage { LanguageId = 9, Name = "C++" }, new ProgrammingLanguage { LanguageId = 10, Name = "Java" }]);

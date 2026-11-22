@@ -332,8 +332,13 @@ public class ProblemPackageService : IProblemPackageService
         entryStream.Write(content, 0, content.Length);
     }
 
-    public async Task<Problem> ImportProblemPackageAsync(string userId, Stream zipStream, int siteId)
+    public async Task<Problem> ImportProblemPackageAsync(string userId, Stream zipStream, int siteId, int? problemId = null)
     {
+        // Reimport: the same problem keeps its id, visibility and topics; everything else comes from the zip.
+        var existing = problemId is { } id
+            ? await _problemService.GetProblemByIdAsync(id, siteId) ?? throw new KeyNotFoundException("No se encontró el ID del problema.")
+            : null;
+
         var stagingDir = Path.Combine(Path.GetTempPath(), "icpc-import", Guid.NewGuid().ToString("N"));
         var extractDir = Path.Combine(stagingDir, "extracted");
 
@@ -354,7 +359,26 @@ public class ProblemPackageService : IProblemPackageService
             var checkerFiles = CheckerSources.Concat(CheckerSupportFiles).Where(name => File.Exists(Path.Combine(checkerDir, name))).ToList();
             var hasChecker = checkerFiles.Any(name => CheckerSources.Contains(name));
             problem.Spj = hasChecker ? "Y" : "N";
-            var created = await _problemService.CreateProblemAsync(userId, problem, siteId);
+            Problem created;
+            if (existing != null)
+            {
+                problem.Defunct = existing.Defunct;
+                problem.Classifications = existing.Classifications?.ToList() ?? new List<Classification>();
+
+                // The old tests, checker and graders may not be in the new zip; the samples are rewritten by the update.
+                var oldFolder = existing.ProblemId!.Value.ToString();
+                foreach (var name in _fileManager.ListFiles(oldFolder))
+                {
+                    _fileManager.DeleteFile(oldFolder, name);
+                }
+
+                created = await _problemService.UpdateProblemAsync(userId, existing.ProblemId.Value, problem, siteId);
+            }
+            else
+            {
+                created = await _problemService.CreateProblemAsync(userId, problem, siteId);
+            }
+
             var folder = created.ProblemId!.Value.ToString();
 
             WriteSecretTestData(extractDir, created.ProblemId.Value);
