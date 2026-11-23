@@ -256,15 +256,12 @@ public class PublicService : IPublicService
             throw new KeyNotFoundException("No se encontró el envío solicitado.");
         }
 
-        var isOwner = string.Equals(solution.UserId, currentUser.UserId, StringComparison.OrdinalIgnoreCase);
-        var canViewCourseSubmissionSource = !isOwner
-            && await _academicRepository.CanViewCourseSubmissionSourceAsync(
-                currentUser.SiteId,
-                solutionId,
-                currentUser.UserId,
-                IsAcademicManager(currentUser));
+        // Staff of the site (admin, teacher, assistant) see every submission; others need to own it or staff its course.
+        var canView = string.Equals(solution.UserId, currentUser.UserId, StringComparison.OrdinalIgnoreCase)
+            || IsAcademicManager(currentUser)
+            || await _academicRepository.CanViewCourseSubmissionSourceAsync(currentUser.SiteId, solutionId, currentUser.UserId, false);
 
-        if (!isOwner && !canViewCourseSubmissionSource)
+        if (!canView)
         {
             throw new KeyNotFoundException("No se encontró el envío solicitado.");
         }
