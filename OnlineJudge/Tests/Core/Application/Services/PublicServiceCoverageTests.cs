@@ -391,18 +391,25 @@ public class PublicServiceCoverageTests
     }
 
     [Theory]
-    [InlineData(UserRolesEnum.Administrador, true)]
-    [InlineData(UserRolesEnum.Docente, true)]
-    [InlineData(UserRolesEnum.Auxiliar, true)]
-    [InlineData(UserRolesEnum.Invitado, false)]
-    public async Task GetSubmissionStatusAsync_PassesManagerFlagToCourseCheck(UserRolesEnum role, bool isManager)
+    [InlineData(UserRolesEnum.Administrador)]
+    [InlineData(UserRolesEnum.Docente)]
+    [InlineData(UserRolesEnum.Auxiliar)]
+    public async Task GetSubmissionStatusAsync_StaffSeeAnySubmissionOfTheirSite(UserRolesEnum role)
     {
         _solutionService.Setup(item => item.GetSolutionByIdAsync(10)).ReturnsAsync(new Solution { SolutionId = 10, SiteId = 1, UserId = "other" });
-        _academicRepository.Setup(item => item.CanViewCourseSubmissionSourceAsync(1, 10, "student1", isManager)).ReturnsAsync(true);
 
         await Service.GetSubmissionStatusAsync(User(role), 10);
 
-        _academicRepository.Verify(item => item.CanViewCourseSubmissionSourceAsync(1, 10, "student1", isManager), Times.Once);
+        _academicRepository.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task GetSubmissionStatusAsync_OthersNeedCourseAccess()
+    {
+        _solutionService.Setup(item => item.GetSolutionByIdAsync(10)).ReturnsAsync(new Solution { SolutionId = 10, SiteId = 1, UserId = "other" });
+        _academicRepository.Setup(item => item.CanViewCourseSubmissionSourceAsync(1, 10, "student1", false)).ReturnsAsync(false);
+
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => Service.GetSubmissionStatusAsync(User(UserRolesEnum.Invitado), 10));
     }
 
     [Theory]
